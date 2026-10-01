@@ -21,5 +21,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Mod compilation failed.' }
 if ($LASTEXITCODE -ne 0) { throw 'Algorithm checks failed.' }
 & $DotnetPath run --project (Join-Path $repoRoot 'tests\GasPurchases\GasPurchases.Tests.csproj') -c Release --no-build --no-restore
 if ($LASTEXITCODE -ne 0) { throw 'Saved-purchase checks failed.' }
+& $DotnetPath run --project (Join-Path $repoRoot 'tests\MoreGuns\MoreGuns.Tests.csproj') -c Release --no-build --no-restore
+if ($LASTEXITCODE -ne 0) { throw 'Weapon spin-up checks failed.' }
 & (Join-Path $PSScriptRoot 'Package.ps1')
 Write-Output 'Built and checked all six mods.'

@@ -21,6 +21,6 @@ The same audit identified two other cases addressed in this package:
 
 Close the game, then replace **Personal.BetterPolice.dll**, **Personal.Warehouse.dll** and **Personal.Casino.dll** with their 0.1.1 versions from `PersonalMods-0.2.0/Mods`. Add the other desired personal DLLs, including `Personal.GasPurchases.dll`. Do not leave duplicate copies of earlier DLLs in `Mods`.
 
-Verify those three mods report **0.1.1** in `MelonLoader/Latest.log`, reach the main menu, and load a save. Then follow `playtest.md`. These changes remove the unsafe native targets identified in the dumps; the corrected package still needs a fresh game run to confirm startup and gameplay. The live game process and installed files were left to the owner for manual installation.
+Verify those three mods report **0.1.1** in `MelonLoader/Latest.log`, reach the main menu, and load a save. Then follow `playtest.md`. On October 1 the owner confirmed the corrected mods run, and the local log shows all six loading and successful save loads. This establishes recovery from the reported startup crash; weapon reload/animation issues from that run are addressed separately in More Guns 0.2.0. The live game process and installed files were left to the owner for manual installation.
 
 The dumps remain local and excluded from Git. No dump or save data is included in this repository or package.

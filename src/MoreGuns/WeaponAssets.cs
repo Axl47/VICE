@@ -17,6 +17,7 @@ internal sealed class GunOptions
     internal string Id { get; }
     internal string Name { get; }
     internal MelonPreferences_Entry<float> Price, MagazinePrice, Damage, FireInterval, WindupSeconds;
+    internal MelonPreferences_Entry<float> SpreadMultiplier, ImpactForceMultiplier, SoundVolumeMultiplier, CameraShakeMultiplier;
     internal MelonPreferences_Entry<int> MagazineSize;
     internal MelonPreferences_Entry<bool> RequireRank;
 
@@ -30,6 +31,10 @@ internal sealed class GunOptions
         FireInterval = ModSupport.Entry(category, "FireInterval", interval, "Seconds between automatic shots.");
         MagazineSize = ModSupport.Entry(category, "MagazineSize", rounds, "Rounds in the gun and each spare magazine.");
         WindupSeconds = ModSupport.Entry(category, "WindupSeconds", windup, "Seconds holding aim before firing; zero disables windup.");
+        SpreadMultiplier = ModSupport.Entry(category, "SpreadMultiplier", id == "ak47" ? 0.7f : 0.5f, "Bullet spread relative to version 0.1.0; 1 restores the old spread.");
+        ImpactForceMultiplier = ModSupport.Entry(category, "ImpactForceMultiplier", 0.65f, "Bullet knockback relative to version 0.1.0; 0.65 is 35% less.");
+        SoundVolumeMultiplier = ModSupport.Entry(category, "SoundVolumeMultiplier", id == "ak47" ? 0.4f : 0.25f, "Weapon sound volume before the game's master/effects settings, from 0 to 1.");
+        CameraShakeMultiplier = ModSupport.Entry(category, "CameraShakeMultiplier", 0.5f, "Firing shake strength; 0 disables it and 1 restores the original camera jolt.");
         RequireRank = ModSupport.Entry(category, "RequirePurchaseRank", false, "Use the original bundle's purchase rank.");
     }
 
@@ -107,7 +112,7 @@ internal static class WeaponAssets
         var avatarComponent = avatar.GetComponent<AvatarEquippable>() ?? throw new InvalidOperationException("Missing gun avatar component.");
         var magazineComponent = magazineAvatar.GetComponent<AvatarEquippable>() ?? throw new InvalidOperationException("Missing magazine avatar component.");
         var trashPrefab = Bundle!.LoadAsset<GameObject>($"assets/resources/weapons/{id}/magazine/{id}_Magazine_Trash.prefab");
-        var trash = trashPrefab ? trashPrefab.GetComponent<TrashItem>() : null;
+        var trash = WeaponPresentation.PrepareMagazineTrash(trashPrefab, options);
         var gun = MakeDefinition(prototype, originalGun, options.Id, options.Name, viewmodel,
             GunOptions.Safe(options.Price.Value, 15000, 1, 10_000_000), options);
         var magazine = MakeDefinition(prototype, originalMagazine, options.Id + "mag", options.Name + " Magazine", originalMagazine.Equippable,
@@ -124,9 +129,10 @@ internal static class WeaponAssets
         viewmodel.FireCooldown = GunOptions.Safe(options.FireInterval.Value, 0.1f, 0.02f, 5f);
         viewmodel.Range = id == "ak47" ? 30 : 25;
         viewmodel.RayRadius = 0.05f;
-        viewmodel.MinSpread = id == "ak47" ? 2 : 4;
-        viewmodel.MaxSpread = id == "ak47" ? 6 : 8;
-        viewmodel.ImpactForce = id == "ak47" ? 200 : 300;
+        var spread = GunOptions.Safe(options.SpreadMultiplier.Value, id == "ak47" ? 0.7f : 0.5f, 0, 2);
+        viewmodel.MinSpread = (id == "ak47" ? 2 : 4) * spread;
+        viewmodel.MaxSpread = (id == "ak47" ? 6 : 8) * spread;
+        viewmodel.ImpactForce = (id == "ak47" ? 200 : 300) * GunOptions.Safe(options.ImpactForceMultiplier.Value, 0.65f, 0, 2);
         viewmodel.HeadshotMultiplier = 2;
         viewmodel.MustBeCocked = false;
         viewmodel.CockedByDefault = true;
@@ -134,6 +140,9 @@ internal static class WeaponAssets
         viewmodel.MinAimFOVReduction = 10;
         viewmodel.MaxAimFOVReduction = 10;
         viewmodel.AccuracyDropPerShot = 0.1f;
+        WeaponPresentation.PrepareAvatar(avatarComponent);
+        GunAudio.Configure(prefab, options, avatar: false);
+        GunAudio.Configure(avatar, options, avatar: true);
         avatarComponent.AssetPath = $"Avatar/Equippables/{options.Name}";
         magazineComponent.AssetPath = $"Weapons/{id}/Magazine/{options.Name}_Magazine_AvatarEquippable";
         viewmodel.AvatarEquippable = avatarComponent;

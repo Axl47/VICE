@@ -11,7 +11,7 @@ using UnityEngine;
 using Object = UnityEngine.Object;
 using Avatar = Il2CppScheduleOne.AvatarFramework.Avatar;
 
-[assembly: MelonInfo(typeof(PersonalMods.MoreGuns.MoreGunsMod), "Personal More Guns", "0.1.0", "Axl47; original assets by Voidane")]
+[assembly: MelonInfo(typeof(PersonalMods.MoreGuns.MoreGunsMod), "Personal More Guns", "0.2.0", "Axl47; original assets by Voidane")]
 [assembly: MelonGame("TVGS", "Schedule I")]
 
 namespace PersonalMods.MoreGuns;
@@ -55,6 +55,7 @@ public sealed class MoreGunsMod : MelonMod
     {
         if (sceneName == "Main") Register(Registry.Instance);
     }
+    public override void OnUpdate() => GunAudio.Refresh();
 
     private static void RegistryReady(Registry __instance) => Register(__instance);
     private static void BeforeLookup(Registry __instance, string ID)
@@ -142,7 +143,26 @@ public sealed class MoreGunsMod : MelonMod
         {
             created = Object.Instantiate(prefab);
             var equippable = created.GetComponent<AvatarEquippable>() ?? throw new InvalidOperationException("Missing avatar equippable.");
-            __instance.CurrentEquippable?.Unequip();
+            // Unity can retain a managed wrapper after the old model has been destroyed.
+            // Clear it first, so a failed old Unequip cannot strand the new custom model.
+            var previous = __instance.CurrentEquippable;
+            __instance.CurrentEquippable = null;
+            if (previous)
+            {
+                try
+                {
+                    if (previous.avatar) previous.Unequip();
+                    else Object.Destroy(previous.gameObject);
+                }
+                catch (Exception error)
+                {
+                    if (previous) Object.Destroy(previous.gameObject);
+                    ModSupport.WarnOnce("guns:avatar:cleanup", $"Discarded a stale weapon model: {error.Message}");
+                }
+            }
+            WeaponPresentation.PrepareAvatar(equippable);
+            var gun = WeaponAssets.Guns.Values.FirstOrDefault(x => x.AvatarPrefab.Pointer == prefab.Pointer || x.MagazineAvatarPrefab.Pointer == prefab.Pointer);
+            if (gun is not null) GunAudio.Configure(created, gun.Options, avatar: true);
             __instance.CurrentEquippable = equippable;
             equippable.Equip(__instance);
             __result = equippable;
@@ -150,6 +170,7 @@ public sealed class MoreGunsMod : MelonMod
         }
         catch (Exception error)
         {
+            if (created is not null && created && __instance.CurrentEquippable?.gameObject?.Pointer == created.Pointer) __instance.CurrentEquippable = null;
             if (created) Object.Destroy(created);
             ModSupport.WarnOnce($"guns:avatar:{assetPath}", $"Custom avatar equipping failed: {error.Message}");
             return true;

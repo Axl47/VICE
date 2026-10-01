@@ -10,7 +10,7 @@ internal static class ModSupport
     private static readonly HashSet<string> Reported = new();
 
     internal static bool Patch(HarmonyLib.Harmony harmony, Type target, string method, Type owner,
-        string? prefix = null, string? postfix = null, Type[]? parameters = null)
+        string? prefix = null, string? postfix = null, Type[]? parameters = null, string? finalizer = null)
     {
         try
         {
@@ -19,7 +19,7 @@ internal static class ModSupport
             HarmonyMethod? Hook(string? name) => name is null ? null : new HarmonyMethod(
                 owner.GetMethod(name, BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
                 ?? throw new MissingMethodException(owner.FullName, name));
-            harmony.Patch(original, prefix: Hook(prefix), postfix: Hook(postfix));
+            harmony.Patch(original, prefix: Hook(prefix), postfix: Hook(postfix), finalizer: Hook(finalizer));
             MelonLogger.Msg($"[{harmony.Id}] Patched {target.Name}.{method}");
             return true;
         }

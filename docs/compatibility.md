@@ -32,7 +32,11 @@ Blackjack/Ride the Bus maximum bet fields are compiled constants. Their `GetBetL
 
 The authorized MoreGuns 1.4.2 bundle contains two guns: AK47 and minigun. Old registry/shop flags could be set before async asset loading completed. The new code loads synchronously, isolates failures per gun, and checks IDs per registry/shop.
 
-Definitions are cloned from current native integer definitions and given bundle models/icons, explicit legacy equipping and full-magazine defaults. Reload mode uses the new enum, and minigun manual reload is enabled. New fields such as headshot damage/cocking defaults are supplied explicitly. Avatar overrides apply only to the four custom model paths. Fire/windup state is per equipped instance; global camera/reticle changes are omitted.
+Definitions are cloned from current native integer definitions and given bundle models/icons, explicit legacy equipping and full-magazine defaults. Reload mode uses the new enum, and minigun manual reload is enabled. New fields such as headshot damage/cocking defaults are supplied explicitly. Avatar overrides apply only to the four custom model paths; stale Unity wrappers are cleared before replacing a model.
+
+The owner's AK47 reload log contains a `TrashItem.Initialize` null reference. Native reload consumes the spare before spawning discarded trash, then refills the gun afterward. The beta requires `TrashItemDraggable`, whereas the old prefab contains generic `Draggable`; 0.2.0 replaces that component in memory and restores the renamed trash ID and required references. An unavailable discard prefab is disabled so cosmetics cannot block reload.
+
+Legacy audio controller fields also changed names. Their intended base volumes are restored explicitly, routed through the current master/effects volume calculation and main game mixer, and reduced independently for each gun. The minigun's existing legacy barrel animation is looped during aim spin-up, with speed increasing toward readiness. Fire/reload animations retain control during their actions. Camera tuning applies only inside these custom guns' native `Fire` call and is restored by a Harmony finalizer, including exception paths. See [weapon tuning](weapon-tuning.md).
 
 Native legacy equipping remains in this beta. The preserved bundle still needs live animation/geometry checks after the refactor. Compilation alone does not establish gameplay or multiplayer correctness.
 
