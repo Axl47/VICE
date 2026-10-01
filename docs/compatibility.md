@@ -49,3 +49,9 @@ Native legacy equipping remains in this beta. The preserved bundle still needs l
 Both `GasStationInterface (Central)` and `GasStationInterface (West)` expose the existing `ShopInterface`/`Cart` APIs (`gas_mart_central` and `gas_mart_west`). Controls are attached after the native shop opens, and only to those gas-marts.
 
 Named lists and the last successful purchase store item IDs and quantities in a separate local JSON file. Restoring a list validates all native listings, unlocks, physical stock and quantity limits before replacing the cart. Native cart methods determine current prices and checkout problems. Purchase history is recorded through the native order-completion event; failed checkout attempts leave history intact. Loading a list does not submit a purchase.
+
+## Deal and map UI
+
+The current beta exposes tracked deal rows as `QuestHUDUI` bound to a `Contract` with a readable `Payment`. Its `UpdateUI` and `UpdateMainLabel` write the title separately; both distinct native bodies are patched after their normal work to preserve timing updates. Long labels trigger a layout/shade refresh.
+
+Known customer pins reuse `NPCManager.NPCPoIPrefab` and the native `POI` creation, hover, map projection and deregistration lifecycle. Only unlocked, active, living customer NPCs are included; render visibility/distance do not hide an otherwise eligible customer. Indoor positions use the last entered door. `MapApp.SetOpen` has a distinct native body and initializes the local manager. No relationship getters, customer unlock methods, global POI lifecycle methods or shared generic app methods are detoured. See [the UI notes](ui-enhancements.md).

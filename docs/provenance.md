@@ -16,6 +16,8 @@ Extracted More Guns bundle SHA-256: `B9680C989C9DC4EDCAA6B7CC6B8607BB865BDEA8703
 
 The owner's backup Highballer config confirms customer deal optimization, automated counteroffers/scheduling and automatic handover. It does not change casino betting. The owner requested retaining Highballer and adding a separate casino module after this distinction was explained.
 
+Gas Purchases and UI Enhancements are new modules written for the owner's requests. UI Enhancements uses the installed beta's native contract, NPC and map APIs/prefabs at runtime; no game UI assets or assemblies are copied into its DLL.
+
 Primary references consulted:
 
 - [S1API source](https://github.com/KaBooMa/S1API)

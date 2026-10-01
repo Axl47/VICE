@@ -1,6 +1,6 @@
 # Schedule One personal mods
 
-Private monorepo containing six independently installable MelonLoader mods for the Steam **beta / IL2CPP** branch. Current target: **Schedule I 0.4.7f7**, **Unity 2022.3.62f2**, **MelonLoader 0.7.3**, x64 / .NET 6. The installed **S1API (Forked by Bars) 3.2.1-beta.7** and **TheRegulars 1.0.0** are retained. Highballer's optional custom-NPC guard also supports the previously inspected S1API 2.5.0 field layout.
+Private monorepo containing seven independently installable MelonLoader mods for the Steam **beta / IL2CPP** branch. Current target: **Schedule I 0.4.7f7**, **Unity 2022.3.62f2**, **MelonLoader 0.7.3**, x64 / .NET 6. The installed **S1API (Forked by Bars) 3.2.1-beta.7** and **TheRegulars 1.0.0** are retained. Highballer's optional custom-NPC guard also supports the previously inspected S1API 2.5.0 field layout.
 
 Features and defaults:
 
@@ -12,8 +12,9 @@ Features and defaults:
 | `Personal.Casino.dll` | Blackjack and Ride the Bus betting sliders support wagers up to $100,000. Bets remain subject to available cash and normal game payouts. Slot machines use the game's original settings. |
 | `Personal.MoreGuns.dll` | AK47 ($15,000, 30 rounds) and minigun ($75,000, 400 rounds), with matching spare magazines at the arms dealer. Automatic fire, animated minigun spin-up, corrected magazine reloads, quieter sound through master/effects settings, tighter spread, 35% less bullet knockback and softer firing shake. Rank restrictions default off. |
 | `Personal.GasPurchases.dll` | Named shopping lists and **Repeat last** at both gas-marts. Restores exact quantities at current prices, checks availability/stock, and uses normal checkout. Remembers the last successful purchase across restarts. |
+| `Personal.UIEnhancements.dll` | Agreed payment next to each tracked deal in the left HUD list. Native portrait markers follow unlocked customers on the map, with hover names; indoor customers appear at their building entrance. |
 
-Configuration is stored by MelonLoader in `UserData/MelonPreferences.cfg` under the `PersonalWarehouse`, `PersonalBetterPolice`, `PersonalHighballer`, `PersonalCasino`, `PersonalMoreGuns`, `PersonalMoreGuns_ak47`, `PersonalMoreGuns_minigun` and `PersonalGasPurchases` categories. Restart after editing settings. Old mod config files are not imported.
+Configuration is stored by MelonLoader in `UserData/MelonPreferences.cfg` under the `PersonalWarehouse`, `PersonalBetterPolice`, `PersonalHighballer`, `PersonalCasino`, `PersonalMoreGuns`, `PersonalMoreGuns_ak47`, `PersonalMoreGuns_minigun`, `PersonalGasPurchases` and `PersonalUIEnhancements` categories. Restart after editing settings. Old mod config files are not imported.
 
 ## Weapon tuning
 
@@ -34,6 +35,14 @@ Fill the gas-mart cart once, click **Saved orders** in the shop's upper right, e
 
 Up to 32 named orders persist in `UserData/PersonalGasPurchases/orders.json`, alongside a separate last-purchase record. Lists are shared between Central and West gas-marts and local saves. Missing, locked or insufficient-stock items reject the whole list and preserve the current cart. Current prices, available money and inventory capacity apply. Saving the same name updates its list; deleting a named list keeps last-purchase history. See [the saved-purchase playtest](docs/playtest.md).
 
+## Deal and map UI
+
+UI Enhancements 0.1.0 adds a green payment amount to the title of each tracked deal in the left HUD list. It reads the accepted contract's payment, keeps the existing timing and objective text, and updates after native UI refreshes. This is the agreed amount; bonuses, partial deliveries and penalties can change the final payment.
+
+Open the map to see portrait pins for unlocked customers at their current locations. Hover a pin to see the customer's name; native map navigation and click-to-focus remain available. Markers follow moving customers while the map is open, and the customer list refreshes once a second. Customers indoors use their building entrance. Inactive/dead customers are hidden, and pins are cleared when leaving the save. Potential customers keep the game's existing search zones.
+
+`ShowDealPayouts` and `ShowKnownCustomers` can be disabled separately under `PersonalUIEnhancements`. `CustomerMarkerScale` defaults to `0.75` of the native icon size and accepts `0.35`–`1.5`. The mod can be installed by itself and needs no saved-data migration. See [the UI implementation notes](docs/ui-enhancements.md) and [live checks](docs/playtest.md).
+
 ## Build
 
 Install a .NET SDK 8 or newer and launch the beta with MelonLoader once to generate `MelonLoader/Il2CppAssemblies`. Build references come directly from the installation. From PowerShell in this repo:
@@ -44,11 +53,11 @@ Install a .NET SDK 8 or newer and launch the beta with MelonLoader once to gener
 
 Use `-GameDir`, `-OriginalMoreGuns` or `-DotnetPath` to override the installation, authorized original `MoreGuns.dll`, or SDK executable. `-NugetConfig` supports a local/offline package feed. `Game.local.props` can also set `GameDir` for direct IDE builds.
 
-The build extracts the original weapon bundle into ignored `.research/assets/`, compiles the six DLLs, runs the algorithm, saved-purchase and weapon spin-up checks and creates `artifacts/PersonalMods-0.2.2.zip`. More Guns requires the owner's original bundle; the other five projects can be built separately without it.
+The build extracts the original weapon bundle into ignored `.research/assets/`, compiles the seven DLLs, runs the algorithm, saved-purchase and weapon spin-up checks and creates `artifacts/PersonalMods-0.3.0.zip`. More Guns requires the owner's original bundle; the other six projects can be built separately without it.
 
 ## Install and verify
 
-The 0.2.2 package includes **Casino 0.1.2**, which fixes bet-slider setup and removes slot-machine modifications, plus **More Guns 0.2.0** and the startup corrections in **Better Police and Warehouse 0.1.1**. Replace `Personal.Casino.dll` to apply the casino correction; keep More Guns 0.2.0 for the weapon fixes. See [the crash investigation](docs/startup-crash.md) for the earlier startup fix.
+The 0.3.0 package adds **UI Enhancements 0.1.0** and retains **Casino 0.1.2**, **More Guns 0.2.0** and the startup corrections in **Better Police and Warehouse 0.1.1**. To add the new UI features, copy only `Personal.UIEnhancements.dll` from its `Mods` folder. Keep Casino 0.1.2 for the slider correction and original slot behavior. See [the crash investigation](docs/startup-crash.md) for the earlier startup fix.
 
 Close the game, then run:
 
@@ -56,7 +65,7 @@ Close the game, then run:
 ./scripts/Install.ps1
 ```
 
-Installation copies only the six personal DLLs into `Mods`, backs up any previous personal versions in `artifacts/install-backups/`, and verifies their hashes. It refuses to install alongside conflicting old versions. Alternatively copy desired DLLs from the package's `Mods` folder. S1API and TheRegulars remain installed.
+Installation copies only the seven personal DLLs into `Mods`, backs up any previous personal versions in `artifacts/install-backups/`, and verifies their hashes. It refuses to install alongside conflicting old versions. Alternatively copy desired DLLs from the package's `Mods` folder. S1API and TheRegulars remain installed.
 
 See [the playtest checklist](docs/playtest.md) for live verification and [compatibility findings](docs/compatibility.md) for beta changes addressed. Compilation and startup checks do not establish gameplay correctness. Multiplayer peers should use matching versions and settings, particularly for custom item IDs and card-game wagers.
 
