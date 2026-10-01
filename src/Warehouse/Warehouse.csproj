@@ -1,0 +1,3 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><IsGameMod>true</IsGameMod><AssemblyName>Personal.Warehouse</AssemblyName></PropertyGroup>
+</Project>

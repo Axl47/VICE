@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><IsGameMod>true</IsGameMod><AssemblyName>Personal.MoreGuns</AssemblyName></PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\.research\assets\moreguns.bundle" LogicalName="Personal.MoreGuns.bundle" Condition="Exists('..\..\.research\assets\moreguns.bundle')" />
+  </ItemGroup>
+</Project>

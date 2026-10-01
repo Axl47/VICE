@@ -1,0 +1,16 @@
+<Project>
+  <Import Project="Game.local.props" Condition="Exists('Game.local.props')" />
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <LangVersion>12.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PlatformTarget>x64</PlatformTarget>
+    <Deterministic>true</Deterministic>
+    <Version>0.1.0</Version>
+    <GameDir Condition="'$(GameDir)' == ''">C:\Program Files (x86)\Steam\steamapps\common\Schedule I</GameDir>
+    <InteropDir>$(GameDir)\MelonLoader\Il2CppAssemblies</InteropDir>
+    <LoaderDir>$(GameDir)\MelonLoader\net6</LoaderDir>
+  </PropertyGroup>
+  <PropertyGroup><BuildInParallel>false</BuildInParallel></PropertyGroup>
+</Project>
