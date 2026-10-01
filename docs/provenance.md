@@ -5,9 +5,14 @@ Inspection date: September 30, 2026 (America/La_Paz).
 - Current install: `C:\Program Files (x86)\Steam\steamapps\common\Schedule I`
 - Historical mod backup: `C:\Games\Backup\Schedule I`
 - Current Steam branch: `beta`; installed build ID: `25622691`.
-- Last recorded runtime: Schedule I `0.4.7f5`, Unity `2022.3.62f2`, IL2CPP x64 / .NET 6, MelonLoader `0.7.2 Open-Beta`.
-- Current API loader: `S1APILoader` `2.5.0`. Installed mod: `TheRegulars.dll`.
+- Initial recorded runtime: Schedule I `0.4.7f5`, MelonLoader `0.7.2 Open-Beta`.
+- After the owner's fresh interop generation: Schedule I `0.4.7f7`, Unity `2022.3.62f2`, IL2CPP x64 / .NET 6, MelonLoader `0.7.3`.
+- Initially inspected API loader: `S1APILoader` `2.5.0`. The owner's later live session reports `S1API (Forked by Bars)` `3.2.1-beta.7`; its custom-NPC field layout was checked too. Installed mod: `TheRegulars.dll` `1.0.0`.
 - Old reference mods: `WareHouseAlwaysOpen.dll`, `BetterPolice.dll`, `HighBaller_IL2CPP.dll`, `MoreGuns.dll`.
+
+Original credits: Warehouse Always Open 1.0.2.3b by Elio; BetterPolice by Frostbyt3 / Babyhamsta; Highballer 2.7.6 by zocke18r, SFox and Virtunerd; MoreGuns 1.4.2 and weapon assets by Voidane. Permission is for personal adaptation, not redistribution.
+
+Extracted More Guns bundle SHA-256: `B9680C989C9DC4EDCAA6B7CC6B8607BB865BDEA870328E49794A7E052C7EC444`. It stays ignored locally and is embedded only in the personal DLL build.
 
 The owner's backup Highballer config confirms customer deal optimization, automated counteroffers/scheduling and automatic handover. It does not change casino betting. The owner requested retaining Highballer and adding a separate casino module after this distinction was explained.
 
