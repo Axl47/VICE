@@ -1,9 +1,10 @@
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
+using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppScheduleOne.Casino;
 using MelonLoader;
 using PersonalMods;
 
-[assembly: MelonInfo(typeof(PersonalMods.Casino.CasinoMod), "Personal Casino", "0.1.0", "Axl47")]
+[assembly: MelonInfo(typeof(PersonalMods.Casino.CasinoMod), "Personal Casino", "0.1.1", "Axl47")]
 [assembly: MelonGame("TVGS", "Schedule I")]
 
 namespace PersonalMods.Casino;
@@ -22,26 +23,20 @@ public sealed class CasinoMod : MelonMod
         RideTheBusMaximum = ModSupport.Entry(config, "RideTheBusMaximumBet", 100_000, "Maximum Ride the Bus wager in dollars (1 to 1,000,000).");
         SlotMultiplier = ModSupport.Entry(config, "SlotBetMultiplier", 100, "Multiply the existing slot-machine wager ladder (1 to 1000; each wager capped at 1,000,000).");
         var self = typeof(CasinoMod);
-        ModSupport.Patch(HarmonyInstance, typeof(BlackjackGameController), "GetBetLimits", self, postfix: nameof(BlackjackLimits));
-        ModSupport.Patch(HarmonyInstance, typeof(RTBGameController), "GetBetLimits", self, postfix: nameof(RideTheBusLimits));
+        // Both controllers use one native function. Patch it once and inspect the
+        // actual object's native type rather than trusting the wrapper's CLR type.
+        ModSupport.Patch(HarmonyInstance, typeof(BlackjackGameController), "GetBetLimits", self, postfix: nameof(BetLimits));
         ModSupport.Patch(HarmonyInstance, typeof(SlotMachine), "Awake", self, postfix: nameof(SlotsReady));
         ModSupport.Patch(HarmonyInstance, typeof(SlotMachine), "HandleInteracted", self, prefix: nameof(SlotsReady));
         // Bet indices retain their meaning and count on all peers; every peer needs the same settings.
         MelonLogger.Msg("Casino limits configured. Multiplayer peers must install matching settings.");
     }
 
-    private static int Limit(int minimum, int configured) => Math.Max(minimum, Math.Clamp(configured, 1, 1_000_000));
-
-    private static void BlackjackLimits(BlackjackGameController __instance, ref float minimum, ref float maximum)
+    private static void BetLimits(Il2CppObjectBase __instance, ref float minimum, ref float maximum)
     {
-        if (!Enabled.Value) return;
-        maximum = Math.Max(minimum, Limit(BlackjackGameController.MinimumBet, BlackjackMaximum.Value));
-    }
-
-    private static void RideTheBusLimits(RTBGameController __instance, ref float minimum, ref float maximum)
-    {
-        if (!Enabled.Value) return;
-        maximum = Math.Max(minimum, Limit(RTBGameController.MinimumBet, RideTheBusMaximum.Value));
+        if (!Enabled.Value || __instance is null) return;
+        var configured = __instance.TryCast<RTBGameController>() is not null ? RideTheBusMaximum.Value : BlackjackMaximum.Value;
+        maximum = Math.Max(minimum, Math.Clamp(configured, 1, 1_000_000));
     }
 
     private static void SlotsReady(SlotMachine __instance)

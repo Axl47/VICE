@@ -8,7 +8,7 @@ using MelonLoader;
 using PersonalMods;
 using UnityEngine;
 
-[assembly: MelonInfo(typeof(PersonalMods.BetterPolice.BetterPoliceMod), "Personal Better Police", "0.1.0", "Axl47; based on Frostbyt3 / Babyhamsta")]
+[assembly: MelonInfo(typeof(PersonalMods.BetterPolice.BetterPoliceMod), "Personal Better Police", "0.1.1", "Axl47; based on Frostbyt3 / Babyhamsta")]
 [assembly: MelonGame("TVGS", "Schedule I")]
 
 namespace PersonalMods.BetterPolice;
@@ -49,7 +49,9 @@ public sealed class BetterPoliceMod : MelonMod
         ModSupport.Patch(HarmonyInstance, typeof(PoliceOfficer), "UpdateVision", self, postfix: nameof(OfficerReady));
         ModSupport.Patch(HarmonyInstance, typeof(VisionCone), "IsPointWithinSight", self, postfix: nameof(WidenSight));
         ModSupport.Patch(HarmonyInstance, typeof(PursuitBehaviour), "Activate", self, postfix: nameof(PursuitTick));
-        ModSupport.Patch(HarmonyInstance, typeof(PursuitBehaviour), "OnActiveTick", self, postfix: nameof(PursuitTick));
+        // OnActiveTick is a shared seven-byte native thunk in this beta. Detouring it
+        // also intercepts thousands of unrelated constructors, including exception handling.
+        ModSupport.Patch(HarmonyInstance, typeof(PursuitBehaviour), "BehaviourUpdate", self, postfix: nameof(PursuitTick));
         ModSupport.Patch(HarmonyInstance, typeof(PursuitBehaviour), "UpdateArrest", self, prefix: nameof(ArrestTick));
         ModSupport.Patch(HarmonyInstance, typeof(PursuitBehaviour), "EndCombat", self, postfix: nameof(PursuitEnded));
         ModSupport.Patch(HarmonyInstance, typeof(PursuitBehaviour), "Disable", self, postfix: nameof(PursuitEnded));
@@ -114,9 +116,11 @@ public sealed class BetterPoliceMod : MelonMod
 
     private static void PursuitTick(PursuitBehaviour __instance)
     {
-        if (!Enabled.Value || !__instance || !__instance.Npc || __instance.Npc.TryCast<PoliceOfficer>() is null || !__instance.TargetPlayer || !__instance.Npc.Movement) return;
+        if (!Enabled.Value || !__instance) return;
         try
         {
+            if (!__instance.Active || !__instance.Npc || __instance.Npc.TryCast<PoliceOfficer>() is null
+                || !__instance.TargetPlayer || !__instance.Npc.Movement) return;
             var movement = __instance.Npc.Movement;
             var speed = movement.SpeedController;
             if (speed is null) return;

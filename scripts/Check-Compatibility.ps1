@@ -19,3 +19,4 @@ try {
     }
     Write-Output "Verified $count explicit native patch targets. Runtime detours still require an in-game check."
 } finally { $assembly.Dispose() }
+& (Join-Path $PSScriptRoot 'Check-NativeTargets.ps1') -GameDir $GameDir

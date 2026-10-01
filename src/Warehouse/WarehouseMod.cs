@@ -2,12 +2,13 @@ using Il2CppScheduleOne;
 using Il2CppScheduleOne.Doors;
 using Il2CppScheduleOne.ItemFramework;
 using Il2CppScheduleOne.Map;
+using Il2CppScheduleOne.Persistence;
 using Il2CppScheduleOne.UI.Shop;
 using MelonLoader;
 using PersonalMods;
 using UnityEngine;
 
-[assembly: MelonInfo(typeof(PersonalMods.Warehouse.WarehouseMod), "Personal Warehouse", "0.1.0", "Axl47")]
+[assembly: MelonInfo(typeof(PersonalMods.Warehouse.WarehouseMod), "Personal Warehouse", "0.1.1", "Axl47")]
 [assembly: MelonGame("TVGS", "Schedule I")]
 
 namespace PersonalMods.Warehouse;
@@ -30,7 +31,9 @@ public sealed class WarehouseMod : MelonMod
         ModSupport.Patch(HarmonyInstance, typeof(DarkMarket), "ShouldBeOpen", self, postfix: nameof(OpenResult));
         ModSupport.Patch(HarmonyInstance, typeof(DarkMarketAccessZone), "GetIsOpen", self, postfix: nameof(OpenResult));
         ModSupport.Patch(HarmonyInstance, typeof(DarkMarketRollerDoors), "CanOpen", self, postfix: nameof(OpenResult));
-        ModSupport.Patch(HarmonyInstance, typeof(DarkMarket), "get_Unlocked", self, postfix: nameof(UnlockedResult));
+        // The getter shares native code with curfew/sewer/checkpoint flags. Change
+        // this warehouse's state through its own lifecycle instead of detouring it.
+        ModSupport.Patch(HarmonyInstance, typeof(DarkMarket), "Update", self, prefix: nameof(UnlockWarehouse));
         ModSupport.Patch(HarmonyInstance, typeof(ShopInterface), "Awake", self, prefix: nameof(BeforeShopAwake));
         ModSupport.Patch(HarmonyInstance, typeof(ShopInterface), "Start", self, postfix: nameof(AfterShopStart));
         ModSupport.Patch(HarmonyInstance, typeof(ShopInterface), "Open", self, prefix: nameof(BeforeShopOpen));
@@ -41,9 +44,22 @@ public sealed class WarehouseMod : MelonMod
         if (AlwaysOpen.Value) __result = true;
     }
 
-    private static void UnlockedResult(ref bool __result)
+    private static void UnlockWarehouse(DarkMarket __instance)
     {
-        if (AlwaysOpen.Value && IgnoreUnlockRank.Value) __result = true;
+        if (!AlwaysOpen.Value || !IgnoreUnlockRank.Value || !__instance) return;
+        try
+        {
+            var loading = LoadManager.Instance;
+            if (!loading || loading.IsLoading || !loading.IsGameLoaded) return;
+            if (__instance.Unlocked) return;
+            if (__instance.IsServerInitialized) __instance.SetUnlocked(null); // Native unlock events and network notification.
+            else
+            {
+                __instance._Unlocked_k__BackingField = true;
+                __instance.onUnlocked?.Invoke();
+            }
+        }
+        catch (Exception error) { ModSupport.WarnOnce("warehouse:unlock", $"Warehouse unlock will retry: {error.Message}"); }
     }
 
     private static string Key(string value) => new(value.Where(char.IsLetterOrDigit).Select(char.ToLowerInvariant).ToArray());
