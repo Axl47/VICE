@@ -114,7 +114,7 @@ public sealed class BetterPoliceMod : MelonMod
 
     private static void PursuitTick(PursuitBehaviour __instance)
     {
-        if (!Enabled.Value || !__instance || !__instance.Npc || !__instance.TargetPlayer || !__instance.Npc.Movement) return;
+        if (!Enabled.Value || !__instance || !__instance.Npc || __instance.Npc.TryCast<PoliceOfficer>() is null || !__instance.TargetPlayer || !__instance.Npc.Movement) return;
         try
         {
             var movement = __instance.Npc.Movement;
@@ -155,9 +155,9 @@ public sealed class BetterPoliceMod : MelonMod
         weapon.AimTime_Max = Math.Max(weapon.AimTime_Min, original.AimMax * aim);
     }
 
-    private static void ArrestTick(ref float tick)
+    private static void ArrestTick(PursuitBehaviour __instance, ref float tick)
     {
-        if (Enabled.Value) tick *= Bound(ArrestMultiplier.Value, 1f, 5f, 1.5f);
+        if (Enabled.Value && __instance.Npc && __instance.Npc.TryCast<PoliceOfficer>() is not null) tick *= Bound(ArrestMultiplier.Value, 1f, 5f, 1.5f);
     }
 
     private static void Intercept(PursuitBehaviour pursuit, float distance)

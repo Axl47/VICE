@@ -123,7 +123,11 @@ public sealed class HighballerMod : MelonMod
         Optimize(__instance, false);
     }
 
-    private static void CounterofferClosed() => OpenInterface = null;
+    private static void CounterofferClosed()
+    {
+        if (OpenInterface is not null && OpenInterface && OpenInterface.TitleLabel) OpenInterface.TitleLabel.text = OriginalTitle;
+        OpenInterface = null;
+    }
     private static void ProductChanged(CounterofferInterface __instance) => Optimize(__instance, true);
     private static void QuantityChanged(CounterofferInterface __instance) => Optimize(__instance, true);
     private static void PriceChanged(AmountSelector __instance)

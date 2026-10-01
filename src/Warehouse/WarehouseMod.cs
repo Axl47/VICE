@@ -97,7 +97,7 @@ public sealed class WarehouseMod : MelonMod
     internal static bool IsStorageFurniture(string normalizedName)
         => normalizedName.Contains("locker") || normalizedName.Contains("cabinet")
            || normalizedName.Contains("storagerack") || normalizedName.Contains("storageshelf")
-           || normalizedName.Contains("storageunit");
+           || normalizedName.Contains("storageunit") || normalizedName.Contains("storagecloset");
 
     public override void OnSceneWasUnloaded(int buildIndex, string sceneName)
     {
