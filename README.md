@@ -1,6 +1,6 @@
 # Schedule One personal mods
 
-Private monorepo containing five independently installable MelonLoader mods for the Steam **beta / IL2CPP** branch. Current target: **Schedule I 0.4.7f7**, **Unity 2022.3.62f2**, **MelonLoader 0.7.3**, x64 / .NET 6. The installed **S1API (Forked by Bars) 3.2.1-beta.7** and **TheRegulars 1.0.0** are retained. Highballer's optional custom-NPC guard also supports the previously inspected S1API 2.5.0 field layout.
+Private monorepo containing six independently installable MelonLoader mods for the Steam **beta / IL2CPP** branch. Current target: **Schedule I 0.4.7f7**, **Unity 2022.3.62f2**, **MelonLoader 0.7.3**, x64 / .NET 6. The installed **S1API (Forked by Bars) 3.2.1-beta.7** and **TheRegulars 1.0.0** are retained. Highballer's optional custom-NPC guard also supports the previously inspected S1API 2.5.0 field layout.
 
 Features and defaults:
 
@@ -11,8 +11,15 @@ Features and defaults:
 | `Personal.Highballer.dll` | Estimated counteroffer success and highest acceptable price at a 98% threshold. Exact packaged delivery planning with native handover validation. Optional automatic counteroffers, scheduling and quantity increases default off. S1API custom NPCs and special customers are skipped by default. |
 | `Personal.Casino.dll` | Blackjack and Ride the Bus maximum wagers of $100,000; slot wager ladder multiplied by 100. Bets remain subject to available money and normal game payouts. |
 | `Personal.MoreGuns.dll` | AK47 ($15,000, 30 rounds) and minigun ($75,000, 400 rounds), with matching spare magazines at the arms dealer. Automatic fire, minigun aim windup, native reloads, avatar models and magazine trash registration. Rank restrictions default off. |
+| `Personal.GasPurchases.dll` | Named shopping lists and **Repeat last** at both gas-marts. Restores exact quantities at current prices, checks availability/stock, and uses normal checkout. Remembers the last successful purchase across restarts. |
 
-Configuration is stored by MelonLoader in `UserData/MelonPreferences.cfg` under the `PersonalWarehouse`, `PersonalBetterPolice`, `PersonalHighballer`, `PersonalCasino`, `PersonalMoreGuns`, `PersonalMoreGuns_ak47` and `PersonalMoreGuns_minigun` categories. Restart after editing settings. Old mod config files are not imported.
+Configuration is stored by MelonLoader in `UserData/MelonPreferences.cfg` under the `PersonalWarehouse`, `PersonalBetterPolice`, `PersonalHighballer`, `PersonalCasino`, `PersonalMoreGuns`, `PersonalMoreGuns_ak47`, `PersonalMoreGuns_minigun` and `PersonalGasPurchases` categories. Restart after editing settings. Old mod config files are not imported.
+
+## Saved gas-mart purchases
+
+Fill the gas-mart cart once, click **Saved orders** in the shop's upper right, enter a name and click **Save current cart**. Later select that order and click **Load order**, or use **Repeat last** to restore the last purchase that completed successfully. Loading replaces the cart; review the total and use the game's checkout button.
+
+Up to 32 named orders persist in `UserData/PersonalGasPurchases/orders.json`, alongside a separate last-purchase record. Lists are shared between Central and West gas-marts and local saves. Missing, locked or insufficient-stock items reject the whole list and preserve the current cart. Current prices, available money and inventory capacity apply. Saving the same name updates its list; deleting a named list keeps last-purchase history. See [the saved-purchase playtest](docs/playtest.md).
 
 ## Build
 
@@ -24,9 +31,11 @@ Install a .NET SDK 8 or newer and launch the beta with MelonLoader once to gener
 
 Use `-GameDir`, `-OriginalMoreGuns` or `-DotnetPath` to override the installation, authorized original `MoreGuns.dll`, or SDK executable. `-NugetConfig` supports a local/offline package feed. `Game.local.props` can also set `GameDir` for direct IDE builds.
 
-The build extracts the original weapon bundle into ignored `.research/assets/`, compiles the five DLLs, runs the algorithm checks and creates `artifacts/PersonalMods-0.1.0.zip`. More Guns requires the owner's original bundle; the other four projects can be built separately without it.
+The build extracts the original weapon bundle into ignored `.research/assets/`, compiles the six DLLs, runs the algorithm and saved-purchase checks and creates `artifacts/PersonalMods-0.2.0.zip`. More Guns requires the owner's original bundle; the other five projects can be built separately without it.
 
 ## Install and verify
+
+The 0.2.0 package includes the startup correction: **Better Police, Warehouse and Casino 0.1.1**. Replace all three earlier DLLs. See [the crash investigation](docs/startup-crash.md) for the cause and verification steps.
 
 Close the game, then run:
 
@@ -34,7 +43,7 @@ Close the game, then run:
 ./scripts/Install.ps1
 ```
 
-Installation copies only the five personal DLLs into `Mods`, backs up any previous personal versions in `artifacts/install-backups/`, and verifies their hashes. It refuses to install alongside conflicting old versions. Alternatively copy desired DLLs from the package's `Mods` folder. S1API and TheRegulars remain installed.
+Installation copies only the six personal DLLs into `Mods`, backs up any previous personal versions in `artifacts/install-backups/`, and verifies their hashes. It refuses to install alongside conflicting old versions. Alternatively copy desired DLLs from the package's `Mods` folder. S1API and TheRegulars remain installed.
 
 See [the playtest checklist](docs/playtest.md) for live verification and [compatibility findings](docs/compatibility.md) for beta changes addressed. Compilation and startup checks do not establish gameplay correctness. Multiplayer peers should use matching versions and settings, particularly for custom item IDs and slot-machine bets.
 

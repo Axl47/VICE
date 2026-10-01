@@ -4,7 +4,7 @@ Target assemblies were generated from the installed IL2CPP 0.4.7f7 beta with Mel
 
 ## Warehouse
 
-The beta retains `DarkMarket.ShouldBeOpen`, the access zone and roller door checks, but no longer exposes the old `DarkMarketMainDoor.OpenDoor` hook. The mod changes the opening decision and unlock condition, allowing the normal update to open the physical warehouse. It does not force the physical `IsOpen` getter.
+The beta retains `DarkMarket.ShouldBeOpen`, the access zone and roller door checks, but no longer exposes the old `DarkMarketMainDoor.OpenDoor` hook. The mod changes the opening decision, allowing the normal update to open the physical warehouse. Rank bypass runs in the warehouse's own update and uses its native unlock notification on the host. The `Unlocked` getter shares code with unrelated curfew/sewer/checkpoint flags and must not be detoured.
 
 The furniture shop object is `Oscar's Store`. Listings are added before initialization, with per-shop Start/Open retries when the registry becomes available later. Duplicate IDs are checked on each shop.
 
@@ -12,7 +12,7 @@ Current assets contain definitions for `smallstoragerack`, `mediumstoragerack`, 
 
 ## Better Police
 
-The old movement fields were replaced with `NPCSpeedController`. Pursuit bonuses multiply a saved baseline and restore it when pursuit ends. Radio backup uses existing active officers on the host, with recursion protection and a cooldown.
+The old movement fields were replaced with `NPCSpeedController`. Pursuit bonuses multiply a saved baseline and restore it when pursuit ends. Radio backup uses existing active officers on the host, with recursion protection and a cooldown. The original `OnActiveTick` detour caused the startup crash because its native thunk is shared with thousands of constructors. Version 0.1.1 hooks the distinct pursuit `BehaviourUpdate` body instead. See [the crash investigation](startup-crash.md).
 
 Horizontal/vertical vision fields are compiled constants. The mod adds an angular sight check for police only, including wall/vehicle occlusion. Notice time uses the mutable state multiplier; templates are left intact to avoid double multiplication. Aim/hit chance are adjusted on each officer's active ranged weapon. Obsolete body-search/leniency patches were omitted.
 
@@ -26,7 +26,7 @@ Handover now has separate mode classes and `Open_Contract`. Exact bounded packag
 
 ## Casino
 
-Blackjack/Ride the Bus maximum bet fields are compiled constants. The mod changes the actual `GetBetLimits` output. Slots use a mutable shared ladder; original values are captured once per process to avoid compounding after reloads. Funding/payout logic stays native.
+Blackjack/Ride the Bus maximum bet fields are compiled constants. Their `GetBetLimits` methods share one native body, so one hook changes the output according to the object's actual native type. Slots use a mutable shared ladder; original values are captured once per process to avoid compounding after reloads. Funding/payout logic stays native.
 
 ## More Guns
 
@@ -35,3 +35,9 @@ The authorized MoreGuns 1.4.2 bundle contains two guns: AK47 and minigun. Old re
 Definitions are cloned from current native integer definitions and given bundle models/icons, explicit legacy equipping and full-magazine defaults. Reload mode uses the new enum, and minigun manual reload is enabled. New fields such as headshot damage/cocking defaults are supplied explicitly. Avatar overrides apply only to the four custom model paths. Fire/windup state is per equipped instance; global camera/reticle changes are omitted.
 
 Native legacy equipping remains in this beta. The preserved bundle still needs live animation/geometry checks after the refactor. Compilation alone does not establish gameplay or multiplayer correctness.
+
+## Saved gas-mart purchases
+
+Both `GasStationInterface (Central)` and `GasStationInterface (West)` expose the existing `ShopInterface`/`Cart` APIs (`gas_mart_central` and `gas_mart_west`). Controls are attached after the native shop opens, and only to those gas-marts.
+
+Named lists and the last successful purchase store item IDs and quantities in a separate local JSON file. Restoring a list validates all native listings, unlocks, physical stock and quantity limits before replacing the cart. Native cart methods determine current prices and checkout problems. Purchase history is recorded through the native order-completion event; failed checkout attempts leave history intact. Loading a list does not submit a purchase.

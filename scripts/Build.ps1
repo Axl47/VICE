@@ -19,5 +19,7 @@ if ($NugetConfig) { $arguments += @('--configfile', $NugetConfig) }
 if ($LASTEXITCODE -ne 0) { throw 'Mod compilation failed.' }
 & $DotnetPath run --project (Join-Path $repoRoot 'tests\Algorithms\Algorithms.csproj') -c Release --no-build --no-restore
 if ($LASTEXITCODE -ne 0) { throw 'Algorithm checks failed.' }
+& $DotnetPath run --project (Join-Path $repoRoot 'tests\GasPurchases\GasPurchases.Tests.csproj') -c Release --no-build --no-restore
+if ($LASTEXITCODE -ne 0) { throw 'Saved-purchase checks failed.' }
 & (Join-Path $PSScriptRoot 'Package.ps1')
-Write-Output 'Built and checked all five mods.'
+Write-Output 'Built and checked all six mods.'
