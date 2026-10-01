@@ -13,14 +13,14 @@ Cpp2IL metadata identifies `PursuitBehaviour.OnActiveTick` as a seven-byte nativ
 The same audit identified two other cases addressed in this package:
 
 - **Warehouse 0.1.1:** the `DarkMarket.Unlocked` getter is shared with curfew, sewer-key and checkpoint flags. The mod now unlocks the warehouse during its own update, using native unlock notification on the host and its own backing field/event on clients. It no longer detours the shared getter.
-- **Casino 0.1.1:** Blackjack and Ride the Bus share `GetBetLimits`. One detour selects the configured limit from the object's actual native type, replacing two overlapping detours.
+- **Casino 0.1.1:** Blackjack and Ride the Bus share `GetBetLimits`. This version replaced two overlapping detours with one, but later live testing revealed an owner-marshalling error for the sibling controller. **Casino 0.1.2** removes the shared detour entirely and changes the betting panel's slider range after it opens; see `compatibility.md`.
 
-`Check-NativeTargets.ps1`, invoked by the compatibility/build script, now checks address sharing across all generated Cpp2IL assemblies. Unexpected shared targets fail the build. Only the exact reviewed Casino pair and Customer/FishNet writer pair are allowed. The latter has the same owner and arguments; its observer-writer behavior is intentionally covered by the customer hook.
+`Check-NativeTargets.ps1`, invoked by the compatibility/build script, now checks address sharing across all generated Cpp2IL assemblies. Unexpected shared targets fail the build, including the former Casino pair. Only the exact reviewed Customer/FishNet writer pair is allowed: it has the same native owner and arguments, and its observer-writer behavior is intentionally covered by the customer hook.
 
 ## Installation and verification
 
-Close the game, then replace **Personal.BetterPolice.dll**, **Personal.Warehouse.dll** and **Personal.Casino.dll** with their 0.1.1 versions from `PersonalMods-0.2.0/Mods`. Add the other desired personal DLLs, including `Personal.GasPurchases.dll`. Do not leave duplicate copies of earlier DLLs in `Mods`.
+Close the game, then use **Better Police 0.1.1**, **Warehouse 0.1.1** and **Casino 0.1.2** from `PersonalMods-0.2.2/Mods`. Add the other desired personal DLLs, including `Personal.GasPurchases.dll`. Do not leave duplicate copies of earlier DLLs in `Mods`.
 
-Verify those three mods report **0.1.1** in `MelonLoader/Latest.log`, reach the main menu, and load a save. Then follow `playtest.md`. On October 1 the owner confirmed the corrected mods run, and the local log shows all six loading and successful save loads. This establishes recovery from the reported startup crash; weapon reload/animation issues from that run are addressed separately in More Guns 0.2.0. The live game process and installed files were left to the owner for manual installation.
+Verify the versions above in `MelonLoader/Latest.log`, reach the main menu, and load a save. Then follow `playtest.md`. On October 1 the owner confirmed the corrected startup mods run, and the local log shows all six loading and successful save loads. This establishes recovery from the reported startup crash; weapon reload/animation issues and the later casino slider failure are addressed separately in More Guns 0.2.0 and Casino 0.1.2. The live game process and installed files were left to the owner for manual installation.
 
 The dumps remain local and excluded from Git. No dump or save data is included in this repository or package.

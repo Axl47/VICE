@@ -26,7 +26,11 @@ Handover now has separate mode classes and `Open_Contract`. Exact bounded packag
 
 ## Casino
 
-Blackjack/Ride the Bus maximum bet fields are compiled constants. Their `GetBetLimits` methods share one native body, so one hook changes the output according to the object's actual native type. Slots use a mutable shared ladder; original values are captured once per process to avoid compounding after reloads. Funding/payout logic stays native.
+Blackjack/Ride the Bus maximum bet fields are compiled constants. Their `GetBetLimits` methods share one native body, but the IL2CPP bridge marshals the instance using the detoured method's declaring class before calling Harmony. The earlier single blackjack hook therefore remained unsafe for the sibling Ride the Bus controller. The owner's log contains null references in that native-to-managed trampoline during casino use.
+
+Casino 0.1.2 removes that detour and adjusts only `CasinoGameBetPanel.Open` after native initialization. The slider holds actual dollar values; native `BetSliderChanged` and `SetLocalPlayerBet` transfer that value without a separate $1,000 ceiling. Native label refresh, cash/readiness validation, network bet data and payouts remain in use. The address audit now rejects the earlier shared controller target. Slider interaction and high-wager resolution still need a fresh game test.
+
+All slot-machine hooks, wager-table changes and the `SlotBetMultiplier` preference were removed at the owner's request. A leftover preference in an existing config is ignored; after restarting with 0.1.2, slot machines use the original game behavior.
 
 ## More Guns
 

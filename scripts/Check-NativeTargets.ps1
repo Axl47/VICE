@@ -43,14 +43,8 @@ foreach ($file in (Get-ChildItem -LiteralPath $rawDir -Filter '*.dll' -File)) {
 }
 function Is-ReviewedAlias($key, $aliases) {
     if ($aliases.Count -ne 2) { return $false }
-    if ($key -eq 'ScheduleOne.Casino.BlackjackGameController::GetBetLimits') {
-        # One detour handles both controllers by checking the actual native type.
-        $expected = @('ScheduleOne.Casino.BlackjackGameController', 'ScheduleOne.Casino.RTBGameController')
-        foreach ($alias in $aliases) {
-            if ($alias.Type -notin $expected -or $alias.Name -ne 'GetBetLimits' -or $alias.ReturnType -ne 'System.Void' -or $alias.Parameters -ne 'System.Single&,System.Single&') { return $false }
-        }
-        return @($aliases.Type | Select-Object -Unique).Count -eq 2
-    }
+    # Identical signatures across different native owner types are still unsafe:
+    # the IL2CPP trampoline marshals the owner before any Harmony hook can cast it.
     if ($key -eq 'ScheduleOne.Economy.Customer::SetOfferedContract') {
         # FishNet's generated writer has the same owner, arguments and behavior.
         foreach ($alias in $aliases) {

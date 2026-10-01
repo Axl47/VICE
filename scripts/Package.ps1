@@ -1,6 +1,6 @@
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path $PSScriptRoot -Parent
-$package = Join-Path $repoRoot 'artifacts\PersonalMods-0.2.1'
+$package = Join-Path $repoRoot 'artifacts\PersonalMods-0.2.2'
 $mods = Join-Path $package 'Mods'
 $docs = Join-Path $package 'docs'
 $null = New-Item -ItemType Directory -Path $mods, $docs -Force

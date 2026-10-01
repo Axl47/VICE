@@ -9,7 +9,7 @@ Features and defaults:
 | `Personal.Warehouse.dll` | Warehouse access at all hours, including before the normal unlock rank. Oscar sells small/medium/large racks, small/medium/large/**huge storage closets**, lockers and cabinets at their existing prices. Additional existing storage IDs can be configured. |
 | `Personal.BetterPolice.dll` | Pursuit speed increases from 1.3× to 2× with distance, wider and longer vision, shorter notice time, faster arrests, stronger aim, reachable interception destinations and nearby active backup officers. |
 | `Personal.Highballer.dll` | Estimated counteroffer success and highest acceptable price at a 98% threshold. Exact packaged delivery planning with native handover validation. Optional automatic counteroffers, scheduling and quantity increases default off. S1API custom NPCs and special customers are skipped by default. |
-| `Personal.Casino.dll` | Blackjack and Ride the Bus maximum wagers of $100,000; slot wager ladder multiplied by 100. Bets remain subject to available money and normal game payouts. |
+| `Personal.Casino.dll` | Blackjack and Ride the Bus betting sliders support wagers up to $100,000. Bets remain subject to available cash and normal game payouts. Slot machines use the game's original settings. |
 | `Personal.MoreGuns.dll` | AK47 ($15,000, 30 rounds) and minigun ($75,000, 400 rounds), with matching spare magazines at the arms dealer. Automatic fire, animated minigun spin-up, corrected magazine reloads, quieter sound through master/effects settings, tighter spread, 35% less bullet knockback and softer firing shake. Rank restrictions default off. |
 | `Personal.GasPurchases.dll` | Named shopping lists and **Repeat last** at both gas-marts. Restores exact quantities at current prices, checks availability/stock, and uses normal checkout. Remembers the last successful purchase across restarts. |
 
@@ -44,11 +44,11 @@ Install a .NET SDK 8 or newer and launch the beta with MelonLoader once to gener
 
 Use `-GameDir`, `-OriginalMoreGuns` or `-DotnetPath` to override the installation, authorized original `MoreGuns.dll`, or SDK executable. `-NugetConfig` supports a local/offline package feed. `Game.local.props` can also set `GameDir` for direct IDE builds.
 
-The build extracts the original weapon bundle into ignored `.research/assets/`, compiles the six DLLs, runs the algorithm, saved-purchase and weapon spin-up checks and creates `artifacts/PersonalMods-0.2.1.zip`. More Guns requires the owner's original bundle; the other five projects can be built separately without it.
+The build extracts the original weapon bundle into ignored `.research/assets/`, compiles the six DLLs, runs the algorithm, saved-purchase and weapon spin-up checks and creates `artifacts/PersonalMods-0.2.2.zip`. More Guns requires the owner's original bundle; the other five projects can be built separately without it.
 
 ## Install and verify
 
-The 0.2.1 package includes **More Guns 0.2.0** and the startup corrections in **Better Police, Warehouse and Casino 0.1.1**. If the 0.2.0 package is already installed and working, replace only `Personal.MoreGuns.dll`. See [the crash investigation](docs/startup-crash.md) for the earlier startup fix.
+The 0.2.2 package includes **Casino 0.1.2**, which fixes bet-slider setup and removes slot-machine modifications, plus **More Guns 0.2.0** and the startup corrections in **Better Police and Warehouse 0.1.1**. Replace `Personal.Casino.dll` to apply the casino correction; keep More Guns 0.2.0 for the weapon fixes. See [the crash investigation](docs/startup-crash.md) for the earlier startup fix.
 
 Close the game, then run:
 
@@ -58,7 +58,7 @@ Close the game, then run:
 
 Installation copies only the six personal DLLs into `Mods`, backs up any previous personal versions in `artifacts/install-backups/`, and verifies their hashes. It refuses to install alongside conflicting old versions. Alternatively copy desired DLLs from the package's `Mods` folder. S1API and TheRegulars remain installed.
 
-See [the playtest checklist](docs/playtest.md) for live verification and [compatibility findings](docs/compatibility.md) for beta changes addressed. Compilation and startup checks do not establish gameplay correctness. Multiplayer peers should use matching versions and settings, particularly for custom item IDs and slot-machine bets.
+See [the playtest checklist](docs/playtest.md) for live verification and [compatibility findings](docs/compatibility.md) for beta changes addressed. Compilation and startup checks do not establish gameplay correctness. Multiplayer peers should use matching versions and settings, particularly for custom item IDs and card-game wagers.
 
 Keep More Guns installed while its custom items or magazine trash exist in a save. Disabling its `Enabled` setting stops shop/input additions but retains definitions for loading existing saves.
 
