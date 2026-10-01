@@ -1,0 +1,14 @@
+.tools/
+.research/
+artifacts/
+**/bin/
+**/obj/
+*.user
+*.suo
+Game.local.props
+NuGet.local.config
+*.dll
+*.pdb
+*.zip
+*.nupkg
+
