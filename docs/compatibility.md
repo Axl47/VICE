@@ -14,6 +14,8 @@ Current assets contain definitions for `smallstoragerack`, `mediumstoragerack`, 
 
 The old movement fields were replaced with `NPCSpeedController`. Pursuit bonuses multiply a saved baseline and restore it when pursuit ends. Radio backup uses existing active officers on the host, with recursion protection and a cooldown. The original `OnActiveTick` detour caused the startup crash because its native thunk is shared with thousands of constructors. Version 0.1.1 hooks the distinct pursuit `BehaviourUpdate` body instead. See [the crash investigation](startup-crash.md).
 
+Version 0.2.0 adds host squad plans and intercepts the distinct `CombatBehaviour.SetDestination(Vector3,bool,float)` body only for active police pursuits. Complete NavMesh paths gate detours; native combat/search remains responsible for attacking and losing the player. Rival gang tuning hooks the distinct static global/regional cooldown generators and `Ambush.MinPassed`. It keeps native progression, truce state, spawn pools and player eligibility. `CanNewActivityBegin` is a shared constant-return body and is deliberately not patched. See [the police/gang notes](police-coordination.md).
+
 Horizontal/vertical vision fields are compiled constants. The mod adds an angular sight check for police only, including wall/vehicle occlusion. Notice time uses the mutable state multiplier; templates are left intact to avoid double multiplication. Aim/hit chance are adjusted on each officer's active ranged weapon. Obsolete body-search/leniency patches were omitted.
 
 ## Highballer

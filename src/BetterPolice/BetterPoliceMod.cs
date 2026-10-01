@@ -1,4 +1,5 @@
 using Il2CppScheduleOne.AvatarFramework.Equipping;
+using Il2CppScheduleOne.Combat;
 using Il2CppScheduleOne.NPCs;
 using Il2CppScheduleOne.NPCs.Behaviour;
 using Il2CppScheduleOne.Police;
@@ -8,7 +9,7 @@ using MelonLoader;
 using PersonalMods;
 using UnityEngine;
 
-[assembly: MelonInfo(typeof(PersonalMods.BetterPolice.BetterPoliceMod), "Personal Better Police", "0.1.1", "Axl47; based on Frostbyt3 / Babyhamsta")]
+[assembly: MelonInfo(typeof(PersonalMods.BetterPolice.BetterPoliceMod), "Personal Better Police", "0.2.0", "Axl47; based on Frostbyt3 / Babyhamsta")]
 [assembly: MelonGame("TVGS", "Schedule I")]
 
 namespace PersonalMods.BetterPolice;
@@ -22,13 +23,14 @@ public sealed class BetterPoliceMod : MelonMod
     private static readonly Dictionary<IntPtr, (VisionCone Cone, float Range)> Cones = new();
     private static readonly Dictionary<IntPtr, (VisionCone.StateContainer State, float Time)> Notices = new();
     private static readonly Dictionary<IntPtr, (AvatarRangedWeapon Weapon, float Near, float Far, float AimMin, float AimMax)> Weapons = new();
-    private static readonly Dictionary<IntPtr, float> NextFlank = new();
+    private static MelonPreferences_Entry<float> PlanInterval = null!, FlankRadius = null!, MaximumDetour = null!, Memory = null!;
+    private static MelonPreferences_Entry<int> MaximumFlankers = null!;
     private static readonly Dictionary<string, float> NextRadio = new();
 
     public override void OnInitializeMelon()
     {
         var config = MelonPreferences.CreateCategory("PersonalBetterPolice");
-        Enabled = ModSupport.Entry(config, "Enabled", true, "Enable tougher police.");
+        Enabled = ModSupport.Entry(config, "Enabled", true, "Enable tougher police and configured rival gang aggression.");
         ChaseMultiplier = ModSupport.Entry(config, "ChaseSpeedMultiplier", 1.3f, "Multiply each officer's original movement speed during a pursuit.");
         FarChaseMultiplier = ModSupport.Entry(config, "DistantChaseSpeedMultiplier", 2f, "Maximum chase multiplier as the player gets farther away.");
         DistanceMaximum = ModSupport.Entry(config, "DistanceForMaximumBoost", 100f, "Distance in meters where the maximum boost applies.");
@@ -40,7 +42,12 @@ public sealed class BetterPoliceMod : MelonMod
         NearAccuracy = ModSupport.Entry(config, "MinimumCloseRangeHitChance", 0.95f, "Minimum police weapon hit probability at close range.");
         FarAccuracy = ModSupport.Entry(config, "MinimumFarRangeHitChance", 0.8f, "Minimum police weapon hit probability at long range.");
         AimTime = ModSupport.Entry(config, "AimTimeMultiplier", 0.65f, "Multiply original police aiming delay.");
-        Flanking = ModSupport.Entry(config, "Flanking", true, "Use reachable lead/intercept destinations during visible chases.");
+        Flanking = ModSupport.Entry(config, "Flanking", true, "Coordinate rear pressure, front interception, alternative entrances and spaced support on the host.");
+        PlanInterval = ModSupport.Entry(config, "CoordinationIntervalSeconds", 1.5f, "Seconds between bounded squad route plans (0.75 to 5).");
+        FlankRadius = ModSupport.Entry(config, "FlankRadiusMeters", 18f, "Radius for probing reachable alternative approaches (10 to 40 meters).");
+        MaximumDetour = ModSupport.Entry(config, "MaximumDetourMultiplier", 3f, "Maximum detour factor relative to a direct reachable route (1.5 to 6).");
+        MaximumFlankers = ModSupport.Entry(config, "MaximumFlankingOfficers", 3, "Up to four front/side/rear flankers per pursued player; others maintain spaced support.");
+        Memory = ModSupport.Entry(config, "SquadSightMemorySeconds", 6f, "Share an observed position for this long after all officers lose sight (1 to 10 seconds).");
         RadioNearby = ModSupport.Entry(config, "RadioNearby", true, "Call already active nearby police into a chase, on the host.");
         RadioDistance = ModSupport.Entry(config, "RadioDistance", 100f, "Maximum distance of backup officers from the pursued player.");
         MaximumBackup = ModSupport.Entry(config, "MaximumBackupOfficers", 10, "Maximum nearby officers called per radio request (0 to 20).");
@@ -52,10 +59,13 @@ public sealed class BetterPoliceMod : MelonMod
         // OnActiveTick is a shared seven-byte native thunk in this beta. Detouring it
         // also intercepts thousands of unrelated constructors, including exception handling.
         ModSupport.Patch(HarmonyInstance, typeof(PursuitBehaviour), "BehaviourUpdate", self, postfix: nameof(PursuitTick));
+        ModSupport.Patch(HarmonyInstance, typeof(CombatBehaviour), "SetDestination", self, prefix: nameof(CoordinatedDestination),
+            parameters: new[] { typeof(Vector3), typeof(bool), typeof(float) });
         ModSupport.Patch(HarmonyInstance, typeof(PursuitBehaviour), "UpdateArrest", self, prefix: nameof(ArrestTick));
         ModSupport.Patch(HarmonyInstance, typeof(PursuitBehaviour), "EndCombat", self, postfix: nameof(PursuitEnded));
         ModSupport.Patch(HarmonyInstance, typeof(PursuitBehaviour), "Disable", self, postfix: nameof(PursuitEnded));
         ModSupport.Patch(HarmonyInstance, typeof(PoliceOfficer), "Deactivate", self, prefix: nameof(OfficerLeaving));
+        RivalGang.Initialize(config, HarmonyInstance);
     }
 
     private static float Bound(float value, float minimum, float maximum, float fallback)
@@ -137,7 +147,7 @@ public sealed class BetterPoliceMod : MelonMod
             TuneWeapon(__instance.currentWeapon?.TryCast<AvatarRangedWeapon>());
             if (__instance.IsServerInitialized)
             {
-                Intercept(__instance, distance);
+                if (Flanking.Value) PursuitCoordinator.Tick(__instance);
                 RequestBackup(__instance);
             }
         }
@@ -164,19 +174,25 @@ public sealed class BetterPoliceMod : MelonMod
         if (Enabled.Value && __instance.Npc && __instance.Npc.TryCast<PoliceOfficer>() is not null) tick *= Bound(ArrestMultiplier.Value, 1f, 5f, 1.5f);
     }
 
-    private static void Intercept(PursuitBehaviour pursuit, float distance)
+    internal static bool IsEnabled => Enabled.Value;
+    internal static bool CoordinationEnabled => Enabled.Value && Flanking.Value;
+    internal static float CoordinationInterval => Bound(PlanInterval.Value, 0.75f, 5f, 1.5f);
+    internal static float FlankRadiusValue => Bound(FlankRadius.Value, 10f, 40f, 18f);
+    internal static float DetourLimit => Bound(MaximumDetour.Value, 1.5f, 6f, 3f);
+    internal static int FlankerCount => Math.Clamp(MaximumFlankers.Value, 0, 4);
+    internal static float SquadMemory => Bound(Memory.Value, 1f, 10f, 6f);
+
+    private static void CoordinatedDestination(CombatBehaviour __instance, ref Vector3 position, ref bool teleportIfFail)
     {
-        if (!Flanking.Value || distance < 12f || !pursuit.IsTargetImmediatelyVisible || pursuit.Npc.Movement.IsOnLadder) return;
-        if (NextFlank.TryGetValue(pursuit.Pointer, out var next) && Time.time < next) return;
-        NextFlank[pursuit.Pointer] = Time.time + 3f;
-        var velocity = pursuit.TargetPlayer.Velocity;
-        velocity.y = 0;
-        if (velocity.sqrMagnitude < 1f) return;
-        var side = (pursuit.Npc.Pointer.ToInt64() & 16) == 0 ? -1f : 1f;
-        var target = pursuit.TargetPlayer.transform.position + Vector3.ClampMagnitude(velocity * 1.5f, 12f)
-            + Vector3.Cross(Vector3.up, velocity.normalized) * side * 2f;
-        var movement = pursuit.Npc.Movement;
-        if (movement.CanGetTo(target, 1.5f)) movement.SetDestination(target);
+        if (!CoordinationEnabled || !__instance) return;
+        try
+        {
+            var pursuit = __instance.TryCast<PursuitBehaviour>();
+            if (pursuit is null || !PursuitCoordinator.TryDestination(pursuit, out var waypoint)) return;
+            position = waypoint;
+            teleportIfFail = false;
+        }
+        catch (Exception error) { ModSupport.WarnOnce("police:route", $"Coordinated police route unavailable: {error.Message}"); }
     }
 
     private static void RequestBackup(PursuitBehaviour pursuit)
@@ -200,12 +216,14 @@ public sealed class BetterPoliceMod : MelonMod
     {
         if (!__instance || !__instance.Npc) return;
         RestoreSpeed(__instance.Npc.Pointer);
-        NextFlank.Remove(__instance.Pointer);
+        PursuitCoordinator.Forget(__instance.Pointer.ToInt64());
     }
 
     private static void OfficerLeaving(PoliceOfficer __instance)
     {
-        if (__instance) RestoreSpeed(__instance.Pointer);
+        if (!__instance) return;
+        RestoreSpeed(__instance.Pointer);
+        if (__instance.PursuitBehaviour) PursuitCoordinator.Forget(__instance.PursuitBehaviour.Pointer.ToInt64());
     }
 
     private static void RestoreSpeed(IntPtr id)
@@ -228,9 +246,11 @@ public sealed class BetterPoliceMod : MelonMod
             saved.Weapon.HitChance_MinRange = saved.Near; saved.Weapon.HitChance_MaxRange = saved.Far;
             saved.Weapon.AimTime_Min = saved.AimMin; saved.Weapon.AimTime_Max = saved.AimMax;
         }
-        Speeds.Clear(); Cones.Clear(); Notices.Clear(); Weapons.Clear(); NextFlank.Clear(); NextRadio.Clear();
+        Speeds.Clear(); Cones.Clear(); Notices.Clear(); Weapons.Clear(); NextRadio.Clear();
+        PursuitCoordinator.Clear();
     }
 
     public override void OnSceneWasUnloaded(int buildIndex, string sceneName) { if (sceneName == "Main") RestoreAll(); }
+    public override void OnUpdate() { if (CoordinationEnabled) PursuitCoordinator.Prune(); }
     public override void OnApplicationQuit() => RestoreAll();
 }

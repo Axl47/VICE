@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\src\BetterPolice\PursuitTactics.cs" Link="PursuitTactics.cs" />
+    <Compile Include="..\..\src\BetterPolice\GangTuning.cs" Link="GangTuning.cs" />
+  </ItemGroup>
+</Project>

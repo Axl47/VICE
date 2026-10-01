@@ -7,7 +7,7 @@ Features and defaults:
 | Mod | Purpose |
 | --- | --- |
 | `Personal.Warehouse.dll` | Warehouse access at all hours, including before the normal unlock rank. Oscar sells small/medium/large racks, small/medium/large/**huge storage closets**, lockers and cabinets at their existing prices. Additional existing storage IDs can be configured. |
-| `Personal.BetterPolice.dll` | Pursuit speed increases from 1.3× to 2× with distance, wider and longer vision, shorter notice time, faster arrests, stronger aim, reachable interception destinations and nearby active backup officers. |
+| `Personal.BetterPolice.dll` | Tougher police with coordinated rear pressure, front/side interception, reachable alternate entrances and spaced support. Hostile rival gang activities get half-length cooldowns and 50% wider ambush detection zones. |
 | `Personal.Highballer.dll` | Estimated counteroffer success and highest acceptable price at a 98% threshold. Exact packaged delivery planning with native handover validation. Optional automatic counteroffers, scheduling and quantity increases default off. S1API custom NPCs and special customers are skipped by default. |
 | `Personal.Casino.dll` | Blackjack and Ride the Bus betting sliders support wagers up to $100,000. Bets remain subject to available cash and normal game payouts. Slot machines use the game's original settings. |
 | `Personal.MoreGuns.dll` | AK47 ($15,000, 30 rounds) and minigun ($75,000, 400 rounds), with matching spare magazines at the arms dealer. Automatic fire, animated minigun spin-up, corrected magazine reloads, quieter sound through master/effects settings, tighter spread, 35% less bullet knockback and softer firing shake. Rank restrictions default off. |
@@ -43,6 +43,12 @@ Open the map to see portrait pins for unlocked customers at their current locati
 
 `ShowDealPayouts` and `ShowKnownCustomers` can be disabled separately under `PersonalUIEnhancements`. `CustomerMarkerScale` defaults to `0.75` of the native icon size and accepts `0.35`–`1.5`. The mod can be installed by itself and needs no saved-data migration. See [the UI implementation notes](docs/ui-enhancements.md) and [live checks](docs/playtest.md).
 
+## Police squads and rival gang
+
+Better Police 0.2.0 keeps one officer applying pressure while others try front/side approaches through complete reachable paths. Where another entrance exists, officers can route around it; single-entrance corridors use spaced support. The planner shares recent sightings and returns to native searching after six seconds without sight.
+
+Hostile rival gang activities use half the native cooldown and 50% wider ambush detection zones by default. Native region eligibility, progression, truce status, goon pools and police-pursuit exclusions still apply. Existing loaded waits finish before the next shortened cooldown. Set `RivalGang=false` to restore native gang frequency, or adjust `GangCooldownMultiplier` and `GangAmbushRadiusMultiplier`. Squad routes can be disabled with `Flanking=false`. See [settings and behavior](docs/police-coordination.md).
+
 ## Build
 
 Install a .NET SDK 8 or newer and launch the beta with MelonLoader once to generate `MelonLoader/Il2CppAssemblies`. Build references come directly from the installation. From PowerShell in this repo:
@@ -53,11 +59,11 @@ Install a .NET SDK 8 or newer and launch the beta with MelonLoader once to gener
 
 Use `-GameDir`, `-OriginalMoreGuns` or `-DotnetPath` to override the installation, authorized original `MoreGuns.dll`, or SDK executable. `-NugetConfig` supports a local/offline package feed. `Game.local.props` can also set `GameDir` for direct IDE builds.
 
-The build extracts the original weapon bundle into ignored `.research/assets/`, compiles the seven DLLs, runs the algorithm, saved-purchase and weapon spin-up checks and creates `artifacts/PersonalMods-0.3.0.zip`. More Guns requires the owner's original bundle; the other six projects can be built separately without it.
+The build extracts the original weapon bundle into ignored `.research/assets/`, compiles the seven DLLs, runs the algorithm, saved-purchase, weapon spin-up and police/gang checks and creates `artifacts/PersonalMods-0.3.1.zip`. More Guns requires the owner's original bundle; the other six projects can be built separately without it.
 
 ## Install and verify
 
-The 0.3.0 package adds **UI Enhancements 0.1.0** and retains **Casino 0.1.2**, **More Guns 0.2.0** and the startup corrections in **Better Police and Warehouse 0.1.1**. To add the new UI features, copy only `Personal.UIEnhancements.dll` from its `Mods` folder. Keep Casino 0.1.2 for the slider correction and original slot behavior. See [the crash investigation](docs/startup-crash.md) for the earlier startup fix.
+The 0.3.1 package updates **Better Police to 0.2.0** with squad coordination and rival gang tuning. To apply this update, close the game and replace only `Personal.BetterPolice.dll` from its `Mods` folder. The package also includes **UI Enhancements 0.1.0**, **Casino 0.1.2**, **More Guns 0.2.0** and **Warehouse 0.1.1**. Keep Casino 0.1.2 for the slider correction and original slot behavior. See [the police/gang notes](docs/police-coordination.md) and [the crash investigation](docs/startup-crash.md).
 
 Close the game, then run:
 
