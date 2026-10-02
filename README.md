@@ -12,7 +12,7 @@ Features and defaults:
 | `Personal.Casino.dll` | Blackjack and Ride the Bus betting sliders support wagers up to $100,000. Bets remain subject to available cash and normal game payouts. Slot machines use the game's original settings. |
 | `Personal.MoreGuns.dll` | AK47 ($15,000, 30 rounds) and minigun ($75,000, 400 rounds), with matching spare magazines at the arms dealer. Automatic fire, animated minigun spin-up, corrected magazine reloads, quieter sound through master/effects settings, tighter spread, 35% less bullet knockback and softer firing shake. Rank restrictions default off. |
 | `Personal.GasPurchases.dll` | Named shopping lists and **Repeat last** at both gas-marts. Restores exact quantities at current prices, checks availability/stock, and uses normal checkout. Remembers the last successful purchase across restarts. |
-| `Personal.UIEnhancements.dll` | Agreed payment next to each tracked deal in the left HUD list. Native portrait markers follow unlocked customers on the map, with hover names; indoor customers appear at their building entrance. |
+| `Personal.UIEnhancements.dll` | Total payment and average price per unit beside tracked deals. Portrait markers follow unlocked customers on the map. Blue compass diamonds show other multiplayer players with names and distances. |
 
 Configuration is stored by MelonLoader in `UserData/MelonPreferences.cfg` under the `PersonalWarehouse`, `PersonalBetterPolice`, `PersonalHighballer`, `PersonalCasino`, `PersonalMoreGuns`, `PersonalMoreGuns_ak47`, `PersonalMoreGuns_minigun`, `PersonalGasPurchases` and `PersonalUIEnhancements` categories. Restart after editing settings. Old mod config files are not imported.
 
@@ -37,11 +37,13 @@ Up to 32 named orders persist in `UserData/PersonalGasPurchases/orders.json`, al
 
 ## Deal and map UI
 
-UI Enhancements 0.1.0 adds a green payment amount to the title of each tracked deal in the left HUD list. It reads the accepted contract's payment, keeps the existing timing and objective text, and updates after native UI refreshes. This is the agreed amount; bonuses, partial deliveries and penalties can change the final payment.
+UI Enhancements 0.1.1 adds the total payment and price per unit to each tracked deal in the left HUD list, for example **$1,000 ($33.3/unit)** for 30 units. The unit value divides the accepted payment by the total requested quantity and rounds to one decimal place. It keeps the existing timing/objective text and updates after native UI refreshes. These are the agreed values; bonuses, partial deliveries and penalties can change the final payment.
 
 Open the map to see portrait pins for unlocked customers at their current locations. Hover a pin to see the customer's name; native map navigation and click-to-focus remain available. Markers follow moving customers while the map is open, and the customer list refreshes once a second. Customers indoors use their building entrance. Inactive/dead customers are hidden, and pins are cleared when leaving the save. Potential customers keep the game's existing search zones.
 
-`ShowDealPayouts` and `ShowKnownCustomers` can be disabled separately under `PersonalUIEnhancements`. `CustomerMarkerScale` defaults to `0.75` of the native icon size and accepts `0.35`–`1.5`. The mod can be installed by itself and needs no saved-data migration. See [the UI implementation notes](docs/ui-enhancements.md) and [live checks](docs/playtest.md).
+In multiplayer, blue diamonds on the compass indicate other players, with their names and the native distance label. Markers follow replicated positions, respect the compass's visibility and direction range, and are removed when a player leaves. Your own player is excluded. Install this UI version on each computer that should display the markers; peers need no new networking component.
+
+`ShowDealPayouts`, `ShowKnownCustomers` and `ShowMultiplayerPlayers` can be disabled separately under `PersonalUIEnhancements`. `CustomerMarkerScale` defaults to `0.75` of the native icon size and accepts `0.35`–`1.5`. The mod can be installed by itself and needs no saved-data migration. See [the UI implementation notes](docs/ui-enhancements.md) and [live checks](docs/playtest.md).
 
 ## Police squads and rival gang
 
@@ -59,11 +61,11 @@ Install a .NET SDK 8 or newer and launch the beta with MelonLoader once to gener
 
 Use `-GameDir`, `-OriginalMoreGuns` or `-DotnetPath` to override the installation, authorized original `MoreGuns.dll`, or SDK executable. `-NugetConfig` supports a local/offline package feed. `Game.local.props` can also set `GameDir` for direct IDE builds.
 
-The build extracts the original weapon bundle into ignored `.research/assets/`, compiles the seven DLLs, runs the algorithm, saved-purchase, weapon spin-up and police/gang checks and creates `artifacts/PersonalMods-0.3.1.zip`. More Guns requires the owner's original bundle; the other six projects can be built separately without it.
+The build extracts the original weapon bundle into ignored `.research/assets/`, compiles the seven DLLs, runs the algorithm, saved-purchase, weapon spin-up and police/gang checks and creates `artifacts/PersonalMods-0.3.2.zip`. More Guns requires the owner's original bundle; the other six projects can be built separately without it.
 
 ## Install and verify
 
-The 0.3.1 package updates **Better Police to 0.2.0** with squad coordination and rival gang tuning. To apply this update, close the game and replace only `Personal.BetterPolice.dll` from its `Mods` folder. The package also includes **UI Enhancements 0.1.0**, **Casino 0.1.2**, **More Guns 0.2.0** and **Warehouse 0.1.1**. Keep Casino 0.1.2 for the slider correction and original slot behavior. See [the police/gang notes](docs/police-coordination.md) and [the crash investigation](docs/startup-crash.md).
+The 0.3.2 package updates **UI Enhancements to 0.1.1** with multiplayer compass markers and deal unit values. To apply this update, close the game and replace only `Personal.UIEnhancements.dll` from its `Mods` folder. The package also includes **Better Police 0.2.0**, **Casino 0.1.2**, **More Guns 0.2.0** and **Warehouse 0.1.1**. Keep Casino 0.1.2 for the slider correction and original slot behavior. See [the UI notes](docs/ui-enhancements.md), [police/gang notes](docs/police-coordination.md) and [the crash investigation](docs/startup-crash.md).
 
 Close the game, then run:
 

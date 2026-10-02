@@ -21,7 +21,17 @@ internal static class DealPayoutLabel
         if (lineEnd < 0) lineEnd = original.Length;
         if (lineEnd > 0 && original[lineEnd - 1] == '\r') lineEnd--;
         var payment = contract.Payment.ToString("#,0.##", CultureInfo.InvariantCulture);
-        label.text = original.Insert(lineEnd, $" <size=85%><color=#8FE3A5>· ${payment}</color></size>");
+        var value = $"${payment}";
+        if (contract.ProductList?.entries is { Count: > 0 })
+        {
+            var quantity = contract.ProductList.GetTotalQuantity();
+            if (quantity > 0)
+            {
+                var unitPrice = (contract.Payment / (double)quantity).ToString("#,0.0", CultureInfo.InvariantCulture);
+                value += $" (${unitPrice}/unit)";
+            }
+        }
+        label.text = original.Insert(lineEnd, $" <size=85%><color=#8FE3A5>· {value}</color></size>");
         label.enableWordWrapping = true;
         label.ForceMeshUpdate();
         // Long names/large payments may wrap; recalculate the row and its shade.
