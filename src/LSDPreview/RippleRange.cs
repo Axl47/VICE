@@ -2,7 +2,8 @@ namespace PersonalMods.LSDPreview;
 
 internal static class RippleRange
 {
-    internal const float DefaultStrength = 0.30f, MaximumPixels = 6;
+    internal const float DefaultStrength = 0.30f, DefaultCenterDegrees = 5, MaximumPixels = 18;
+    private const float ReferencePixels = 60;
 
     // Actual screen displacement is bounded in pixels, independently of noise
     // panning. The old native _Amplitude changes noise coordinates, not warp size.
@@ -10,12 +11,16 @@ internal static class RippleRange
     {
         if (!float.IsFinite(elapsed)) return 0;
         var breath = 0.85f + 0.15f * MathF.Sin(elapsed * 0.23f);
-        return MaximumPixels * Safe(amount) * Safe(strength) * Safe(motion) * Safe(movement) * breath;
+        // The previous calibration multiplied four small defaults into a
+        // subpixel result, then masked it again. Restore a few visible pixels
+        // at normal settings while keeping a separate absolute guard.
+        var pixels = Math.Min(MaximumPixels, ReferencePixels * Safe(amount) * Safe(strength) * Safe(motion));
+        return pixels * Safe(movement) * breath;
     }
 
     internal static float FocusRadius(float degrees, float verticalFov)
     {
-        degrees = TripTimeline.Safe(degrees, 12, 0, 25);
+        degrees = TripTimeline.Safe(degrees, DefaultCenterDegrees, 0, 25);
         verticalFov = TripTimeline.Safe(verticalFov, 65, 20, 140);
         return MathF.Tan(degrees * MathF.PI / 180) / (2 * MathF.Tan(verticalFov * MathF.PI / 360));
     }

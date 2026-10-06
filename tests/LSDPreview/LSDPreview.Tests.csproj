@@ -6,6 +6,6 @@
     <Compile Include="..\..\src\LSDPreview\ColorBreathing.cs" Link="ColorBreathing.cs" />
     <Compile Include="..\..\src\LSDPreview\RippleRange.cs" Link="RippleRange.cs" />
     <Compile Include="..\..\src\LSDPreview\AudioBlend.cs" Link="AudioBlend.cs" />
-    <Compile Include="..\..\src\LSDPreview\EchoBuffer.cs" Link="EchoBuffer.cs" />
+    <Compile Include="..\..\src\LSDPreview\EchoVoices.cs" Link="EchoVoices.cs" />
   </ItemGroup>
 </Project>

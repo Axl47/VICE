@@ -1,6 +1,5 @@
 using Il2CppBeautify.Universal;
 using Il2CppScheduleOne.FX;
-using Il2CppScheduleOne.PlayerScripts;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
@@ -16,7 +15,6 @@ internal sealed class PreviewEffects : IDisposable
     private VolumeProfile? Profile;
     private ColorAdjustments? Colors;
     private ChromaticAberration? Chromatic;
-    private Vignette? CrouchVignette;
     private readonly MovementComfort Comfort = new();
     private Vector3 LastPosition;
     private Quaternion LastRotation;
@@ -51,7 +49,6 @@ internal sealed class PreviewEffects : IDisposable
                 = Colors.contrast.overrideState = Colors.postExposure.overrideState = true;
             Chromatic = Profile.Add<ChromaticAberration>(false);
             Chromatic.intensity.overrideState = true;
-            CrouchVignette = Profile.Add<Vignette>(false);
             Cartoon = Profile.Add<Beautify>(false);
             var native = PostProcessingManager.Instance;
             if (native && native.beautifySettings) BaseSharpen = native.beautifySettings.sharpenIntensity.value;
@@ -87,17 +84,6 @@ internal sealed class PreviewEffects : IDisposable
         // now lives in the bounded peripheral pass; retain color timing.
         var movement = UpdateComfort(amount > 0);
         Chromatic.intensity.value = 0.09f * motion;
-        var playerMovement = PlayerMovement.Instance;
-        var crouched = amount > 0 && playerMovement && playerMovement.IsCrouched;
-        if (CrouchVignette is not null && CrouchVignette)
-        {
-            CrouchVignette.intensity.overrideState = CrouchVignette.smoothness.overrideState = crouched;
-            if (crouched)
-            {
-                CrouchVignette.intensity.value = Mathf.Clamp01(PlayerMovement.CrouchedVigIntensity * 2);
-                CrouchVignette.smoothness.value = PlayerMovement.CrouchedVigSmoothness;
-            }
-        }
         var outline = Strength(LSDPreviewMod.OutlineStrength);
         if (Cartoon is not null && Cartoon)
         {

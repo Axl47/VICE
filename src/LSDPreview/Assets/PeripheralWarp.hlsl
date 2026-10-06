@@ -45,6 +45,11 @@ float4 Frag(Varyings input) : SV_TARGET
     // the vector's pixel length to one before applying the maximum.
     float2 flow = float2(sin(q.y * 10 + t * 0.29) + 0.35 * sin(q.x * 18 - t * 0.19),
                          cos(q.x * 11 - t * 0.24) + 0.35 * sin(q.y * 16 + t * 0.21)) / 1.91;
-    float2 offset = float2(flow.x / aspect, flow.y) * _Blend * focus * edge;
+    // A slow expansion/contraction makes stationary scenery breathe again.
+    // Both vectors have length <= 1; their weighted sum retains the pixel cap.
+    float2 radial = q / max(length(q), 0.001);
+    float2 breathing = radial * sin(t * 0.65);
+    float2 motion = 0.65 * flow + 0.35 * breathing;
+    float2 offset = float2(motion.x / aspect, motion.y) * _Blend * focus * edge;
     return _BlitTexture.SampleLevel(LinearClamp, saturate(uv + offset), 0);
 }

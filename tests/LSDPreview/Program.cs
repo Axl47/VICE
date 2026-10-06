@@ -146,8 +146,9 @@ for (var step = 0; step <= 1200; step++)
     var time = step * 0.1f;
     var maximum = RippleRange.Pixels(time, 1, 1, 1, 1);
     var normal = RippleRange.Pixels(time, 0.6f, RippleRange.DefaultStrength, 0.5f, 1);
-    Check(maximum is >= 4.1999f and <= 6.0001f, "The absolute maximum must remain within six pixels, with gentle continuous breathing.");
-    Check(normal is >= 0.3779f and <= 0.5401f, "Default displacement must remain below 0.54 pixels even at the edge and peak.");
+    Check(maximum is >= 12.5999f and <= 18.0001f, "The absolute maximum must remain within eighteen pixels, with gentle continuous breathing.");
+    Check(normal is >= 3.7799f and <= 5.4001f, "The default needs a few pixels of visible motion before the focus mask, without returning to broad bends.");
+    Near(normal, RippleRange.Pixels(time, 0.6f, 1, 0.5f, 1) * 0.3f, "The usual default must retain 30% of the usual full ripple range.");
     Near(RippleRange.Pixels(time, 0.6f, 0, 0.5f, 1), 0, "Zero ripple strength must disable displacement.");
     Near(RippleRange.Pixels(time, 0.6f, 1, 0, 1), 0, "Zero motion strength must disable displacement.");
     Near(RippleRange.Pixels(time, 0, 1, 1, 1), 0, "A pause or reset must disable displacement.");
@@ -160,7 +161,7 @@ foreach (var invalid in new[] { float.NaN, float.PositiveInfinity, float.Negativ
 }
 foreach (var fov in new[] { 45f, 65f, 90f, 120f })
 {
-    var inner = RippleRange.FocusRadius(12, fov);
+    var inner = RippleRange.FocusRadius(RippleRange.DefaultCenterDegrees, fov);
     var outer = Math.Max(inner + 0.18f, 0.48f);
     var previous = 0f;
     for (var step = 0; step <= 200; step++)
@@ -227,63 +228,74 @@ owned = ColorBreathing.Sample(lease.Baseline, 7, 30, 1);
 lease.Written(owned);
 Check(lease.CanRestore(owned) && lease.Baseline == nativeUpdate, "Cleanup after resumed animation must restore the newer native baseline.");
 var low = 0;
-var audible = 0;
+var stronger = 0;
 for (var step = 0; step <= 1200; step++)
 {
     var time = step * 0.1f;
     var wet = AudioBlend.Sample(time, 1);
-    Check(float.IsFinite(wet) && wet is >= 0.1049f and <= 0.3501f, "Echo feedback must remain below unity at every strength and phase.");
+    Check(float.IsFinite(wet) && wet is >= 0.6749f and <= 0.9001f, "Single-copy gain must remain bounded throughout its slow swells.");
     Near(AudioBlend.Sample(time, 0), 0, "Zero audio strength must mute the owned return.");
-    Check(AudioBlend.Sample(time, 0.6f * 0.35f) <= 0.07351f, "Default echo return must stay at or below 7.35% of captured audio.");
-    if (wet < 0.11f) low++;
-    if (wet > 0.25f) audible++;
+    var normal = AudioBlend.Sample(time, 0.6f * 0.35f);
+    Check(normal is >= 0.1417f and <= 0.1891f, "Default peak return needs a useful 14.2-18.9% of native source volume.");
+    if (wet < 0.68f) low++;
+    if (wet > 0.85f) stronger++;
 }
-Check(low > 200 && audible > 100, "Echo strength must swell occasionally while keeping a quiet return between swells.");
-var clock = new EchoClock();
-Check(clock.Take(0, 48000) == 0, "Audio capture must begin with an empty clock.");
-var timeSum = 0d;
-var totalFrames = 0;
-for (var frame = 0; frame < 1000; frame++)
+Check(low > 200 && stronger > 100, "Echo gain must swell sometimes without disappearing between swells.");
+// The engine schedules against the original event's audio-clock deadline;
+// delivery at different frame boundaries must not change the requested delay.
+foreach (var now in new[] { 7d, 7.016, 7.1, 7.205 })
 {
-    timeSum += 0.004 + random.NextDouble() * 0.03;
-    var frames = clock.Take(timeSum, 48000);
-    Check(frames >= 0 && frames <= EchoClock.HistoryFrames && frames % EchoClock.PacketFrames == 0,
-        "Audio chunks must fit the recent output history at irregular frame rates.");
-    totalFrames += frames;
-    Check(frames + clock.PendingFrames <= EchoClock.HistoryFrames, "Captured packets and their deferred tail must fit the available listener history.");
-    Check(Math.Abs(Math.Floor(timeSum * 48000) - clock.PendingFrames - totalFrames) <= 1,
-        "Pending samples must shift the capture window so consecutive packets do not skip or duplicate the deferred tail.");
+    var voices = new EchoVoices();
+    Check(voices.TryReserve(7, now, 0.4, 1, out var slot), "An on-time event must reserve a delayed voice.");
+    Check(Math.Abs(slot.Start - 7.22) < 0.000001, "The same event must replay at +220 ms regardless of delivery frame.");
+    Check(voices.Busy(slot.Index, 7.01), "A scheduled voice must remain reserved before its delayed start.");
 }
-Check(Math.Abs(totalFrames - timeSum * 48000) < EchoClock.PacketFrames,
-    "Irregular frame timing must neither duplicate samples nor lose more than one partial packet.");
-Check(clock.Take(timeSum + 2, 48000) == -1, "A stall must request clearing rather than replaying stale samples.");
-clock.Reset();
-Check(clock.Take(30, 48000) == 0, "Resume/reset must start a fresh capture timeline.");
-Check(clock.Take(29, 48000) == -1, "A device clock reset must discard stale audio.");
-// An impulse in recent stereo output must reappear once, in the proper
-// channels, at dry-time + 220 ms, including when the owned clip wraps.
-foreach (var playback in new[] { 1536, 95872, 20 })
+var late = new EchoVoices();
+Check(!late.TryReserve(7, 7.215, 0.4, 1, out _), "A missed preparation deadline must discard an event rather than play it late.");
+Check(!late.TryReserve(7, 8, 0.4, 1, out _), "A frame stall must never replay a stale event.");
+var pool = new EchoVoices();
+var occupied = new HashSet<int>();
+for (var index = 0; index < EchoVoices.Capacity; index++)
 {
-    var inputLeft = new float[1024];
-    var inputRight = new float[1024];
-    var packet = new float[EchoClock.PacketFrames * 2];
-    var loop = new float[96000 * 2];
-    inputLeft[300] = 1;
-    inputRight[300] = -0.5f;
-    for (var start = 0; start < 1024; start += EchoClock.PacketFrames)
-    {
-        EchoBuffer.CopyStereo(i => inputLeft[i], i => inputRight[i], (i, value) => packet[i] = value,
-            start, EchoClock.PacketFrames);
-        var destination = EchoBuffer.Destination(playback, 10560, 1024, start, 96000);
-        for (var sample = 0; sample < packet.Length; sample++) loop[(destination * 2 + sample) % loop.Length] = packet[sample];
-    }
-    var expected = (playback - 1024 + 300 + 10560) % 96000;
-    Near(loop[expected * 2], 1, "The left impulse must have the intended delay.");
-    Near(loop[expected * 2 + 1], -0.5f, "The right impulse must preserve its channel and polarity.");
-    Check(loop.Count(value => value != 0) == 2, "A stereo impulse must not leave extra samples in the owned loop.");
+    Check(pool.TryReserve(10, 10, 1, 1, out var slot) && occupied.Add(slot.Index), "Concurrent sounds must each own a distinct voice.");
+    Check(pool.Busy(slot.Index, 10.1), "The delay must be included in a voice's reservation.");
 }
-var unsafeSamples = new[] { float.NaN, float.PositiveInfinity, -5f, 5f };
-var safeStereo = new float[8];
-EchoBuffer.CopyStereo(i => unsafeSamples[i], i => unsafeSamples[i], (i, value) => safeStereo[i] = value, 0, 4);
-Check(safeStereo.SequenceEqual(new[] { 0f, 0, 0, 0, -1, -1, 1, 1 }), "Invalid/over-range capture data must never reach the audio return.");
-Console.WriteLine($"Passed {assertions:N0} LSD timing, visibility, peripheral bounds, movement comfort, color ownership and PCM echo assertions.");
+Check(!pool.TryReserve(10.1, 10.1, 1, 1, out _), "A full pool must drop extra echoes without interrupting existing copies.");
+foreach (var index in occupied) Check(pool.Busy(index, 10.1), "A dropped event must not steal any scheduled voice.");
+Check(pool.TryReserve(11.28, 11.28, 1, 1, out var reused) && occupied.Contains(reused.Index), "Finished sources must be reusable without growing the pool.");
+pool.Reset();
+foreach (var index in occupied) Check(!pool.Busy(index, 11.28), "Mute, pause and reset must clear all future and playing reservations.");
+Check(pool.TryReserve(12, 12, 2, 0.5f, out var slow), "Native pitch must be accepted for ordinary clips.");
+Check(Math.Abs(slow.End - slow.Start - 4.05) < 0.000001, "A half-speed clip must reserve twice its duration plus the cleanup margin.");
+pool.Release(slow.Index);
+Check(!pool.Busy(slow.Index, 12), "A failed native schedule must release its reservation.");
+Check(pool.TryReserve(13, 13, 2, 2, out var fast), "Fast native pitches must remain supported.");
+Check(Math.Abs(fast.End - fast.Start - 1.05) < 0.000001, "Double pitch must halve the voice duration.");
+Check(!pool.Advance(1) && !pool.Busy(fast.Index, 1), "An audio-device clock reset must discard every old reservation.");
+Check(pool.TryReserve(1, 1, 0.4, 1, out _), "A new device clock must be usable after its reset.");
+foreach (var invalid in new[] { double.NaN, double.PositiveInfinity, double.NegativeInfinity })
+{
+    var voices = new EchoVoices();
+    Check(!voices.TryReserve(invalid, 1, 0.4, 1, out _), "An invalid event time must never schedule playback.");
+    Check(!voices.TryReserve(1, invalid, 0.4, 1, out _), "An invalid audio clock must never schedule playback.");
+    Check(!voices.TryReserve(1, 1, invalid, 1, out _), "Invalid clip duration must never schedule playback.");
+}
+foreach (var invalid in new[] { float.NaN, float.PositiveInfinity, -1, 0, 0.01f, 4 })
+    Check(!new EchoVoices().TryReserve(1, 1, 0.4, invalid, out _), "Invalid or unsupported pitches must leave the return silent.");
+Check(!new EchoVoices().TryReserve(1, 1, 31, 1, out _), "Long audio must not pin a short-sound voice indefinitely.");
+Check(!new EchoVoices().TryReserve(1, 1, 0, 1, out _), "Empty clips must never schedule a copy.");
+var irregular = new EchoVoices();
+var deadlines = new double[EchoVoices.Capacity];
+var audioTime = 0d;
+for (var eventNumber = 0; eventNumber < 1000; eventNumber++)
+{
+    audioTime += 0.15 + random.NextDouble() * 0.4;
+    var delivered = audioTime + random.NextDouble() * 0.05;
+    var duration = 0.2 + random.NextDouble() * 0.5;
+    var pitch = 0.65f + (float)random.NextDouble();
+    Check(irregular.TryReserve(audioTime, delivered, duration, pitch, out var slot), "Ordinary footsteps at irregular frame rates must not exhaust the bounded pool.");
+    Check(deadlines[slot.Index] <= delivered, "A voice must not be reused before its preceding delayed clip ends.");
+    Check(Math.Abs(slot.Start - audioTime - EchoVoices.DelaySeconds) < 0.000001, "Engine deadlines must not accumulate drift over repeated sounds.");
+    deadlines[slot.Index] = slot.End;
+}
+Console.WriteLine($"Passed {assertions:N0} LSD timing, visibility, peripheral bounds, movement comfort, color ownership and scheduled echo assertions.");

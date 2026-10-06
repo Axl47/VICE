@@ -40,13 +40,15 @@ try {
     if ($definition.MainModule.GetTypeReferences() | Where-Object { $_.FullName -eq 'UnityEngine.AudioEchoFilter' }) {
         throw 'The preview references the stripped AudioEchoFilter class.'
     }
-    $hasListenerCapture = $hasClipWrite = $false
+    $hasScheduledPlayback = $hasNativeSource = $false
     foreach ($method in $audioType.Methods) {
         if (-not $method.HasBody) { continue }
         foreach ($instruction in $method.Body.Instructions) {
             $call = $instruction.Operand
-            if ($call -is [Mono.Cecil.MethodReference] -and $call.Name -eq 'GetOutputData' -and $call.DeclaringType.FullName -eq 'UnityEngine.AudioListener') { $hasListenerCapture = $true }
-            if ($call -is [Mono.Cecil.MethodReference] -and $call.Name -eq 'SetData' -and $call.DeclaringType.FullName -eq 'UnityEngine.AudioClip') { $hasClipWrite = $true }
+            if ($call -is [Mono.Cecil.MethodReference] -and $call.Name -eq 'PlayScheduled' -and $call.DeclaringType.FullName -eq 'UnityEngine.AudioSource') { $hasScheduledPlayback = $true }
+            if ($call -is [Mono.Cecil.MethodReference] -and $call.Name -eq 'get__audioSource' -and $call.DeclaringType.FullName -eq 'Il2CppScheduleOne.Audio.AudioSourceController') { $hasNativeSource = $true }
+            if ($call -is [Mono.Cecil.MethodReference] -and $call.Name -eq 'GetOutputData' -and $call.DeclaringType.FullName -eq 'UnityEngine.AudioListener') { throw 'The preview must not use the ineffective listener-history capture route.' }
+            if ($call -is [Mono.Cecil.MethodReference] -and $call.Name -eq 'SetData' -and $call.DeclaringType.FullName -eq 'UnityEngine.AudioClip') { throw 'The preview must replay native clips instead of rewriting PCM history.' }
             if ($call -is [Mono.Cecil.MethodReference] -and $call.Name -eq 'TransitionToSnapshots') { throw 'The preview must not replace native mixer snapshots.' }
             if ($call -is [Mono.Cecil.GenericInstanceMethod] -and $call.DeclaringType.FullName.StartsWith('UnityEngine.') -and
                 $call.Name -match '^(GetComponent|GetComponentsInChildren|GetComponentInChildren|AddComponent|FindObjectsOfType)$') {
@@ -54,7 +56,10 @@ try {
             }
         }
     }
-    if (-not $hasListenerCapture -or -not $hasClipWrite) { throw 'The actual listener capture or delayed PCM write is missing.' }
+    if (-not $hasScheduledPlayback -or -not $hasNativeSource -or
+        -not ($audioType.Methods | Where-Object { $_.Name -eq 'InstallHooks' }) -or
+        -not ($audioType.Methods | Where-Object { $_.Name -eq 'AfterPlay' }) -or
+        -not ($audioType.Methods | Where-Object { $_.Name -eq 'AfterOneShot' })) { throw 'Native sound-event hooks or engine-scheduled clip playback are missing.' }
     $shaderResource = $definition.MainModule.Resources | Where-Object { $_.Name -eq 'Personal.LSDPreview.Peripheral.bundle' }
     if (-not $shaderResource) { throw 'The authored peripheral shader bundle is missing from the DLL.' }
     $bytes = $shaderResource.GetResourceData()
@@ -62,10 +67,10 @@ try {
     try { $embeddedHash = [BitConverter]::ToString($hasher.ComputeHash($bytes)).Replace('-', '').ToLowerInvariant() }
     finally { $hasher.Dispose() }
     if ($embeddedHash -ne $shaderManifest.bundleSha256) { throw 'The embedded shader does not match the validated authored bundle.' }
-    Write-Output 'Checked compiled audio: actual listener capture and PCM writes, no stripped filter or generic audio component call; authored peripheral shader verified.'
+    Write-Output 'Checked compiled audio: native sound events and engine-scheduled clips, no listener capture, PCM writes, stripped filter or generic audio component call; authored peripheral shader verified.'
 } finally { $definition.Dispose() }
 
-$packageRoot = Join-Path $repoRoot 'artifacts\LSDPreview-0.7.0'
+$packageRoot = Join-Path $repoRoot 'artifacts\LSDPreview-0.8.0'
 $modsDirectory = Join-Path $packageRoot 'Mods'
 New-Item -ItemType Directory -Path $modsDirectory -Force | Out-Null
 $dll = Join-Path $modsDirectory 'Personal.LSDPreview.dll'
@@ -78,6 +83,6 @@ foreach ($entry in @(@{ Path = $dll; Name = 'Mods/Personal.LSDPreview.dll' }, @{
     $hashLines += (Get-FileHash -LiteralPath $entry.Path -Algorithm SHA256).Hash.ToLowerInvariant() + '  ' + $entry.Name
 }
 Set-Content -LiteralPath $hashFile -Value $hashLines -Encoding utf8
-$zip = Join-Path $repoRoot 'artifacts\LSDPreview-0.7.0.zip'
+$zip = Join-Path $repoRoot 'artifacts\LSDPreview-0.8.0.zip'
 Compress-Archive -LiteralPath $modsDirectory, $guide, $hashFile -DestinationPath $zip -Force
 Write-Output "Built and checked the separate LSD preview: $zip"

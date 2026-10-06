@@ -8,7 +8,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering.Universal;
 
-[assembly: MelonInfo(typeof(PersonalMods.LSDPreview.LSDPreviewMod), "Personal LSD Visual Preview", "0.7.0", "Axl47")]
+[assembly: MelonInfo(typeof(PersonalMods.LSDPreview.LSDPreviewMod), "Personal LSD Visual Preview", "0.8.0", "Axl47")]
 [assembly: MelonGame("TVGS", "Schedule I")]
 
 namespace PersonalMods.LSDPreview;
@@ -36,23 +36,24 @@ public sealed class LSDPreviewMod : MelonMod
         Intensity = ModSupport.Entry(config, "Intensity", DefaultIntensity, "Overall artistic effect strength from 0 to 1.");
         MotionStrength = ModSupport.Entry(config, "MotionStrength", DefaultMotion, "Peripheral breathing, color separation, ripples and afterimages from 0 to 1; 0 disables them.");
         DurationSeconds = ModSupport.Entry(config, "DurationSeconds", TripTimeline.DefaultDuration, "Compressed preview length in seconds, from 20 to 600.");
-        RippleStrength = ModSupport.Entry(config, "RippleStrength", DefaultRipple, "Peripheral displacement from 0 to 1; at most 6 pixels with all strengths at 1. Default 0.30, also follows MotionStrength.");
-        CenterClarityDegrees = ModSupport.Entry(config, "CenterClarityDegrees", 12f, "Clear gaze radius in degrees, from 0 to 25. Displacement fades in smoothly outside this center.");
+        RippleStrength = ModSupport.Entry(config, "RippleStrength", DefaultRipple, "Peripheral flow and breathing from 0 to 1; default peak bound 5.4 pixels, absolute cap 18. Default 0.30, also follows MotionStrength.");
+        CenterClarityDegrees = ModSupport.Entry(config, "CenterClarityDegrees", RippleRange.DefaultCenterDegrees, "Clear gaze radius in degrees, from 0 to 25. Displacement fades in smoothly outside this center.");
         AfterimageStrength = ModSupport.Entry(config, "AfterimageStrength", DefaultAfterimage, "Brief delayed image trails from 0 to 1; also follows MotionStrength.");
         MaterialColorStrength = ModSupport.Entry(config, "MaterialColorStrength", 0.45f, "Continuous slow RGB color breathing across the scene and phone, from 0 to 1. No material discovery or texture copies.");
         HallucinationStrength = ModSupport.Entry(config, "HallucinationStrength", 0.55f, "Opacity of faded character hallucinations, from 0 to 1; 0 hides them.");
-        AudioStrength = ModSupport.Entry(config, "AudioStrength", 0.35f, "Actual delayed game audio, from 0 to 1; 0 mutes and clears the owned echo.");
+        AudioStrength = ModSupport.Entry(config, "AudioStrength", 0.35f, "Delayed copies of game sound clips, from 0 to 1; 0 mutes and clears the owned echo.");
         OutlineStrength = ModSupport.Entry(config, "OutlineStrength", 0.7f, "Defined cartoon-like edges and sharpening from 0 to 1.");
         TextBlurStrength = ModSupport.Entry(config, "TextBlurStrength", DefaultTextBlur, "Soft/indistinct HUD and dialogue text from 0 to 1; also colors phone text fringes when PhoneEffects is enabled.");
         GhostModelNPC = ModSupport.Entry(config, "GhostModelNPC", "", "NPC ID or full name used for hallucination meshes. Empty selects a nearby loaded character.");
         UpgradeDefaults(config);
+        PreviewAudio.InstallHooks(HarmonyInstance);
         LoggerInstance.Msg("LSD visual experiment ready: F8 starts/fades out; F9 clears immediately. No product is registered.");
     }
 
     private void UpgradeDefaults(MelonPreferences_Category config)
     {
         var revision = config.CreateEntry("DefaultsRevision", 0, description: "Internal marker for one-time preview default upgrades.", is_hidden: true);
-        if (revision.Value >= 3) return;
+        if (revision.Value >= 4) return;
         // A one-time upgrade of untouched defaults, leaving custom values intact.
         // The marker also lets a later edit deliberately restore the old strength.
         var changed = 0;
@@ -62,7 +63,8 @@ public sealed class LSDPreviewMod : MelonMod
         if (revision.Value < 2)
             changed += Upgrade(AfterimageStrength, 0.50f) + Upgrade(TextBlurStrength, 0.25f) + Upgrade(DurationSeconds, 90f);
         if (revision.Value < 3) changed += Upgrade(RippleStrength, 0.50f);
-        revision.Value = 3;
+        if (revision.Value < 4) changed += Upgrade(CenterClarityDegrees, 12f);
+        revision.Value = 4;
         config.SaveToFile(false);
         if (changed > 0) LoggerInstance.Msg("Applied updated LSD preview defaults; custom settings were preserved.");
     }
