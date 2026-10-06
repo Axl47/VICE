@@ -198,7 +198,9 @@ internal sealed class PlayerMinimap : IDisposable
             LocalPlayerPin = MinimapPin.Create(poi, Viewport, true);
         if (LocalPlayerPin is not null)
         {
-            LocalPlayerPin.Sync(IconScale);
+            var camera = PlayerCamera.InstanceExists ? PlayerCamera.Instance.Camera : null;
+            var facing = camera is not null && camera ? camera.transform.forward : player.transform.forward;
+            LocalPlayerPin.Sync(IconScale, facing);
             LocalPlayerPin.Root.anchoredPosition = Vector2.zero;
             LocalPlayerPin.Root.localScale *= mapScale;
             LocalPlayerPin.Root.gameObject.SetActive(true);
@@ -255,14 +257,15 @@ internal sealed class PlayerMinimap : IDisposable
     // Compose only transforms below the common ancestor. A hidden phone may
     // scale that ancestor to zero; world-space inversion would collapse the map
     // until it was reopened. Common phone pan/zoom/fades are excluded entirely.
-    private static void MatchRect(RectTransform target, RectTransform source, RectTransform coordinates)
+    private static void MatchRect(RectTransform target, RectTransform source, RectTransform coordinates,
+        Transform? rotationTarget = null, Quaternion? rotation = null)
     {
         Transform? common = source;
         for (var depth = 0; common && !coordinates.IsChildOf(common) && depth < 64; depth++) common = common.parent;
         if (!common || !coordinates.IsChildOf(common)) return;
         var coordinateMatrix = ToAncestor(coordinates, common!);
         if (Math.Abs(coordinateMatrix.determinant) < 0.000001f) return;
-        var relative = coordinateMatrix.inverse * ToAncestor(source, common!);
+        var relative = coordinateMatrix.inverse * ToAncestor(source, common!, rotationTarget, rotation);
         var bounds = source.rect;
         var bottomLeft = relative.MultiplyPoint3x4(new(bounds.xMin, bounds.yMin, 0));
         var topLeft = relative.MultiplyPoint3x4(new(bounds.xMin, bounds.yMax, 0));
@@ -277,12 +280,17 @@ internal sealed class PlayerMinimap : IDisposable
         target.localRotation = Quaternion.Euler(0, 0, Mathf.Atan2(horizontal.y, horizontal.x) * Mathf.Rad2Deg);
     }
 
-    private static Matrix4x4 ToAncestor(Transform source, Transform ancestor)
+    private static Matrix4x4 ToAncestor(Transform source, Transform ancestor,
+        Transform? rotationTarget = null, Quaternion? rotation = null)
     {
         var result = Matrix4x4.identity;
         var node = source;
         for (var depth = 0; node && node.Pointer != ancestor.Pointer && depth < 64; depth++, node = node.parent)
-            result = Matrix4x4.TRS(node.localPosition, node.localRotation, node.localScale) * result;
+        {
+            var localRotation = rotation.HasValue && rotationTarget is not null && rotationTarget && node.Pointer == rotationTarget.Pointer
+                ? rotation.Value : node.localRotation;
+            result = Matrix4x4.TRS(node.localPosition, localRotation, node.localScale) * result;
+        }
         return result;
     }
 
@@ -315,6 +323,7 @@ internal sealed class PlayerMinimap : IDisposable
         private readonly List<(Graphic Source, Graphic Copy)> Graphics = new();
         private readonly bool IsPlayer;
         private readonly IntPtr SourceUi, SourceIcon;
+        private float Heading;
         internal bool HasVisibleArtwork { get; private set; }
         internal bool IsAlive => Poi && Poi.UI && Poi.IconContainer && Root
             && Poi.UI.Pointer == SourceUi && Poi.IconContainer.Pointer == SourceIcon;
@@ -355,11 +364,22 @@ internal sealed class PlayerMinimap : IDisposable
             catch { pin.Dispose(); throw; }
         }
 
-        internal void Sync(float iconScale)
+        internal void Sync(float iconScale, Vector3? viewDirection = null)
         {
             Radius = 0;
             HasVisibleArtwork = false;
             var area = false;
+            Quaternion? rotation = null;
+            if (IsPlayer)
+            {
+                var facing = viewDirection ?? Poi.transform.forward;
+                // Native map X/Y corresponds to world X/Z: east is clockwise.
+                // Ignore pitch and keep the last heading when looking vertically.
+                if (float.IsFinite(facing.x) && float.IsFinite(facing.z)
+                    && facing.x * facing.x + facing.z * facing.z > 0.000001f)
+                    Heading = Mathf.Atan2(-facing.x, facing.z) * Mathf.Rad2Deg;
+                rotation = Quaternion.Euler(0, 0, Heading);
+            }
             foreach (var (source, copy) in Graphics)
             {
                 if (!source || !copy) continue;
@@ -378,7 +398,11 @@ internal sealed class PlayerMinimap : IDisposable
                 var color = source.color; color.a *= opacity;
                 copy.color = color;
                 copy.material = source.material;
-                MatchRect(copy.rectTransform, source.rectTransform, Poi.UI);
+                // POI.UpdatePosition rotates IconContainer only. Replace that
+                // transform in our copied geometry: native phone updates can be
+                // stale, and rotating the whole glyph would apply heading twice.
+                MatchRect(copy.rectTransform, source.rectTransform, Poi.UI,
+                    IsPlayer ? Poi.IconContainer : null, rotation);
                 var dimensions = copy.rectTransform.sizeDelta;
                 area |= Math.Max(dimensions.x, dimensions.y) > 100;
                 // Large potential-customer search zones may intersect the square
