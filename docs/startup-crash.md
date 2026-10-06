@@ -19,7 +19,7 @@ The same audit identified two other cases addressed in this package:
 
 ## Installation and verification
 
-Close the game, then use **Better Police 0.2.0**, **Warehouse 0.1.1** and **Casino 0.1.2** from `PersonalMods-0.3.7/Mods`. Better Police retains the original startup correction and adds the [squad/gang update](police-coordination.md). Add the other desired personal DLLs. Do not leave duplicate copies of earlier DLLs in `Mods`.
+Close the game, then use **Better Police 0.2.0**, **Warehouse 0.1.1** and **Casino 0.1.2** from `PersonalMods-0.3.8/Mods`. Better Police retains the original startup correction and adds the [squad/gang update](police-coordination.md). Add the other desired personal DLLs. Do not leave duplicate copies of earlier DLLs in `Mods`.
 
 Verify the versions above in `MelonLoader/Latest.log`, reach the main menu, and load a save. Then follow `playtest.md`. On October 1 the owner confirmed the corrected startup mods run, and the local log shows all six loading and successful save loads. This establishes recovery from the reported startup crash; weapon reload/animation issues and the later casino slider failure are addressed separately in More Guns 0.2.0 and Casino 0.1.2. The live game process and installed files were left to the owner for manual installation.
 

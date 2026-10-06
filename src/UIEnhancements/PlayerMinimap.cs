@@ -316,6 +316,7 @@ internal sealed class PlayerMinimap : IDisposable
         internal float Radius { get; private set; }
         private readonly List<(Graphic Source, Graphic Copy)> Graphics = new();
         private readonly Dictionary<IntPtr, (RectTransform Source, RectTransform Copy)> PlayerRects = new();
+        private RectTransform? FacingRoot;
         private readonly bool IsPlayer;
         private readonly IntPtr SourceUi, SourceIcon;
         private float Heading;
@@ -341,6 +342,15 @@ internal sealed class PlayerMinimap : IDisposable
                     {
                         var parentRect = sourceRect.Pointer == poi.UI.Pointer ? root
                             : pin.PlayerRects[sourceRect.parent.Pointer].Copy;
+                        // Centered circular layers and the sliced shade have no
+                        // direction. Keep their sampling stable while the offset
+                        // arrow turns in an additional owned child container.
+                        if (sourceRect.Pointer != poi.UI.Pointer && sourceRect.parent.Pointer == pin.SourceIcon
+                            && sourceRect.name is not ("Shade" or "Outline" or "Fill"))
+                        {
+                            pin.FacingRoot ??= Rect(parentRect, "Player facing", Vector2.zero, Vector2.zero);
+                            parentRect = pin.FacingRoot;
+                        }
                         var copyRect = Rect(parentRect, "Player icon layer", Vector2.zero, Vector2.zero);
                         pin.PlayerRects.Add(sourceRect.Pointer, (sourceRect, copyRect));
                     }
@@ -462,11 +472,18 @@ internal sealed class PlayerMinimap : IDisposable
                     copy.sizeDelta = source.sizeDelta;
                     copy.anchoredPosition3D = source.anchoredPosition3D;
                     copy.localScale = source.localScale;
-                    // Rotate the owned container once, preserving all child offsets
-                    // and local rotations, including the arrow's native 90 degrees.
+                    // Freeze the circular backing; the facing subtree alone turns.
                     copy.localRotation = source.Pointer == SourceIcon
-                        ? Quaternion.Euler(0, 0, Heading) : source.localRotation;
+                        ? Quaternion.identity : source.localRotation;
                 }
+            }
+            if (FacingRoot is not null && FacingRoot)
+            {
+                FacingRoot.anchorMin = FacingRoot.anchorMax = FacingRoot.pivot = Poi.IconContainer.pivot;
+                FacingRoot.sizeDelta = Poi.IconContainer.rect.size;
+                FacingRoot.anchoredPosition3D = Vector3.zero;
+                FacingRoot.localScale = Vector3.one;
+                FacingRoot.localRotation = Quaternion.Euler(0, 0, Heading);
             }
         }
 

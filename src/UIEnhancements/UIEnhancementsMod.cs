@@ -3,7 +3,7 @@ using Il2CppScheduleOne.UI.Compass;
 using Il2CppScheduleOne.UI.Phone.Map;
 using MelonLoader;
 
-[assembly: MelonInfo(typeof(PersonalMods.UIEnhancements.UIEnhancementsMod), "Personal UI Enhancements", "0.2.3", "Axl47")]
+[assembly: MelonInfo(typeof(PersonalMods.UIEnhancements.UIEnhancementsMod), "Personal UI Enhancements", "0.2.4", "Axl47")]
 [assembly: MelonGame("TVGS", "Schedule I")]
 
 namespace PersonalMods.UIEnhancements;
