@@ -23,7 +23,7 @@ internal sealed class KnownCustomerMap : IDisposable
     {
         if (Disposed) return;
         if (!Enabled || !Map || !Map.PoIContainer) { Clear(); return; }
-        if (!Map.isOpen || !NPCManager.InstanceExists) return;
+        if ((!Map.isOpen && !PlayerMinimap.Ready) || !NPCManager.InstanceExists) return;
         var prefab = NPCManager.Instance.NPCPoIPrefab;
         if (!prefab || !prefab.UIPrefab) throw new InvalidOperationException("The native portrait marker prefab is missing.");
         if (Customer.UnlockedCustomers is null) return;
@@ -58,7 +58,7 @@ internal sealed class KnownCustomerMap : IDisposable
     {
         if (Disposed) return;
         if (!Enabled || !Map || !Map.PoIContainer) { Clear(); return; }
-        if (!Map.isOpen) return;
+        if (!Map.isOpen && !PlayerMinimap.Ready) return;
         if (Time.realtimeSinceStartup >= NextRefresh) Refresh();
         else UpdatePositions();
     }

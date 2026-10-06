@@ -3,17 +3,19 @@ using Il2CppScheduleOne.UI.Compass;
 using Il2CppScheduleOne.UI.Phone.Map;
 using MelonLoader;
 
-[assembly: MelonInfo(typeof(PersonalMods.UIEnhancements.UIEnhancementsMod), "Personal UI Enhancements", "0.1.2", "Axl47")]
+[assembly: MelonInfo(typeof(PersonalMods.UIEnhancements.UIEnhancementsMod), "Personal UI Enhancements", "0.2.0", "Axl47")]
 [assembly: MelonGame("TVGS", "Schedule I")]
 
 namespace PersonalMods.UIEnhancements;
 
 public sealed class UIEnhancementsMod : MelonMod
 {
-    internal static MelonPreferences_Entry<bool> Enabled = null!, DealPayouts = null!, CustomerMarkers = null!, PlayerCompassMarkers = null!;
-    internal static MelonPreferences_Entry<float> MarkerScale = null!;
+    internal static MelonPreferences_Entry<bool> Enabled = null!, DealPayouts = null!, CustomerMarkers = null!, PlayerCompassMarkers = null!, MinimapEnabled = null!;
+    internal static MelonPreferences_Entry<float> MarkerScale = null!, MinimapSize = null!, MinimapRange = null!;
     private static KnownCustomerMap? CustomerMap;
     private static MultiplayerCompass? PlayerCompass;
+    private static PlayerMinimap? Minimap;
+    private static float NextMinimapAttempt;
 
     public override void OnInitializeMelon()
     {
@@ -23,6 +25,9 @@ public sealed class UIEnhancementsMod : MelonMod
         CustomerMarkers = ModSupport.Entry(config, "ShowKnownCustomers", true, "Show portrait markers at unlocked customers' current map locations.");
         MarkerScale = ModSupport.Entry(config, "CustomerMarkerScale", 0.75f, "Known-customer icon scale relative to the native portrait marker (0.35 to 1.5).");
         PlayerCompassMarkers = ModSupport.Entry(config, "ShowMultiplayerPlayers", true, "Show blue compass markers with player names in the native distance-label position.");
+        MinimapEnabled = ModSupport.Entry(config, "ShowMinimap", true, "Show a square, player-centered map in the top-right gameplay HUD.");
+        MinimapSize = ModSupport.Entry(config, "MinimapSize", 240f, "Square minimap width/height in HUD units, from 160 to 480.");
+        MinimapRange = ModSupport.Entry(config, "MinimapRange", 160f, "World distance across the minimap, from 60 to 500. Smaller values zoom in.");
         var self = typeof(UIEnhancementsMod);
         // Both native methods rebuild the title independently; neither calls the other.
         ModSupport.Patch(HarmonyInstance, typeof(QuestHUDUI), "UpdateUI", self, postfix: nameof(DealUpdated));
@@ -43,20 +48,53 @@ public sealed class UIEnhancementsMod : MelonMod
         if (!open || !__instance) return;
         try
         {
-            if (CustomerMap is null || !CustomerMap.BelongsTo(__instance))
-            {
-                CustomerMap?.Dispose();
-                CustomerMap = new KnownCustomerMap(__instance);
-            }
-            CustomerMap.Refresh();
+            EnsureCustomerMap(__instance);
+            CustomerMap!.Refresh();
         }
         catch (Exception error) { ModSupport.WarnOnce("ui:map-open", $"Known-customer map unavailable: {error.Message}"); }
     }
 
     public override void OnUpdate()
     {
+        // Customer POIs must also exist when only the minimap is visible; the
+        // player never needs to open the phone once just to initialize them.
+        if (Enabled.Value && CustomerMarkers.Value && PlayerMinimap.Ready)
+        {
+            try { EnsureCustomerMap(MapApp.Instance); }
+            catch (Exception error) { ModSupport.WarnOnce("ui:map-init", $"Known-customer map initialization failed: {error.Message}"); }
+        }
         try { CustomerMap?.Tick(); }
         catch (Exception error) { ModSupport.WarnOnce("ui:map-tick", $"Known-customer map update failed: {error.Message}"); }
+    }
+
+    private static void EnsureCustomerMap(MapApp map)
+    {
+        if (CustomerMap is not null && CustomerMap.BelongsTo(map)) return;
+        CustomerMap?.Dispose();
+        CustomerMap = new KnownCustomerMap(map);
+    }
+
+    public override void OnLateUpdate()
+    {
+        try
+        {
+            if (!PlayerMinimap.Ready) { Minimap?.Dispose(); Minimap = null; return; }
+            var hud = HUD.Instance;
+            var map = MapApp.Instance;
+            if (Minimap is null || !Minimap.BelongsTo(hud, map))
+            {
+                Minimap?.Dispose(); Minimap = null;
+                if (UnityEngine.Time.realtimeSinceStartup < NextMinimapAttempt) return;
+                Minimap = new PlayerMinimap(hud, map);
+            }
+            Minimap.Tick();
+        }
+        catch (Exception error)
+        {
+            Minimap?.Dispose(); Minimap = null;
+            NextMinimapAttempt = UnityEngine.Time.realtimeSinceStartup + 2;
+            ModSupport.WarnOnce("ui:minimap", $"Player minimap unavailable: {error.Message}");
+        }
     }
 
     private static void CompassUpdated(CompassManager __instance)
@@ -80,8 +118,12 @@ public sealed class UIEnhancementsMod : MelonMod
         CustomerMap = null;
         PlayerCompass?.Dispose();
         PlayerCompass = null;
+        Minimap?.Dispose();
+        Minimap = null;
+        NextMinimapAttempt = 0;
     }
 
     public override void OnSceneWasUnloaded(int buildIndex, string sceneName) { if (sceneName == "Main") Cleanup(); }
     public override void OnApplicationQuit() => Cleanup();
+    public override void OnDeinitializeMelon() => Cleanup();
 }
