@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsGameMod>true</IsGameMod>
+    <AssemblyName>Personal.LSDPreview</AssemblyName>
+    <Version>0.5.0</Version>
+  </PropertyGroup>
+</Project>

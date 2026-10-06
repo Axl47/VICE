@@ -53,6 +53,12 @@ Better Police 0.2.0 keeps one officer applying pressure while others try front/s
 
 Hostile rival gang activities use half the native cooldown and 50% wider ambush detection zones by default. Native region eligibility, progression, truce status, goon pools and police-pursuit exclusions still apply. Existing loaded waits finish before the next shortened cooldown. Set `RivalGang=false` to restore native gang frequency, or adjust `GangCooldownMultiplier` and `GangAmbushRadiusMultiplier`. Squad routes can be disabled with `Flanking=false`. See [settings and behavior](docs/police-coordination.md).
 
+## Experimental LSD visuals
+
+A separate `Personal.LSDPreview.dll` 0.5.0 experiment preserves the subtle material-color breathing and faded native character snapshots from 0.4.0. Ripple displacement is now 30% of the previous amplitude, HUD text softness increases 50%, afterimages increase 25%, and the default duration doubles to 180 seconds. Stronger saturation, a small contrast increase and a brightness lift make colors more vivid. Audio uses non-generic Unity component APIs to fix the initialization error found in the live log, with routing diagnostics for its faint intermittent echoes. **F8** starts or fades out; **F9** clears immediately. The geometric texture layer remains removed. An LSD item and production/sales integration are still future work.
+
+Run `./scripts/Build-LSDPreview.ps1` to build/check only this experiment and produce `artifacts/LSDPreview-0.5.0.zip`. Its source, build and package are separate from the seven-mod suite below. Compilation and timing/gaze/transport/color ownership/audio envelope checks are automated; visual appearance and multiplayer cleanup require the [LSD preview playtest](docs/lsd-preview.md).
+
 ## Build
 
 Install a .NET SDK 8 or newer and launch the beta with MelonLoader once to generate `MelonLoader/Il2CppAssemblies`. Build references come directly from the installation. From PowerShell in this repo:

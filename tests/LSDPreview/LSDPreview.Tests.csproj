@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\src\LSDPreview\TripTimeline.cs" Link="TripTimeline.cs" />
+    <Compile Include="..\..\src\LSDPreview\PreviewVisibility.cs" Link="PreviewVisibility.cs" />
+    <Compile Include="..\..\src\LSDPreview\ColorBreathing.cs" Link="ColorBreathing.cs" />
+  </ItemGroup>
+</Project>
