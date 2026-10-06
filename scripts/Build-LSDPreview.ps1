@@ -12,6 +12,13 @@ if (-not $NugetConfig -and (Test-Path -LiteralPath (Join-Path $repoRoot 'NuGet.l
 }
 $env:DOTNET_CLI_HOME = Join-Path $repoRoot '.tools\cli-home'
 $env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'
+$shaderDirectory = Join-Path $repoRoot 'src\LSDPreview\Assets'
+$shaderManifest = Get-Content -LiteralPath (Join-Path $shaderDirectory 'peripheral.json') -Raw | ConvertFrom-Json
+foreach ($inputFile in @(@{ Name = 'PeripheralWarp.hlsl'; Expected = $shaderManifest.sourceSha256 },
+    @{ Name = 'peripheral.bundle'; Expected = $shaderManifest.bundleSha256 })) {
+    $actualHash = (Get-FileHash -LiteralPath (Join-Path $shaderDirectory $inputFile.Name) -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($actualHash -ne $inputFile.Expected) { throw 'Authored peripheral shader inputs changed. Rebuild with scripts/Build-LSDShader.py.' }
+}
 $projects = @('src\LSDPreview\LSDPreview.csproj', 'tests\LSDPreview\LSDPreview.Tests.csproj')
 foreach ($project in $projects) {
     $buildArguments = @('build', (Join-Path $repoRoot $project), '-c', 'Release', '--nologo', '-m:1', '-v', 'minimal', "-p:GameDir=$GameDir", '-warnaserror')
@@ -33,23 +40,32 @@ try {
     if ($definition.MainModule.GetTypeReferences() | Where-Object { $_.FullName -eq 'UnityEngine.AudioEchoFilter' }) {
         throw 'The preview references the stripped AudioEchoFilter class.'
     }
-    $hasSnapshotBlend = $false
+    $hasListenerCapture = $hasClipWrite = $false
     foreach ($method in $audioType.Methods) {
         if (-not $method.HasBody) { continue }
         foreach ($instruction in $method.Body.Instructions) {
             $call = $instruction.Operand
-            if ($call -is [Mono.Cecil.MethodReference] -and $call.Name -eq 'TransitionToSnapshots') { $hasSnapshotBlend = $true }
+            if ($call -is [Mono.Cecil.MethodReference] -and $call.Name -eq 'GetOutputData' -and $call.DeclaringType.FullName -eq 'UnityEngine.AudioListener') { $hasListenerCapture = $true }
+            if ($call -is [Mono.Cecil.MethodReference] -and $call.Name -eq 'SetData' -and $call.DeclaringType.FullName -eq 'UnityEngine.AudioClip') { $hasClipWrite = $true }
+            if ($call -is [Mono.Cecil.MethodReference] -and $call.Name -eq 'TransitionToSnapshots') { throw 'The preview must not replace native mixer snapshots.' }
             if ($call -is [Mono.Cecil.GenericInstanceMethod] -and $call.DeclaringType.FullName.StartsWith('UnityEngine.') -and
                 $call.Name -match '^(GetComponent|GetComponentsInChildren|GetComponentInChildren|AddComponent|FindObjectsOfType)$') {
                 throw "Audio contains an unsafe IL2CPP generic component call: $($call.FullName)"
             }
         }
     }
-    if (-not $hasSnapshotBlend) { throw 'The native audio snapshot blend is missing.' }
-    Write-Output 'Checked compiled audio: native mixer snapshot blending; no stripped echo filter or generic component lookup.'
+    if (-not $hasListenerCapture -or -not $hasClipWrite) { throw 'The actual listener capture or delayed PCM write is missing.' }
+    $shaderResource = $definition.MainModule.Resources | Where-Object { $_.Name -eq 'Personal.LSDPreview.Peripheral.bundle' }
+    if (-not $shaderResource) { throw 'The authored peripheral shader bundle is missing from the DLL.' }
+    $bytes = $shaderResource.GetResourceData()
+    $hasher = [System.Security.Cryptography.SHA256]::Create()
+    try { $embeddedHash = [BitConverter]::ToString($hasher.ComputeHash($bytes)).Replace('-', '').ToLowerInvariant() }
+    finally { $hasher.Dispose() }
+    if ($embeddedHash -ne $shaderManifest.bundleSha256) { throw 'The embedded shader does not match the validated authored bundle.' }
+    Write-Output 'Checked compiled audio: actual listener capture and PCM writes, no stripped filter or generic audio component call; authored peripheral shader verified.'
 } finally { $definition.Dispose() }
 
-$packageRoot = Join-Path $repoRoot 'artifacts\LSDPreview-0.6.0'
+$packageRoot = Join-Path $repoRoot 'artifacts\LSDPreview-0.7.0'
 $modsDirectory = Join-Path $packageRoot 'Mods'
 New-Item -ItemType Directory -Path $modsDirectory -Force | Out-Null
 $dll = Join-Path $modsDirectory 'Personal.LSDPreview.dll'
@@ -62,6 +78,6 @@ foreach ($entry in @(@{ Path = $dll; Name = 'Mods/Personal.LSDPreview.dll' }, @{
     $hashLines += (Get-FileHash -LiteralPath $entry.Path -Algorithm SHA256).Hash.ToLowerInvariant() + '  ' + $entry.Name
 }
 Set-Content -LiteralPath $hashFile -Value $hashLines -Encoding utf8
-$zip = Join-Path $repoRoot 'artifacts\LSDPreview-0.6.0.zip'
+$zip = Join-Path $repoRoot 'artifacts\LSDPreview-0.7.0.zip'
 Compress-Archive -LiteralPath $modsDirectory, $guide, $hashFile -DestinationPath $zip -Force
 Write-Output "Built and checked the separate LSD preview: $zip"

@@ -3,6 +3,8 @@ using Il2CppScheduleOne.UI;
 using Il2CppScheduleOne.UI.Phone;
 using Il2CppTMPro;
 using UnityEngine;
+using UnityEngine.UI;
+using LegacyText = UnityEngine.UI.Text;
 using Object = UnityEngine.Object;
 
 namespace PersonalMods.LSDPreview;
@@ -18,10 +20,18 @@ internal sealed class HudTextBlur : IDisposable
         internal bool Phone;
     }
     private readonly Dictionary<IntPtr, Label> Labels = new();
+    private sealed class LegacyLabel
+    {
+        internal LegacyText Text = null!;
+        internal Shadow Fringe = null!;
+    }
+    private readonly Dictionary<IntPtr, LegacyLabel> PhoneLabels = new();
     private float NextRefresh;
     private bool PhoneOpen, DialogueOpen;
     private IntPtr AppPointer;
     private bool Disposed;
+    private bool LoggedPhone;
+    private float NextLegacyAnimation;
 
     internal void Tick(float elapsed, float amount)
     {
@@ -51,6 +61,7 @@ internal sealed class HudTextBlur : IDisposable
             {
                 Discover(PhoneColorBreathing.ScreenRoot(phone), true);
                 if (Phone.ActiveApp) Discover(Phone.ActiveApp.transform, true);
+                DiscoverLegacy(PhoneColorBreathing.ScreenRoot(phone));
             }
         }
         var blur = amount * (0.7f + 0.3f * Mathf.Sin(elapsed * 0.4f));
@@ -75,6 +86,45 @@ internal sealed class HudTextBlur : IDisposable
                 SetIfPresent(label.Owned, "_UnderlaySoftness", 0.2f + blur * 0.5f);
             }
         }
+        if (elapsed >= NextLegacyAnimation)
+        {
+            NextLegacyAnimation = elapsed + 0.05f;
+            foreach (var pair in PhoneLabels.ToArray())
+            {
+                var label = pair.Value;
+                if (!label.Text || !label.Fringe)
+                {
+                    if (label.Fringe) { label.Fringe.enabled = false; Object.Destroy(label.Fringe); }
+                    PhoneLabels.Remove(pair.Key);
+                    continue;
+                }
+                label.Fringe.effectColor = Color.Lerp(new Color(0.2f, 0.9f, 1, blur * 1.1f),
+                    new Color(0.95f, 0.25f, 1, blur * 1.1f), 0.5f + 0.5f * Mathf.Sin(elapsed * 0.21f));
+                label.Fringe.effectDistance = new Vector2(0.8f + blur * 5 * Mathf.Sin(elapsed * 0.31f),
+                    0.6f + blur * 3 * Mathf.Cos(elapsed * 0.27f));
+            }
+        }
+    }
+
+    private void DiscoverLegacy(Component? root)
+    {
+        if (root is null || !root) return;
+        foreach (var component in root.GetComponentsInChildren(Il2CppType.Of<LegacyText>(), false))
+        {
+            if (PhoneLabels.Count + Labels.Count >= 192) break;
+            var text = component?.TryCast<LegacyText>();
+            if (text is null || !text || PhoneLabels.ContainsKey(text.Pointer)) continue;
+            var fringe = text.gameObject.AddComponent(Il2CppType.Of<Shadow>()).TryCast<Shadow>();
+            if (fringe is null || !fringe) throw new InvalidOperationException("The phone text fringe component is unavailable.");
+            fringe.effectColor = Color.clear;
+            fringe.useGraphicAlpha = true;
+            PhoneLabels[text.Pointer] = new LegacyLabel { Text = text, Fringe = fringe };
+        }
+        if (!LoggedPhone && PhoneLabels.Count > 0)
+        {
+            LoggedPhone = true;
+            MelonLoader.MelonLogger.Msg($"LSD phone text bound {PhoneLabels.Count} legacy labels with owned colored glyph fringes.");
+        }
     }
 
     private void Discover(Component? root, bool phone)
@@ -82,7 +132,7 @@ internal sealed class HudTextBlur : IDisposable
         if (root is null || !root) return;
         foreach (var component in root.GetComponentsInChildren(Il2CppType.Of<TextMeshProUGUI>(), false))
         {
-            if (Labels.Count >= 192) break;
+            if (Labels.Count + PhoneLabels.Count >= 192) break;
             var text = component?.TryCast<TextMeshProUGUI>();
             if (text is null || !text) continue;
             if (Labels.TryGetValue(text.Pointer, out var existing))
@@ -115,6 +165,14 @@ internal sealed class HudTextBlur : IDisposable
             if (label.Owned) Object.Destroy(label.Owned);
         }
         Labels.Clear();
+        foreach (var label in PhoneLabels.Values)
+        {
+            if (!label.Fringe) continue;
+            label.Fringe.enabled = false;
+            Object.Destroy(label.Fringe);
+        }
+        PhoneLabels.Clear();
+        NextLegacyAnimation = 0;
         NextRefresh = 0;
         PhoneOpen = DialogueOpen = false;
         AppPointer = IntPtr.Zero;

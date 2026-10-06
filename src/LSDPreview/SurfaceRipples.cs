@@ -1,3 +1,5 @@
+using System.Reflection;
+using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using Il2CppScheduleOne.FX;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
@@ -9,6 +11,9 @@ namespace PersonalMods.LSDPreview;
 internal sealed class SurfaceRipples : IDisposable
 {
     private readonly ScriptableRenderer Renderer;
+    private readonly Camera Camera;
+    private Il2CppAssetBundle? Bundle;
+    private bool Peripheral;
     private PsychedelicFullScreenFeature? Feature;
     private Material? Material;
     private PsychedelicFullScreenFeature.MaterialProperties? Properties;
@@ -16,6 +21,7 @@ internal sealed class SurfaceRipples : IDisposable
 
     internal SurfaceRipples(Camera camera)
     {
+        Camera = camera;
         var data = camera.GetComponent<UniversalAdditionalCameraData>();
         if (!data) throw new InvalidOperationException("The player camera has no URP renderer.");
         Renderer = data.scriptableRenderer;
@@ -32,6 +38,7 @@ internal sealed class SurfaceRipples : IDisposable
             if (source is null || !source || !source.FeatureSettings.passMaterial)
                 throw new InvalidOperationException("The game's psychedelic shader is unavailable.");
             Material = new Material(source.FeatureSettings.passMaterial) { name = "Personal LSD ripple material", hideFlags = HideFlags.DontSave };
+            LoadPeripheralShader();
             Feature = Object.Instantiate(source);
             Feature.name = "Personal LSD surface ripples";
             Feature.hideFlags = HideFlags.DontSave;
@@ -54,13 +61,52 @@ internal sealed class SurfaceRipples : IDisposable
         catch { Dispose(); throw; }
     }
 
-    internal void Tick(float elapsed, float amount, float strength, float motion)
+    private void LoadPeripheralShader()
+    {
+        try
+        {
+            using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Personal.LSDPreview.Peripheral.bundle")
+                ?? throw new InvalidOperationException("Authored peripheral shader resource is missing.");
+            using var memory = new MemoryStream();
+            stream.CopyTo(memory);
+            Bundle = Il2CppAssetBundleManager.LoadFromMemory(new Il2CppStructArray<byte>(memory.ToArray()));
+            if (Bundle is null) throw new InvalidOperationException("Unity could not load the peripheral shader bundle.");
+            var shader = Bundle.LoadAsset<Shader>("assets/personal/lsdperipheral.shader");
+            if (!shader || !shader.isSupported) throw new InvalidOperationException("The peripheral shader requires Direct3D 11.");
+            Material!.shader = shader;
+            Peripheral = true;
+            MelonLoader.MelonLogger.Msg("LSD peripheral shader loaded: pixel-bounded displacement with a clear gaze center.");
+        }
+        catch (Exception error)
+        {
+            ModSupport.WarnOnce("lsd:peripheral", $"LSD peripheral shader unavailable; using a very small native warp without a center mask: {error.GetBaseException().Message}");
+        }
+    }
+
+    internal void Tick(float elapsed, float amount, float strength, float motion, float movement)
     {
         if (Disposed || Feature is null || !Feature || Properties is null) return;
-        Properties.Blend = RippleRange.Blend(amount, strength, motion);
-        Properties.NoiseScale = 12 + 3 * Mathf.Sin(elapsed * 0.08f);
-        Properties.Amplitude = RippleRange.Amplitude(elapsed, strength, motion);
-        Feature.SetActive(Properties.Blend > 0.001f);
+        var pixels = RippleRange.Pixels(elapsed, amount, strength, motion, movement);
+        if (Peripheral)
+        {
+            var inner = RippleRange.FocusRadius(LSDPreviewMod.CenterClarityDegrees.Value, Camera.fieldOfView);
+            Properties.Blend = pixels / Mathf.Max(1, Camera.pixelHeight);
+            Properties.NoiseScale = Mathf.Max(0.1f, Camera.aspect);
+            Properties.Amplitude = elapsed;
+            Properties.PanSpeed = new Vector2(inner, Mathf.Max(inner + 0.18f, 0.48f));
+            Properties.DoesBounce = true;
+        }
+        else
+        {
+            // Native Blend lerps UVs toward a scalar noise value. Its maximum
+            // vector travel is sqrt(width^2+height^2); cap that in pixels too.
+            Properties.Blend = pixels / Mathf.Max(1, Mathf.Sqrt(Camera.pixelWidth * (float)Camera.pixelWidth
+                + Camera.pixelHeight * (float)Camera.pixelHeight));
+            Properties.NoiseScale = 12 + 3 * Mathf.Sin(elapsed * 0.08f);
+            Properties.Amplitude = 0.001f;
+            Properties.PanSpeed = new Vector2(0.035f, 0.022f);
+        }
+        Feature.SetActive(pixels > 0.001f);
     }
 
     public void Dispose()
@@ -77,6 +123,8 @@ internal sealed class SurfaceRipples : IDisposable
             Object.Destroy(Feature);
         }
         if (Material is not null && Material) Object.Destroy(Material);
+        Bundle?.Unload(true);
+        Bundle = null;
         Feature = null;
         Material = null;
         Properties = null;

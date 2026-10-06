@@ -2,6 +2,9 @@
   <PropertyGroup>
     <IsGameMod>true</IsGameMod>
     <AssemblyName>Personal.LSDPreview</AssemblyName>
-    <Version>0.6.0</Version>
+    <Version>0.7.0</Version>
   </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Assets/peripheral.bundle" LogicalName="Personal.LSDPreview.Peripheral.bundle" />
+  </ItemGroup>
 </Project>

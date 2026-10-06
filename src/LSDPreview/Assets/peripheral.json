@@ -1,0 +1,10 @@
+{
+  "sourceSha256": "2473f04ff118700e592a751fa6f29c76c2fbcde75e2599102ca682bc97d8337e",
+  "bundleSha256": "adb1db498673ca90e07a0b67fa74e1ea35bfb4f61903f14790c0851145f90d98",
+  "vertexSha256": "b01d8fc9911c0bc966e678a4c134aeda39824c9f39f3da6775e44a3578e70272",
+  "fragmentSha256": "32276027431df82a64c92872fc38eee84c84ca2bccedbc7dbd92144733a1ecc7",
+  "shader": "Personal/LSDPeripheralWarp",
+  "graphicsApi": "Direct3D11",
+  "unityVersion": "2022.3.62f2",
+  "objectCount": 2
+}

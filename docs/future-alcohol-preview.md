@@ -20,7 +20,9 @@ PanSpeed = (0.035, 0.022)
 Bounce = true
 ```
 
-Both amplitude and blend depend on the old strength, so the visible result is not a simple linear scale. At the old defaults and peak envelope, blend is `0.15` and amplitude ranges from `0.0002535` to `0.000443625`. At old strength `1`, blend and amplitude are each twice those values. These are shader parameters, not measured pixel displacements.
+At the old defaults and peak envelope, blend is `0.15` and amplitude ranges from `0.0002535` to `0.000443625`. At old strength `1`, blend and amplitude are each twice those values. These are shader parameters, not measured pixel displacements.
+
+The 0.7.0 shader audit corrected an earlier interpretation: the native `_Amplitude` controls the radius of noise panning, while `_Blend` controls how far the scene's UV coordinates move toward the noise field. Reducing `_Amplitude` alone does **not** reduce the size of the bends. The 0.6.0 claim that its maximum was 110% of the old displacement was therefore incorrect. Preserve the formulas above and the actual 0.5.0 implementation for a future alcohol trial, including its much wider `Blend` range; treat the new LSD pixel-limited shader as a separate experiment.
 
 Separate camera breathing uses lens intensity `0.11 * m * sin(0.65 * t)` and chromatic intensity `0.09 * m`, blended by overall intensity. Keep these as references rather than silently replacing them with the new LSD calibration.
 

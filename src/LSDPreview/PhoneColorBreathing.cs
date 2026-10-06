@@ -19,8 +19,11 @@ internal sealed class PhoneColorBreathing : IDisposable
     private float NextRefresh, NextAnimation;
     private IntPtr PhonePointer, AppPointer;
     private bool Disposed;
+    private bool LoggedHome;
 
-    internal static Component? ScreenRoot(Phone phone) => phone.raycaster ? phone.raycaster : phone;
+    // The raycaster belongs to AppsCanvas. HomeScreen is its sibling beneath
+    // phoneModel, so selecting the raycaster omits the visible home screen.
+    internal static Component? ScreenRoot(Phone phone) => phone.phoneModel ? phone.phoneModel.transform : phone;
 
     internal void Tick(float elapsed, float amount)
     {
@@ -39,6 +42,11 @@ internal sealed class PhoneColorBreathing : IDisposable
             NextRefresh = elapsed + 0.75f;
             Discover(ScreenRoot(phone));
             if (Phone.ActiveApp) Discover(Phone.ActiveApp.transform);
+            if (!LoggedHome && Graphics.Count > 0)
+            {
+                LoggedHome = true;
+                MelonLoader.MelonLogger.Msg($"LSD phone colors bound {Graphics.Count} active graphics beneath the phone model, including its home screen.");
+            }
         }
         if (elapsed < NextAnimation) return;
         NextAnimation = elapsed + 0.05f;

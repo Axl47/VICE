@@ -2,20 +2,46 @@ namespace PersonalMods.LSDPreview;
 
 internal static class RippleRange
 {
-    internal const float DefaultStrength = 0.30f;
-    private const float OldDefaultStrength = 0.50f, OldAmplitudeScale = 0.12675f;
+    internal const float DefaultStrength = 0.30f, MaximumPixels = 6;
 
-    // Hold blend at the former default, so the new slider changes displacement
-    // linearly. New maximum = 110% of the approved 0.5.0 default look.
-    internal static float Blend(float amount, float strength, float motion)
-        => Safe(strength) > 0 ? Safe(amount) * OldDefaultStrength * Safe(motion) : 0;
-
-    internal static float Amplitude(float elapsed, float strength, float motion)
+    // Actual screen displacement is bounded in pixels, independently of noise
+    // panning. The old native _Amplitude changes noise coordinates, not warp size.
+    internal static float Pixels(float elapsed, float amount, float strength, float motion, float movement)
     {
         if (!float.IsFinite(elapsed)) return 0;
-        var wave = 0.008f + 0.006f * (0.5f + 0.5f * MathF.Sin(elapsed * 0.23f));
-        return OldAmplitudeScale * OldDefaultStrength * 1.10f * wave * Safe(strength) * Safe(motion);
+        var breath = 0.85f + 0.15f * MathF.Sin(elapsed * 0.23f);
+        return MaximumPixels * Safe(amount) * Safe(strength) * Safe(motion) * Safe(movement) * breath;
+    }
+
+    internal static float FocusRadius(float degrees, float verticalFov)
+    {
+        degrees = TripTimeline.Safe(degrees, 12, 0, 25);
+        verticalFov = TripTimeline.Safe(verticalFov, 65, 20, 140);
+        return MathF.Tan(degrees * MathF.PI / 180) / (2 * MathF.Tan(verticalFov * MathF.PI / 360));
+    }
+
+    internal static float FocusMask(float radius, float inner, float outer)
+    {
+        if (!float.IsFinite(radius) || !float.IsFinite(inner) || !float.IsFinite(outer) || outer <= inner) return 0;
+        var t = Math.Clamp((radius - inner) / (outer - inner), 0, 1);
+        return t * t * (3 - 2 * t);
     }
 
     private static float Safe(float value) => float.IsFinite(value) ? Math.Clamp(value, 0, 1) : 0;
+}
+
+// Smoothly reduce bending while travelling or turning. Color breathing keeps
+// its own timing and strength; slowing down restores the stationary effect.
+internal sealed class MovementComfort
+{
+    internal float Factor { get; private set; } = 1;
+    internal float Step(float seconds, float speed, float degreesPerSecond)
+    {
+        if (!float.IsFinite(seconds) || seconds <= 0) return Factor;
+        if (!float.IsFinite(speed) || !float.IsFinite(degreesPerSecond)) return Factor;
+        var activity = Math.Max(Math.Max(0, speed) / 4, Math.Abs(degreesPerSecond) / 100);
+        var target = 0.25f + 0.75f / (1 + activity * activity);
+        Factor += (target - Factor) * (1 - MathF.Exp(-Math.Min(seconds, 1) / 0.3f));
+        return Factor;
+    }
 }

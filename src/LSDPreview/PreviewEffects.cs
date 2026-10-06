@@ -1,5 +1,6 @@
 using Il2CppBeautify.Universal;
 using Il2CppScheduleOne.FX;
+using Il2CppScheduleOne.PlayerScripts;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
@@ -15,7 +16,11 @@ internal sealed class PreviewEffects : IDisposable
     private VolumeProfile? Profile;
     private ColorAdjustments? Colors;
     private ChromaticAberration? Chromatic;
-    private LensDistortion? Lens;
+    private Vignette? CrouchVignette;
+    private readonly MovementComfort Comfort = new();
+    private Vector3 LastPosition;
+    private Quaternion LastRotation;
+    private bool TrackedMotion;
     private Beautify? Cartoon;
     private SurfaceRipples? Ripples;
     private PhoneColorBreathing? PhoneColors;
@@ -46,8 +51,7 @@ internal sealed class PreviewEffects : IDisposable
                 = Colors.contrast.overrideState = Colors.postExposure.overrideState = true;
             Chromatic = Profile.Add<ChromaticAberration>(false);
             Chromatic.intensity.overrideState = true;
-            Lens = Profile.Add<LensDistortion>(false);
-            Lens.intensity.overrideState = true;
+            CrouchVignette = Profile.Add<Vignette>(false);
             Cartoon = Profile.Add<Beautify>(false);
             var native = PostProcessingManager.Instance;
             if (native && native.beautifySettings) BaseSharpen = native.beautifySettings.sharpenIntensity.value;
@@ -69,7 +73,7 @@ internal sealed class PreviewEffects : IDisposable
     internal void Tick(float elapsed, float amount, float motion, bool worldVisuals)
     {
         if (Disposed || !Camera || Volume is null || !Volume || Colors is null || !Colors
-            || Chromatic is null || !Chromatic || Lens is null || !Lens) return;
+            || Chromatic is null || !Chromatic) return;
         Volume.weight = amount;
         Colors.saturation.value = 56;
         Colors.contrast.value = 28 + 4 * Mathf.Sin(elapsed * 0.16f);
@@ -79,8 +83,21 @@ internal sealed class PreviewEffects : IDisposable
             0.5f + 0.5f * Mathf.Sin(elapsed * 0.13f));
         var gain = ColorBreathing.Sample(new SurfaceTint(1, 1, 1, 1), 7, elapsed, Strength(LSDPreviewMod.MaterialColorStrength));
         Colors.colorFilter.value = new Color(filter.r * gain.Red, filter.g * gain.Green, filter.b * gain.Blue, filter.a);
-        Lens.intensity.value = Mathf.Sin(elapsed * 0.65f) * 0.11f * motion;
+        // Broad lens warping would bend the protected gaze center. Breathing
+        // now lives in the bounded peripheral pass; retain color timing.
+        var movement = UpdateComfort(amount > 0);
         Chromatic.intensity.value = 0.09f * motion;
+        var playerMovement = PlayerMovement.Instance;
+        var crouched = amount > 0 && playerMovement && playerMovement.IsCrouched;
+        if (CrouchVignette is not null && CrouchVignette)
+        {
+            CrouchVignette.intensity.overrideState = CrouchVignette.smoothness.overrideState = crouched;
+            if (crouched)
+            {
+                CrouchVignette.intensity.value = Mathf.Clamp01(PlayerMovement.CrouchedVigIntensity * 2);
+                CrouchVignette.smoothness.value = PlayerMovement.CrouchedVigSmoothness;
+            }
+        }
         var outline = Strength(LSDPreviewMod.OutlineStrength);
         if (Cartoon is not null && Cartoon)
         {
@@ -102,7 +119,7 @@ internal sealed class PreviewEffects : IDisposable
             if (Strength(LSDPreviewMod.TextBlurStrength) > 0)
                 TryLayer(ref Text, ref AttemptedText, () => new HudTextBlur(), "text");
         }
-        Ripples?.Tick(elapsed, amount, Strength(LSDPreviewMod.RippleStrength), motion);
+        Ripples?.Tick(elapsed, amount, Strength(LSDPreviewMod.RippleStrength), motion, movement);
         PhoneColors?.Tick(elapsed, LSDPreviewMod.PhoneEffects.Value ? amount * Strength(LSDPreviewMod.MaterialColorStrength) : 0);
         Audio?.Tick(elapsed, amount * Strength(LSDPreviewMod.AudioStrength));
         Trails?.Tick(amount * Strength(LSDPreviewMod.AfterimageStrength) * motion);
@@ -119,6 +136,23 @@ internal sealed class PreviewEffects : IDisposable
             World?.Tick(elapsed, amount, hallucination);
         }
         else World?.Hide();
+    }
+
+    private float UpdateComfort(bool active)
+    {
+        var position = Camera.transform.position;
+        var rotation = Camera.transform.rotation;
+        var delta = Time.unscaledDeltaTime;
+        if (active && TrackedMotion && delta > 0 && delta < 0.25f)
+        {
+            var travel = Vector3.Distance(position, LastPosition);
+            var turn = Quaternion.Angle(rotation, LastRotation);
+            if (travel < 18 && turn < 100) Comfort.Step(delta, travel / delta, turn / delta);
+        }
+        LastPosition = position;
+        LastRotation = rotation;
+        TrackedMotion = active;
+        return Comfort.Factor;
     }
 
     private static float Strength(MelonLoader.MelonPreferences_Entry<float> setting)

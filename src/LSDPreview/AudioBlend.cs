@@ -7,18 +7,8 @@ internal static class AudioBlend
         if (!float.IsFinite(elapsed) || !float.IsFinite(amount)) return 0;
         var wave = 0.5f + 0.5f * MathF.Sin(elapsed * 0.19f - 1.6f);
         var pulse = Math.Clamp((wave - 0.45f) / 0.55f, 0, 1);
-        return 0.5f * Math.Clamp(amount, 0, 1) * pulse * pulse;
+        // Keep an audible low bed, with occasional stronger repeats. Since
+        // listener capture includes our own return, gain < 1 also bounds feedback.
+        return 0.35f * Math.Clamp(amount, 0, 1) * (0.3f + 0.7f * pulse * pulse);
     }
-}
-
-// A later native snapshot transition invalidates our write. Cleanup must not
-// undo an effect that the game has applied since our last contribution.
-internal sealed class AudioSnapshotLease
-{
-    private uint WrittenRevision;
-    private bool HasWritten;
-
-    internal void Written(uint revision) { WrittenRevision = revision; HasWritten = true; }
-    internal bool CanRestore(uint revision) => HasWritten && WrittenRevision == revision;
-    internal void Release() => HasWritten = false;
 }
