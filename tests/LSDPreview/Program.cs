@@ -162,7 +162,7 @@ foreach (var invalid in new[] { float.NaN, float.PositiveInfinity, float.Negativ
 foreach (var fov in new[] { 45f, 65f, 90f, 120f })
 {
     var inner = RippleRange.FocusRadius(RippleRange.DefaultCenterDegrees, fov);
-    var outer = Math.Max(inner + 0.18f, 0.48f);
+    var outer = RippleRange.FocusOuter(inner);
     var previous = 0f;
     for (var step = 0; step <= 200; step++)
     {
@@ -174,6 +174,17 @@ foreach (var fov in new[] { 45f, 65f, 90f, 120f })
     }
     Near(RippleRange.FocusMask(outer, inner, outer), 1, "The outer periphery must receive the bounded full effect.");
 }
+Check(RippleRange.FocusMask(0.25f, RippleRange.FocusRadius(5, 65), RippleRange.FocusOuter(RippleRange.FocusRadius(5, 65))) > 0.9f,
+    "Mid-peripheral scenery must receive visible motion rather than a near-zero fade.");
+for (var step = 0; step <= 120; step++)
+{
+    var time = step * 0.1f;
+    Check(Math.Abs(RippleRange.LensBreathing(time, 1, 1, 1)) <= 0.0551f, "Native breathing must have a separate restrained cap.");
+    Near(RippleRange.LensBreathing(time, 0, 0.5f, 1), 0, "Zero ripple strength also disables lens breathing.");
+    Near(RippleRange.LensBreathing(time, 0.3f, 0, 1), 0, "Zero motion disables breathing.");
+}
+Check(Math.Abs(RippleRange.LensBreathing(2.4f, 0.3f, 0.5f, 1)) > 0.027f,
+    "Default native breathing must restore half the previously visible lens pulse.");
 var comfort30 = new MovementComfort();
 var comfort120 = new MovementComfort();
 for (var frame = 0; frame < 90; frame++) comfort30.Step(1f / 30, 4, 0);
@@ -233,14 +244,30 @@ for (var step = 0; step <= 1200; step++)
 {
     var time = step * 0.1f;
     var wet = AudioBlend.Sample(time, 1);
-    Check(float.IsFinite(wet) && wet is >= 0.6749f and <= 0.9001f, "Single-copy gain must remain bounded throughout its slow swells.");
+    Check(float.IsFinite(wet) && wet is >= 0.7199f and <= 0.9001f, "Single-copy gain must remain bounded throughout its slow swells.");
     Near(AudioBlend.Sample(time, 0), 0, "Zero audio strength must mute the owned return.");
     var normal = AudioBlend.Sample(time, 0.6f * 0.35f);
-    Check(normal is >= 0.1417f and <= 0.1891f, "Default peak return needs a useful 14.2-18.9% of native source volume.");
-    if (wet < 0.68f) low++;
+    Check(normal is >= 0.2351f and <= 0.2941f, "Default return should be audible at 23.5-29.4% of native source volume.");
+    if (wet < 0.73f) low++;
     if (wet > 0.85f) stronger++;
 }
 Check(low > 200 && stronger > 100, "Echo gain must swell sometimes without disappearing between swells.");
+foreach (var pitch in new[] { 0.5f, 1f, 2f })
+{
+    const int rate = 48000, samples = rate * 120;
+    Check(DelayedClip.TryPosition(rate * 20, samples, rate, pitch, false, DelayedClip.Lead, out var position),
+        "Already-playing music must enter at its delayed cursor without starting the song again.");
+    Check(Math.Abs(position - (rate * 20 + (DelayedClip.Lead - DelayedClip.Delay) * rate * pitch)) < 1.1,
+        "Scheduled music must account for both pitch and the scheduling lead.");
+    Check(DelayedClip.TryPosition(0, samples, rate, pitch, true, DelayedClip.Lead, out position) && position > samples - rate,
+        "A looping track near its start must wrap the delay to the end of the clip.");
+    Check(!DelayedClip.TryPosition(0, samples, rate, pitch, false, DelayedClip.Lead, out _),
+        "A non-looping track must wait for real preceding audio rather than invent an echo at its start.");
+}
+Check(DelayedClip.Distance(10, 9990, 10000, true) == 20, "Loop sync must compare across the cursor wrap.");
+Check(DelayedClip.Distance(10, 9990, 10000, false) == 9980, "A non-loop seek must not be mistaken for a wrap.");
+foreach (var pitch in new[] { float.NaN, float.PositiveInfinity, 0, -1, 4 })
+    Check(!DelayedClip.TryPosition(100, 1000, 48000, pitch, true, 0, out _), "Invalid playback settings must not schedule a music copy.");
 // The engine schedules against the observation's audio-clock deadline;
 // delivery at different frame boundaries must not change the requested delay.
 foreach (var now in new[] { 7d, 7.016, 7.1, 7.205 })

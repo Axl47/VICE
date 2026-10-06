@@ -8,5 +8,6 @@
     <Compile Include="..\..\src\LSDPreview\AudioBlend.cs" Link="AudioBlend.cs" />
     <Compile Include="..\..\src\LSDPreview\EchoVoices.cs" Link="EchoVoices.cs" />
     <Compile Include="..\..\src\LSDPreview\SoundStarts.cs" Link="SoundStarts.cs" />
+    <Compile Include="..\..\src\LSDPreview\DelayedClip.cs" Link="DelayedClip.cs" />
   </ItemGroup>
 </Project>

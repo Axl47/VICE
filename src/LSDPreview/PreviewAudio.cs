@@ -1,4 +1,3 @@
-using Il2CppInterop.Runtime;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using Il2CppScheduleOne.Audio;
 using Il2CppScheduleOne.UI;
@@ -23,6 +22,7 @@ internal sealed class PreviewAudio : IDisposable
     private readonly Voice?[] Pool = new Voice?[EchoVoices.Capacity];
     private readonly EchoVoices Reservations = new();
     private readonly SoundStarts Starts = new();
+    private readonly ContinuousAudioReturn Continuous = new();
     private readonly Il2CppStructArray<float> Probe = new(512);
     private GameObject? Root;
     private float Gain, PeakGain, PeakOutput;
@@ -100,24 +100,7 @@ internal sealed class PreviewAudio : IDisposable
                 source.loop = false;
                 source.pitch = dry.pitch;
                 source.timeSamples = 0;
-                source.outputAudioMixerGroup = dry.outputAudioMixerGroup;
-                source.spatialBlend = dry.spatialBlend;
-                source.panStereo = dry.panStereo;
-                source.minDistance = dry.minDistance;
-                source.maxDistance = dry.maxDistance;
-                source.rolloffMode = dry.rolloffMode;
-                if (dry.rolloffMode == AudioRolloffMode.Custom)
-                {
-                    var curve = dry.GetCustomCurve(AudioSourceCurveType.CustomRolloff);
-                    if (curve is not null) source.SetCustomCurve(AudioSourceCurveType.CustomRolloff, curve);
-                }
-                source.spread = dry.spread;
-                source.reverbZoneMix = dry.reverbZoneMix;
-                source.bypassEffects = dry.bypassEffects;
-                source.bypassListenerEffects = dry.bypassListenerEffects;
-                source.bypassReverbZones = dry.bypassReverbZones;
-                source.priority = dry.priority;
-                source.transform.position = dry.transform.position;
+                AudioReturnSource.Copy(dry, source);
                 voice.DryVolume = dry.volume;
                 voice.Start = slot.Start;
                 voice.Heard = false;
@@ -148,14 +131,7 @@ internal sealed class PreviewAudio : IDisposable
     private Voice CreateVoice(int index)
     {
         if (Root is null || !Root) Root = new GameObject("Personal LSD delayed sound pool") { hideFlags = HideFlags.DontSave };
-        var child = new GameObject($"LSD echo voice {index}") { hideFlags = HideFlags.DontSave };
-        child.transform.SetParent(Root.transform, false);
-        var source = child.AddComponent(Il2CppType.Of<AudioSource>()).TryCast<AudioSource>();
-        if (source is null || !source) throw new InvalidOperationException("The native audio source is unavailable.");
-        source.playOnAwake = false;
-        source.dopplerLevel = 0;
-        source.ignoreListenerVolume = source.ignoreListenerPause = false;
-        source.volume = 0;
+        var source = AudioReturnSource.Create(Root, $"LSD echo voice {index}");
         source.GetOutputData(Probe, 0); // warm the diagnostic analysis buffer before playback
         return new Voice(source);
     }
@@ -172,6 +148,7 @@ internal sealed class PreviewAudio : IDisposable
             PeakGain = Math.Max(PeakGain, Gain);
             ObserveNativeSounds(now);
             if (Faulted) return;
+            Continuous.Tick(now, Gain);
             var probe = now >= NextProbe;
             if (probe) NextProbe = now + 0.05;
             for (var index = 0; index < Pool.Length; index++)
@@ -210,8 +187,8 @@ internal sealed class PreviewAudio : IDisposable
             if (Reports < 3 && elapsed >= checkpoint)
             {
                 Reports++;
-                MelonLoader.MelonLogger.Msg($"LSD echo check at {elapsed:F0}s: observed starts {Seen}, scheduled {Scheduled}, nonzero voices {Heard}, ignored {Ignored}, dropped {Dropped}, current return {Gain:P1}, peak return {PeakGain:P1}, output peak {PeakOutput:F5}.");
-                if (elapsed >= 30 && (Scheduled == 0 || Heard == 0))
+                MelonLoader.MelonLogger.Msg($"LSD echo check at {elapsed:F0}s: observed starts {Seen}, scheduled {Scheduled}, nonzero voices {Heard}, ignored {Ignored}, dropped {Dropped}, current return {Gain:P1}, peak return {PeakGain:P1}, output peak {PeakOutput:F5}; music voices {Continuous.Active}, music peak {Continuous.PeakOutput:F5}.");
+                if (elapsed >= 30 && Heard == 0 && Continuous.PeakOutput <= 0.00001f)
                     ModSupport.WarnOnce("lsd:audio:signal", "LSD echo has not verified delayed sound output. Keep the echo check lines for diagnosis.");
             }
         }
@@ -224,6 +201,7 @@ internal sealed class PreviewAudio : IDisposable
         NextProbe = 0;
         Reservations.Reset();
         Starts.Reset();
+        Continuous.Clear();
         Primed = false;
         foreach (var voice in Pool)
             if (voice is not null && voice.Source)
@@ -262,6 +240,7 @@ internal sealed class PreviewAudio : IDisposable
             if (Root is not null && Root) { Root.SetActive(false); Object.Destroy(Root); }
             Root = null;
             Array.Clear(Pool);
+            Continuous.Dispose();
         }
     }
 }

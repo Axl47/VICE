@@ -15,6 +15,7 @@ internal sealed class PreviewEffects : IDisposable
     private VolumeProfile? Profile;
     private ColorAdjustments? Colors;
     private ChromaticAberration? Chromatic;
+    private LensDistortion? Breathing;
     private readonly MovementComfort Comfort = new();
     private Vector3 LastPosition;
     private Quaternion LastRotation;
@@ -49,6 +50,10 @@ internal sealed class PreviewEffects : IDisposable
                 = Colors.contrast.overrideState = Colors.postExposure.overrideState = true;
             Chromatic = Profile.Add<ChromaticAberration>(false);
             Chromatic.intensity.overrideState = true;
+            Breathing = Profile.Add<LensDistortion>(false);
+            Breathing.intensity.overrideState = Breathing.center.overrideState = Breathing.scale.overrideState = true;
+            Breathing.center.value = new Vector2(0.5f, 0.5f);
+            Breathing.scale.value = 1;
             Cartoon = Profile.Add<Beautify>(false);
             var native = PostProcessingManager.Instance;
             if (native && native.beautifySettings) BaseSharpen = native.beautifySettings.sharpenIntensity.value;
@@ -80,9 +85,9 @@ internal sealed class PreviewEffects : IDisposable
             0.5f + 0.5f * Mathf.Sin(elapsed * 0.13f));
         var gain = ColorBreathing.Sample(new SurfaceTint(1, 1, 1, 1), 7, elapsed, Strength(LSDPreviewMod.MaterialColorStrength));
         Colors.colorFilter.value = new Color(filter.r * gain.Red, filter.g * gain.Green, filter.b * gain.Blue, filter.a);
-        // Broad lens warping would bend the protected gaze center. Breathing
-        // now lives in the bounded peripheral pass; retain color timing.
         var movement = UpdateComfort(amount > 0);
+        if (Breathing is not null && Breathing)
+            Breathing.intensity.value = RippleRange.LensBreathing(elapsed, Strength(LSDPreviewMod.RippleStrength), motion, movement);
         Chromatic.intensity.value = 0.09f * motion;
         var outline = Strength(LSDPreviewMod.OutlineStrength);
         if (Cartoon is not null && Cartoon)

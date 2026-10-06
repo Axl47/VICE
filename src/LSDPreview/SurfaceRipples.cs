@@ -17,7 +17,7 @@ internal sealed class SurfaceRipples : IDisposable
     private PsychedelicFullScreenFeature? Feature;
     private Material? Material;
     private PsychedelicFullScreenFeature.MaterialProperties? Properties;
-    private bool Disposed;
+    private bool Disposed, Reported;
 
     internal SurfaceRipples(Camera camera)
     {
@@ -93,7 +93,7 @@ internal sealed class SurfaceRipples : IDisposable
             Properties.Blend = pixels / Mathf.Max(1, Camera.pixelHeight);
             Properties.NoiseScale = Mathf.Max(0.1f, Camera.aspect);
             Properties.Amplitude = elapsed;
-            Properties.PanSpeed = new Vector2(inner, Mathf.Max(inner + 0.18f, 0.48f));
+            Properties.PanSpeed = new Vector2(inner, RippleRange.FocusOuter(inner));
             Properties.DoesBounce = true;
         }
         else
@@ -107,6 +107,16 @@ internal sealed class SurfaceRipples : IDisposable
             Properties.PanSpeed = new Vector2(0.035f, 0.022f);
         }
         Feature.SetActive(pixels > 0.001f);
+        if (!Reported && elapsed >= 10)
+        {
+            Reported = true;
+            var pass = Feature._psychedelicPass;
+            var rendering = pass is not null && pass._source is not null && pass._tempTexture is not null;
+            var written = Material!.GetFloat("_Blend");
+            MelonLoader.MelonLogger.Msg($"LSD ripple check: pass allocated {rendering}, active {Feature.isActive}, bound {pixels:F2}px, material blend {written:F7}, elapsed {Material.GetFloat("_Amplitude"):F2}s, focus {Properties.PanSpeed.x:F3}-{Properties.PanSpeed.y:F3}.");
+            if (pixels > 0.001f && (!rendering || written <= 0))
+                ModSupport.WarnOnce("lsd:ripple:render", "LSD ripple pass has not verified a rendered material update; retain the ripple check line for diagnosis.");
+        }
     }
 
     public void Dispose()

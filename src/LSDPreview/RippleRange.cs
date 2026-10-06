@@ -32,6 +32,17 @@ internal static class RippleRange
         return t * t * (3 - 2 * t);
     }
 
+    internal static float FocusOuter(float inner) => Math.Max(inner + 0.12f, 0.28f);
+
+    // Restore a restrained version of the previously visible native lens
+    // breathing, independently of the small flowing shader. Volume weight
+    // applies overall intensity; scaling here includes motion/ripple/comfort.
+    internal static float LensBreathing(float elapsed, float strength, float motion, float movement)
+        => float.IsFinite(elapsed)
+            ? Math.Min(0.055f, 0.055f * Safe(strength) / DefaultStrength * Safe(motion))
+                * Safe(movement) * MathF.Sin(elapsed * 0.65f)
+            : 0;
+
     private static float Safe(float value) => float.IsFinite(value) ? Math.Clamp(value, 0, 1) : 0;
 }
 

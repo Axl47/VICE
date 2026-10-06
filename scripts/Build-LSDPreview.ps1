@@ -36,12 +36,13 @@ $null = [System.Reflection.Assembly]::LoadFrom((Join-Path $GameDir 'MelonLoader\
 $definition = [Mono.Cecil.AssemblyDefinition]::ReadAssembly($builtDll)
 try {
     $audioType = $definition.MainModule.Types | Where-Object { $_.FullName -eq 'PersonalMods.LSDPreview.PreviewAudio' }
+    $audioTypes = $definition.MainModule.Types | Where-Object { $_.FullName -in @('PersonalMods.LSDPreview.PreviewAudio', 'PersonalMods.LSDPreview.ContinuousAudioReturn', 'PersonalMods.LSDPreview.AudioReturnSource') }
     if (-not $audioType) { throw 'The preview audio layer is missing.' }
     if ($definition.MainModule.GetTypeReferences() | Where-Object { $_.FullName -eq 'UnityEngine.AudioEchoFilter' }) {
         throw 'The preview references the stripped AudioEchoFilter class.'
     }
     $hasScheduledPlayback = $hasNativeSource = $hasNativePool = $false
-    foreach ($method in $audioType.Methods) {
+    foreach ($method in @($audioTypes | ForEach-Object { $_.Methods })) {
         if (-not $method.HasBody) { continue }
         foreach ($instruction in $method.Body.Instructions) {
             $call = $instruction.Operand
@@ -53,12 +54,16 @@ try {
             if ($call -is [Mono.Cecil.MethodReference] -and $call.Name -eq 'SetData' -and $call.DeclaringType.FullName -eq 'UnityEngine.AudioClip') { throw 'The preview must replay native clips instead of rewriting PCM history.' }
             if ($call -is [Mono.Cecil.MethodReference] -and $call.Name -eq 'TransitionToSnapshots') { throw 'The preview must not replace native mixer snapshots.' }
             if ($call -is [Mono.Cecil.GenericInstanceMethod] -and $call.DeclaringType.FullName.StartsWith('UnityEngine.') -and
-                $call.Name -match '^(GetComponent|GetComponentsInChildren|GetComponentInChildren|AddComponent|FindObjectsOfType)$') {
+                $call.Name -match '^(GetComponent|GetComponentsInChildren|GetComponentInChildren|AddComponent|FindObjectsOfType|FindObjectsByType)$') {
                 throw "Audio contains an unsafe IL2CPP generic component call: $($call.FullName)"
             }
         }
     }
     if (-not $hasScheduledPlayback -or -not $hasNativeSource -or -not $hasNativePool) { throw 'Passive native sound-pool observation or scheduled clip playback is missing.' }
+    $musicType = $audioTypes | Where-Object { $_.Name -eq 'ContinuousAudioReturn' }
+    if (-not $musicType -or -not (@($musicType.Methods | ForEach-Object { $_.Body.Instructions }) | Where-Object {
+        $_.Operand -is [Mono.Cecil.MethodReference] -and $_.Operand.Name -eq 'set_timeSamples'
+    })) { throw 'Continuous music copies must seek to the real delayed track cursor.' }
     if ($audioType.Methods | Where-Object { $_.Name -in 'InstallHooks', 'AfterPlay', 'AfterOneShot' }) { throw 'Unsafe audio playback detours remain in the DLL.' }
     $previewType = $definition.MainModule.Types | Where-Object { $_.FullName -eq 'PersonalMods.LSDPreview.LSDPreviewMod' }
     $initializer = $previewType.Methods | Where-Object { $_.Name -eq 'OnInitializeMelon' }
@@ -78,10 +83,10 @@ try {
     try { $embeddedHash = [BitConverter]::ToString($hasher.ComputeHash($bytes)).Replace('-', '').ToLowerInvariant() }
     finally { $hasher.Dispose() }
     if ($embeddedHash -ne $shaderManifest.bundleSha256) { throw 'The embedded shader does not match the validated authored bundle.' }
-    Write-Output 'Checked compiled audio: passive native sound pool and scheduled clips; no startup audio initialization or playback detours, listener capture, PCM writes, stripped filter or generic audio component call; authored peripheral shader verified.'
+    Write-Output 'Checked compiled audio: passive native sound pool, continuous track seeking and scheduled clips; no startup audio initialization or playback detours, listener capture, PCM writes, stripped filter or generic audio component call; authored peripheral shader verified.'
 } finally { $definition.Dispose() }
 
-$packageRoot = Join-Path $repoRoot 'artifacts\LSDPreview-0.8.1'
+$packageRoot = Join-Path $repoRoot 'artifacts\LSDPreview-0.9.0'
 $modsDirectory = Join-Path $packageRoot 'Mods'
 New-Item -ItemType Directory -Path $modsDirectory -Force | Out-Null
 $dll = Join-Path $modsDirectory 'Personal.LSDPreview.dll'
@@ -94,6 +99,6 @@ foreach ($entry in @(@{ Path = $dll; Name = 'Mods/Personal.LSDPreview.dll' }, @{
     $hashLines += (Get-FileHash -LiteralPath $entry.Path -Algorithm SHA256).Hash.ToLowerInvariant() + '  ' + $entry.Name
 }
 Set-Content -LiteralPath $hashFile -Value $hashLines -Encoding utf8
-$zip = Join-Path $repoRoot 'artifacts\LSDPreview-0.8.1.zip'
+$zip = Join-Path $repoRoot 'artifacts\LSDPreview-0.9.0.zip'
 Compress-Archive -LiteralPath $modsDirectory, $guide, $hashFile -DestinationPath $zip -Force
 Write-Output "Built and checked the separate LSD preview: $zip"
