@@ -8,7 +8,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering.Universal;
 
-[assembly: MelonInfo(typeof(PersonalMods.LSDPreview.LSDPreviewMod), "Personal LSD Visual Preview", "0.8.0", "Axl47")]
+[assembly: MelonInfo(typeof(PersonalMods.LSDPreview.LSDPreviewMod), "Personal LSD Visual Preview", "0.8.1", "Axl47")]
 [assembly: MelonGame("TVGS", "Schedule I")]
 
 namespace PersonalMods.LSDPreview;
@@ -25,7 +25,7 @@ public sealed class LSDPreviewMod : MelonMod
     private readonly TripTimeline Timeline = new();
     private PreviewEffects? Effects;
     private IntPtr PlayerPointer, ProductPointer;
-    private bool Suspended;
+    private bool Suspended, LoggedMainLoop;
 
     public override void OnInitializeMelon()
     {
@@ -41,13 +41,13 @@ public sealed class LSDPreviewMod : MelonMod
         AfterimageStrength = ModSupport.Entry(config, "AfterimageStrength", DefaultAfterimage, "Brief delayed image trails from 0 to 1; also follows MotionStrength.");
         MaterialColorStrength = ModSupport.Entry(config, "MaterialColorStrength", 0.45f, "Continuous slow RGB color breathing across the scene and phone, from 0 to 1. No material discovery or texture copies.");
         HallucinationStrength = ModSupport.Entry(config, "HallucinationStrength", 0.55f, "Opacity of faded character hallucinations, from 0 to 1; 0 hides them.");
-        AudioStrength = ModSupport.Entry(config, "AudioStrength", 0.35f, "Delayed copies of game sound clips, from 0 to 1; 0 mutes and clears the owned echo.");
+        AudioStrength = ModSupport.Entry(config, "AudioStrength", 0.35f, "Delayed copies from the native footsteps/impact sound pool, from 0 to 1; 0 mutes and clears the owned echo.");
         OutlineStrength = ModSupport.Entry(config, "OutlineStrength", 0.7f, "Defined cartoon-like edges and sharpening from 0 to 1.");
         TextBlurStrength = ModSupport.Entry(config, "TextBlurStrength", DefaultTextBlur, "Soft/indistinct HUD and dialogue text from 0 to 1; also colors phone text fringes when PhoneEffects is enabled.");
         GhostModelNPC = ModSupport.Entry(config, "GhostModelNPC", "", "NPC ID or full name used for hallucination meshes. Empty selects a nearby loaded character.");
         UpgradeDefaults(config);
-        PreviewAudio.InstallHooks(HarmonyInstance);
         LoggerInstance.Msg("LSD visual experiment ready: F8 starts/fades out; F9 clears immediately. No product is registered.");
+        LoggerInstance.Msg("LSD startup audio hooks removed. Audio observation begins only during an active preview.");
     }
 
     private void UpgradeDefaults(MelonPreferences_Category config)
@@ -80,6 +80,11 @@ public sealed class LSDPreviewMod : MelonMod
     {
         try
         {
+            if (!LoggedMainLoop)
+            {
+                LoggedMainLoop = true;
+                LoggerInstance.Msg("LSD preview main-loop heartbeat: update callbacks are running without audio detours.");
+            }
             // The emergency reset also works while a menu is open or input is blocked.
             var keyboard = Keyboard.current;
             if (keyboard is not null && keyboard.f9Key.wasPressedThisFrame) { Cleanup(); return; }
@@ -173,6 +178,8 @@ public sealed class LSDPreviewMod : MelonMod
         effects?.Dispose();
     }
 
+    public override void OnSceneWasLoaded(int buildIndex, string sceneName)
+        => LoggerInstance.Msg($"LSD preview observed scene loaded: {sceneName}.");
     public override void OnSceneWasUnloaded(int buildIndex, string sceneName) { if (sceneName == "Main") Cleanup(); }
     public override void OnApplicationQuit() => Cleanup();
     public override void OnDeinitializeMelon() => Cleanup();

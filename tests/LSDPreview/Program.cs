@@ -241,13 +241,13 @@ for (var step = 0; step <= 1200; step++)
     if (wet > 0.85f) stronger++;
 }
 Check(low > 200 && stronger > 100, "Echo gain must swell sometimes without disappearing between swells.");
-// The engine schedules against the original event's audio-clock deadline;
+// The engine schedules against the observation's audio-clock deadline;
 // delivery at different frame boundaries must not change the requested delay.
 foreach (var now in new[] { 7d, 7.016, 7.1, 7.205 })
 {
     var voices = new EchoVoices();
     Check(voices.TryReserve(7, now, 0.4, 1, out var slot), "An on-time event must reserve a delayed voice.");
-    Check(Math.Abs(slot.Start - 7.22) < 0.000001, "The same event must replay at +220 ms regardless of delivery frame.");
+    Check(Math.Abs(slot.Start - 7.22) < 0.000001, "The same observation must replay at +220 ms regardless of scheduling frame.");
     Check(voices.Busy(slot.Index, 7.01), "A scheduled voice must remain reserved before its delayed start.");
 }
 var late = new EchoVoices();
@@ -298,4 +298,54 @@ for (var eventNumber = 0; eventNumber < 1000; eventNumber++)
     Check(Math.Abs(slot.Start - audioTime - EchoVoices.DelaySeconds) < 0.000001, "Engine deadlines must not accumulate drift over repeated sounds.");
     deadlines[slot.Index] = slot.End;
 }
-Console.WriteLine($"Passed {assertions:N0} LSD timing, visibility, peripheral bounds, movement comfort, color ownership and scheduled echo assertions.");
+// A source stays in the native active pool until its one-shot finishes. Many
+// one-shots leave timeSamples at zero: a constant cursor must not create a copy
+// every frame, while a return from the free pool must count as a fresh sound.
+var starts = new SoundStarts();
+starts.BeginFrame();
+Check(starts.Observe(1, 10, true, 0), "A newly observed pool source must identify one sound start.");
+starts.EndFrame();
+for (var frame = 0; frame < 20; frame++)
+{
+    starts.BeginFrame();
+    Check(!starts.Observe(1, 10, true, 0), "A playing one-shot with a zero cursor must never be copied repeatedly.");
+    starts.EndFrame();
+}
+starts.BeginFrame();
+Check(starts.Observe(1, 11, true, 0), "Changing a pool source's clip must identify a new sound.");
+starts.EndFrame();
+starts.BeginFrame();
+Check(!starts.Observe(1, 11, true, 500), "Ordinary sample progression must not generate an echo event.");
+starts.EndFrame();
+starts.BeginFrame();
+Check(starts.Observe(1, 11, true, 100), "A playback cursor restart must identify a new play.");
+starts.EndFrame();
+starts.BeginFrame();
+Check(!starts.Observe(1, 11, false, 0), "Stopping a source must not generate a copy.");
+starts.EndFrame();
+starts.BeginFrame();
+Check(starts.Observe(1, 11, true, 0), "A stopped source beginning again must be detected.");
+starts.EndFrame();
+starts.BeginFrame();
+starts.EndFrame();
+starts.BeginFrame();
+Check(starts.Observe(1, 11, true, 0), "Returning from the idle pool must be a fresh onset even for an identical clip.");
+starts.EndFrame();
+starts.Reset();
+starts.BeginFrame();
+Check(starts.Observe(1, 11, true, 0), "Reset must erase old observation state so the adapter can establish a new baseline.");
+Check(!starts.Observe(0, 11, true, 0) && !starts.Observe(2, 0, true, 0) && !starts.Observe(2, 11, true, -1),
+    "Invalid native identities or cursors must never create a sound start.");
+starts.EndFrame();
+starts.Reset();
+starts.BeginFrame();
+for (var source = 1; source <= SoundStarts.Capacity; source++)
+    Check(starts.Observe(source, 20, true, 0), "The observer must support its bounded active-source capacity.");
+Check(!starts.Observe(SoundStarts.Capacity + 1, 20, true, 0), "The observer must not grow without limit.");
+starts.EndFrame();
+starts.BeginFrame();
+starts.EndFrame();
+starts.BeginFrame();
+Check(starts.Observe(SoundStarts.Capacity + 1, 20, true, 0), "Departed sources must release observation capacity.");
+starts.EndFrame();
+Console.WriteLine($"Passed {assertions:N0} LSD timing, visibility, peripheral bounds, movement comfort, color ownership, passive sound observation and scheduled echo assertions.");

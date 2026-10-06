@@ -7,5 +7,6 @@
     <Compile Include="..\..\src\LSDPreview\RippleRange.cs" Link="RippleRange.cs" />
     <Compile Include="..\..\src\LSDPreview\AudioBlend.cs" Link="AudioBlend.cs" />
     <Compile Include="..\..\src\LSDPreview\EchoVoices.cs" Link="EchoVoices.cs" />
+    <Compile Include="..\..\src\LSDPreview\SoundStarts.cs" Link="SoundStarts.cs" />
   </ItemGroup>
 </Project>

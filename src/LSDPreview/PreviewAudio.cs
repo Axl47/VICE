@@ -7,9 +7,9 @@ using Object = UnityEngine.Object;
 
 namespace PersonalMods.LSDPreview;
 
-// Observe native sound events, then schedule one quieter copy of the same
-// asset. Owned sources have no AudioSourceController, so returns cannot feed
-// back into these hooks. Neither the original sources nor mixers are edited.
+// Observe the native SFX pool during a preview, then schedule one quieter
+// copy of newly observed clips. No native playback method is detoured. Owned
+// returns never enter the game's pool, so they cannot trigger another echo.
 internal sealed class PreviewAudio : IDisposable
 {
     private sealed class Voice(AudioSource source)
@@ -20,37 +20,50 @@ internal sealed class PreviewAudio : IDisposable
         internal bool Heard;
     }
 
-    private static PreviewAudio? Active;
-    private static bool HooksReady;
     private readonly Voice?[] Pool = new Voice?[EchoVoices.Capacity];
     private readonly EchoVoices Reservations = new();
+    private readonly SoundStarts Starts = new();
     private readonly Il2CppStructArray<float> Probe = new(512);
-    private readonly int MainThread = Environment.CurrentManagedThreadId;
     private GameObject? Root;
     private float Gain, PeakGain, PeakOutput;
     private double NextProbe;
-    private int Seen, Scheduled, Heard, Dropped, Ignored, OtherThread, Reports;
-    private bool Disposed, Faulted, LoggedSchedule, LoggedOutput;
+    private int Seen, Scheduled, Heard, Dropped, Ignored, Reports;
+    private bool Disposed, Faulted, LoggedSchedule, LoggedOutput, Primed, LoggedPool;
 
-    internal static void InstallHooks(HarmonyLib.Harmony harmony)
+    private void ObserveNativeSounds(double now)
     {
-        var play = ModSupport.Patch(harmony, typeof(AudioSourceController), "Play", typeof(PreviewAudio),
-            postfix: nameof(AfterPlay), parameters: Type.EmptyTypes);
-        var oneShot = ModSupport.Patch(harmony, typeof(AudioSourceController), "PlayOneShot", typeof(PreviewAudio),
-            postfix: nameof(AfterOneShot), parameters: Type.EmptyTypes);
-        HooksReady = play && oneShot;
-        if (HooksReady) MelonLoader.MelonLogger.Msg("LSD echo sound-event hooks ready: native Play and PlayOneShot, including footsteps.");
+        var manager = SFXManager.Instance;
+        if (!manager) return;
+        var sounds = manager._soundsInUse;
+        if (sounds is null) return;
+        if (!LoggedPool)
+        {
+            LoggedPool = true;
+            MelonLoader.MelonLogger.Msg("LSD echo observing the native footsteps/impact sound pool; no playback hooks are installed.");
+        }
+        Starts.BeginFrame();
+        var count = Math.Min(sounds.Count, SoundStarts.Capacity);
+        for (var index = 0; index < count; index++)
+        {
+            var controller = sounds[index];
+            var source = controller ? controller._audioSource : null;
+            if (source is null || !source) continue;
+            var clip = source.clip;
+            // SFXManager reserves these sources for one-shot pool sounds.
+            // AudioSource.loop does not describe a PlayOneShot voice.
+            var playing = source.isPlaying;
+            var started = Starts.Observe(source.GetInstanceID(), clip ? clip.GetInstanceID() : 0, playing, source.timeSamples);
+            if (Primed && started)
+            {
+                Capture(source, now);
+                if (Faulted) return;
+            }
+        }
+        Starts.EndFrame();
+        // Establish a baseline at first activation and after pause/mute. Never
+        // replay a sound that was already playing when observation resumed.
+        Primed = true;
     }
-
-    internal PreviewAudio()
-    {
-        if (!HooksReady) throw new InvalidOperationException("Native sound-event hooks are unavailable; see the patch warnings.");
-        if (Active is not null) throw new InvalidOperationException("An LSD audio preview already owns the sound-event return.");
-        Active = this;
-    }
-
-    private static void AfterPlay(AudioSourceController __instance) => Active?.Capture(__instance, false);
-    private static void AfterOneShot(AudioSourceController __instance) => Active?.Capture(__instance, true);
 
     private static bool CanHear()
     {
@@ -60,26 +73,23 @@ internal sealed class PreviewAudio : IDisposable
         return !manager || manager.MasterVolume > 0;
     }
 
-    private void Capture(AudioSourceController controller, bool oneShot)
+    private void Capture(AudioSource dry, double observedTime)
     {
         if (Disposed || Faulted) return;
-        if (Environment.CurrentManagedThreadId != MainThread) { Interlocked.Increment(ref OtherThread); return; }
         try
         {
             Seen++;
             if (Gain <= 0.0001f || !CanHear()) { Ignored++; return; }
-            var dry = controller._audioSource;
             var clip = dry ? dry.clip : null;
-            // Music and continuous ambience are deliberately left alone. The
-            // native footstep pool and ordinary short controller sounds are covered.
+            // Only SFXManager's active pool is observed; music, ambient loops
+            // and unrelated sources never enter this path.
             if (!dry || !dry.enabled || !dry.gameObject.activeInHierarchy || dry.mute || dry.volume <= 0
-                || (!oneShot && (dry.loop || !dry.isPlaying)) || clip is null || !clip || clip.samples <= 0
+                || !dry.isPlaying || clip is null || !clip || clip.samples <= 0
                 || clip.frequency <= 0 || clip.length > 30)
             { Ignored++; return; }
             var now = AudioSettings.dspTime;
-            var startSample = oneShot ? 0 : Math.Clamp(dry.timeSamples, 0, clip.samples - 1);
-            var seconds = (clip.samples - startSample) / (double)clip.frequency;
-            if (!Reservations.TryReserve(now, now, seconds, dry.pitch, out var slot)) { Dropped++; return; }
+            var seconds = clip.samples / (double)clip.frequency;
+            if (!Reservations.TryReserve(observedTime, now, seconds, dry.pitch, out var slot)) { Dropped++; return; }
             try
             {
                 var voice = Pool[slot.Index];
@@ -89,7 +99,7 @@ internal sealed class PreviewAudio : IDisposable
                 source.clip = clip;
                 source.loop = false;
                 source.pitch = dry.pitch;
-                source.timeSamples = startSample;
+                source.timeSamples = 0;
                 source.outputAudioMixerGroup = dry.outputAudioMixerGroup;
                 source.spatialBlend = dry.spatialBlend;
                 source.panStereo = dry.panStereo;
@@ -127,12 +137,12 @@ internal sealed class PreviewAudio : IDisposable
                 {
                     LoggedSchedule = true;
                     var mixer = dry.outputAudioMixerGroup;
-                    MelonLoader.MelonLogger.Msg($"LSD echo scheduled game clip '{clip.name}' at +220 ms: dry volume {dry.volume:F3}, pitch {dry.pitch:F2}, mixer '{(mixer ? mixer.name : "listener")}', return {Gain:P1}.");
+                    MelonLoader.MelonLogger.Msg($"LSD echo scheduled game clip '{clip.name}' at +220 ms from observation: dry volume {dry.volume:F3}, pitch {dry.pitch:F2}, mixer '{(mixer ? mixer.name : "listener")}', return {Gain:P1}.");
                 }
             }
             catch { Reservations.Release(slot.Index); throw; }
         }
-        catch (Exception error) { Fail(error); } // never let a preview failure escape into native playback
+        catch (Exception error) { Fail(error); }
     }
 
     private Voice CreateVoice(int index)
@@ -160,6 +170,8 @@ internal sealed class PreviewAudio : IDisposable
             if (!Reservations.Advance(now)) StopAndClear();
             Gain = AudioBlend.Sample(elapsed, amount);
             PeakGain = Math.Max(PeakGain, Gain);
+            ObserveNativeSounds(now);
+            if (Faulted) return;
             var probe = now >= NextProbe;
             if (probe) NextProbe = now + 0.05;
             for (var index = 0; index < Pool.Length; index++)
@@ -198,7 +210,7 @@ internal sealed class PreviewAudio : IDisposable
             if (Reports < 3 && elapsed >= checkpoint)
             {
                 Reports++;
-                MelonLoader.MelonLogger.Msg($"LSD echo check at {elapsed:F0}s: events {Seen}, scheduled {Scheduled}, nonzero voices {Heard}, ignored {Ignored}, dropped {Dropped}, off-thread {OtherThread}, current return {Gain:P1}, peak return {PeakGain:P1}, output peak {PeakOutput:F5}.");
+                MelonLoader.MelonLogger.Msg($"LSD echo check at {elapsed:F0}s: observed starts {Seen}, scheduled {Scheduled}, nonzero voices {Heard}, ignored {Ignored}, dropped {Dropped}, current return {Gain:P1}, peak return {PeakGain:P1}, output peak {PeakOutput:F5}.");
                 if (elapsed >= 30 && (Scheduled == 0 || Heard == 0))
                     ModSupport.WarnOnce("lsd:audio:signal", "LSD echo has not verified delayed sound output. Keep the echo check lines for diagnosis.");
             }
@@ -211,6 +223,8 @@ internal sealed class PreviewAudio : IDisposable
         Gain = 0;
         NextProbe = 0;
         Reservations.Reset();
+        Starts.Reset();
+        Primed = false;
         foreach (var voice in Pool)
             if (voice is not null && voice.Source)
             {
@@ -225,7 +239,6 @@ internal sealed class PreviewAudio : IDisposable
     {
         Faulted = true;
         Gain = 0;
-        if (ReferenceEquals(Active, this)) Active = null;
         try
         {
             if (Root is not null && Root) Root.SetActive(false);
@@ -243,7 +256,6 @@ internal sealed class PreviewAudio : IDisposable
     {
         if (Disposed) return;
         Disposed = true;
-        if (ReferenceEquals(Active, this)) Active = null;
         try { StopAndClear(); }
         finally
         {
