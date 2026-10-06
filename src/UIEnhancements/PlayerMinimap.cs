@@ -18,10 +18,15 @@ internal sealed class PlayerMinimap : IDisposable
     private readonly HUD Hud;
     private readonly MapApp Map;
     private readonly RectTransform Frame, Viewport, Content, Artwork, PlayerArrow;
-    private readonly Image MapImage, ArrowImage;
+    private readonly Image MapImage, ArrowImage, ViewportFill;
+    private readonly RectMask2D ViewportMask;
     private readonly Dictionary<IntPtr, MinimapPin> Pins = new();
+    private MinimapPin? LocalPlayerPin;
+    private Texture2D? BorderTexture;
+    private Sprite? BorderSprite;
+    private bool BorderIsTutorial;
     private float NextRefresh;
-    private bool Disposed;
+    private bool Disposed, WasVisible;
 
     internal PlayerMinimap(HUD hud, MapApp map)
     {
@@ -36,19 +41,28 @@ internal sealed class PlayerMinimap : IDisposable
             var group = Frame.gameObject.AddComponent<CanvasGroup>();
             group.interactable = group.blocksRaycasts = false;
             Viewport = Rect(Frame, "Map viewport", Vector2.zero, Vector2.one);
-            Image(Viewport, new(0.12f, 0.16f, 0.19f, 1));
-            Viewport.gameObject.AddComponent<RectMask2D>();
+            ViewportFill = Image(Viewport, new Color32(50, 66, 76, 255));
+            // A textured fill follows the artwork's sRGB sampling path. A solid
+            // UI vertex color can otherwise differ in a linear-color renderer.
+            var nativeTexture = map.BackgroundImage.sprite ? map.BackgroundImage.sprite.texture : null;
+            BorderTexture = new Texture2D(1, 1, TextureFormat.RGBA32, false, nativeTexture is not null && nativeTexture && !nativeTexture.isDataSRGB);
+            BorderTexture.SetPixel(0, 0, new Color32(50, 66, 76, 255));
+            BorderTexture.Apply(false, false);
+            BorderSprite = Sprite.Create(BorderTexture, new UnityEngine.Rect(0, 0, 1, 1), new Vector2(0.5f, 0.5f));
+            ViewportFill.sprite = BorderSprite;
+            ViewportFill.color = Color.white;
+            ViewportMask = Viewport.gameObject.AddComponent<RectMask2D>();
             Content = Rect(Viewport, "Map projection", Vector2.zero, Vector2.zero);
             Artwork = Rect(Content, "Native map artwork", Vector2.zero, Vector2.one);
             MapImage = Image(Artwork, Color.white);
             MapImage.type = UnityEngine.UI.Image.Type.Simple;
             PlayerArrow = Rect(Viewport, "Local player", Vector2.zero, new(14, 14));
             ArrowImage = Image(PlayerArrow, new(0.35f, 0.85f, 1, 1));
-            // A native player sprite is used when available; the fallback diamond
-            // still keeps the exact center visible before its POI initializes.
+            // The full native player glyph replaces this fallback after its UI
+            // initializes. The first Image alone can be its black backing disc.
             PlayerArrow.localRotation = Quaternion.Euler(0, 0, 45);
         }
-        catch { Object.Destroy(Frame.gameObject); throw; }
+        catch { DestroyBorder(); Object.Destroy(Frame.gameObject); throw; }
     }
 
     internal bool BelongsTo(HUD hud, MapApp map) => !Disposed && Frame && Hud && Map
@@ -67,13 +81,16 @@ internal sealed class PlayerMinimap : IDisposable
         if (!Ready || !Hud || !Map || !player) { Frame.gameObject.SetActive(false); return; }
         var visible = Hud.canvas && Hud.canvas.enabled && Hud.canvas.gameObject.activeInHierarchy
             && !(PauseMenu.InstanceExists && PauseMenu.Instance.IsPaused)
-            && !(Phone.InstanceExists && Phone.Instance.IsOpen) && !Map.isOpen;
+            && !(Phone.InstanceExists && Phone.Instance.IsOpen);
         Frame.gameObject.SetActive(visible);
-        if (!visible) return;
+        if (!visible) { WasVisible = false; return; }
+        var resumed = !WasVisible;
+        WasVisible = true;
         var projection = MapPositionUtility.Instance;
         var center = projection.GetMapPosition(player.transform.position);
         var factor = Math.Abs(projection.conversionFactor);
-        if (!Finite(center) || !float.IsFinite(factor) || factor < 0.0001f) { Frame.gameObject.SetActive(false); return; }
+        if (!Finite(center) || !float.IsFinite(factor) || factor < 0.0001f)
+        { Frame.gameObject.SetActive(false); WasVisible = false; return; }
         var size = Safe(UIEnhancementsMod.MinimapSize.Value, 240, 160, 480);
         var range = Safe(UIEnhancementsMod.MinimapRange.Value, 160, 60, 500);
         Frame.sizeDelta = new(size + 6, size + 6);
@@ -81,6 +98,7 @@ internal sealed class PlayerMinimap : IDisposable
         var scale = size / (range * factor);
         Content.localScale = new(scale, scale, 1);
 
+        if (resumed) NextRefresh = 0;
         if (Time.realtimeSinceStartup >= NextRefresh) RefreshPins(player);
         // Native POIs use GetMapPosition as their anchoredPosition. Account for
         // their prefab anchors as well as the map image's own pivot/hierarchy.
@@ -102,7 +120,7 @@ internal sealed class PlayerMinimap : IDisposable
                 pin.Root.gameObject.SetActive(onMap && pin.Poi.isActiveAndEnabled && pin.Poi.UI.gameObject.activeSelf);
                 if (!onMap) continue; // Faraway icons need no per-frame visual/geometry copies.
                 pin.Root.anchoredPosition = projected;
-                pin.Sync();
+                pin.Sync(IconScale);
             }
             catch (Exception error)
             {
@@ -110,7 +128,16 @@ internal sealed class PlayerMinimap : IDisposable
                 ModSupport.WarnOnce("ui:minimap-pin", $"A minimap icon was unavailable: {error.Message}");
             }
         }
-        UpdatePlayerArrow(player);
+        UpdatePlayerArrow(player, scale);
+        if (resumed)
+        {
+            // Re-enabling the phone can leave clipped renderers culled. Refresh
+            // our own square's mask after its restored layout, once per return.
+            ViewportMask.enabled = false;
+            ViewportMask.enabled = true;
+            Canvas.ForceUpdateCanvases();
+            ViewportMask.PerformClipping();
+        }
     }
 
     private void UpdateArtwork()
@@ -119,6 +146,17 @@ internal sealed class PlayerMinimap : IDisposable
         MapImage.sprite = source.overrideSprite ? source.overrideSprite : source.sprite;
         MapImage.color = source.color;
         MapImage.preserveAspect = source.preserveAspect;
+        // Verified border pixels of the installed native Map_Full/DesertMap
+        // sprites. Use their tint so moving beyond the artwork has no blue seam.
+        var tutorial = Map.TutorialMapSprite && MapImage.sprite == Map.TutorialMapSprite;
+        if (BorderTexture is not null && BorderTexture && tutorial != BorderIsTutorial)
+        {
+            BorderIsTutorial = tutorial;
+            BorderTexture.SetPixel(0, 0, tutorial ? new Color32(84, 77, 68, 255) : new Color32(50, 66, 76, 255));
+            BorderTexture.Apply(false, false);
+        }
+        var tint = source.color; tint.a = 1;
+        ViewportFill.color = tint;
         MatchRect(Artwork, source.rectTransform, Map.PoIContainer);
     }
 
@@ -135,36 +173,52 @@ internal sealed class PlayerMinimap : IDisposable
     {
         NextRefresh = Time.realtimeSinceStartup + 1;
         var seen = new HashSet<IntPtr>();
+        var playerPois = new HashSet<IntPtr>();
+        if (Player.PlayerList is not null)
+            foreach (var peer in Player.PlayerList)
+                if (peer && peer.PoI) playerPois.Add(peer.PoI.Pointer);
         foreach (var poi in Object.FindObjectsOfType<POI>())
         {
             if (!poi || !poi.isActiveAndEnabled || !poi.UI || !poi.IconContainer || !poi.UI.IsChildOf(Map.PoIContainer)
                 || (player.PoI && poi.Pointer == player.PoI.Pointer) || !seen.Add(poi.Pointer)) continue;
             if (Pins.TryGetValue(poi.Pointer, out var pin) && !pin.IsAlive) Remove(poi.Pointer);
             if (Pins.ContainsKey(poi.Pointer)) continue;
-            try { Pins.Add(poi.Pointer, MinimapPin.Create(poi, Content)); }
+            try { Pins.Add(poi.Pointer, MinimapPin.Create(poi, Content, playerPois.Contains(poi.Pointer))); }
             catch (Exception error) { ModSupport.WarnOnce("ui:minimap-create", $"A minimap icon could not be created: {error.Message}"); }
         }
         foreach (var key in Pins.Keys.Where(key => !seen.Contains(key)).ToArray()) Remove(key);
     }
 
-    private void UpdatePlayerArrow(Player player)
+    private void UpdatePlayerArrow(Player player, float mapScale)
     {
         var poi = player.PoI;
-        var sprite = poi && poi.IconContainer ? poi.IconContainer.GetComponentInChildren<Image>(true)?.sprite : null;
-        if (sprite)
+        if (LocalPlayerPin is not null && (!LocalPlayerPin.IsAlive || !poi || LocalPlayerPin.Poi.Pointer != poi.Pointer))
+        { LocalPlayerPin.Dispose(); LocalPlayerPin = null; }
+        if (LocalPlayerPin is null && poi && poi.UI && poi.IconContainer)
+            LocalPlayerPin = MinimapPin.Create(poi, Viewport, true);
+        if (LocalPlayerPin is not null)
         {
-            ArrowImage.sprite = sprite;
-            ArrowImage.preserveAspect = true;
-            PlayerArrow.sizeDelta = new(18, 18);
-            var forward = player.transform.forward;
-            PlayerArrow.localRotation = Quaternion.Euler(0, 0, -Mathf.Atan2(forward.x, forward.z) * Mathf.Rad2Deg);
+            LocalPlayerPin.Sync(IconScale);
+            LocalPlayerPin.Root.anchoredPosition = Vector2.zero;
+            LocalPlayerPin.Root.localScale *= mapScale;
+            LocalPlayerPin.Root.gameObject.SetActive(true);
+            PlayerArrow.gameObject.SetActive(!LocalPlayerPin.HasVisibleArtwork);
         }
         else
         {
+            PlayerArrow.gameObject.SetActive(true);
             ArrowImage.sprite = null;
-            PlayerArrow.sizeDelta = new(10, 10);
+            PlayerArrow.sizeDelta = new(10 * IconScale, 10 * IconScale);
             PlayerArrow.localRotation = Quaternion.Euler(0, 0, 45);
         }
+    }
+
+    private static float IconScale => Safe(UIEnhancementsMod.MinimapIconScale.Value, 1.55f, 0.5f, 3);
+
+    internal void MapVisibilityChanged()
+    {
+        NextRefresh = 0;
+        WasVisible = false;
     }
 
     private void Remove(IntPtr key)
@@ -198,23 +252,49 @@ internal sealed class PlayerMinimap : IDisposable
         return new(bounds.xMin + bounds.width * anchor.x, bounds.yMin + bounds.height * anchor.y);
     }
 
-    // Transform corners into the unzoomed POI coordinate system. Phone-map
-    // panning/zooming cancels out, so the minimap never moves the native content.
+    // Compose only transforms below the common ancestor. A hidden phone may
+    // scale that ancestor to zero; world-space inversion would collapse the map
+    // until it was reopened. Common phone pan/zoom/fades are excluded entirely.
     private static void MatchRect(RectTransform target, RectTransform source, RectTransform coordinates)
     {
+        Transform? common = source;
+        for (var depth = 0; common && !coordinates.IsChildOf(common) && depth < 64; depth++) common = common.parent;
+        if (!common || !coordinates.IsChildOf(common)) return;
+        var coordinateMatrix = ToAncestor(coordinates, common!);
+        if (Math.Abs(coordinateMatrix.determinant) < 0.000001f) return;
+        var relative = coordinateMatrix.inverse * ToAncestor(source, common!);
         var bounds = source.rect;
-        var bottomLeft = coordinates.InverseTransformPoint(source.TransformPoint(new(bounds.xMin, bounds.yMin, 0)));
-        var topLeft = coordinates.InverseTransformPoint(source.TransformPoint(new(bounds.xMin, bounds.yMax, 0)));
-        var bottomRight = coordinates.InverseTransformPoint(source.TransformPoint(new(bounds.xMax, bounds.yMin, 0)));
+        var bottomLeft = relative.MultiplyPoint3x4(new(bounds.xMin, bounds.yMin, 0));
+        var topLeft = relative.MultiplyPoint3x4(new(bounds.xMin, bounds.yMax, 0));
+        var bottomRight = relative.MultiplyPoint3x4(new(bounds.xMax, bounds.yMin, 0));
         var horizontal = bottomRight - bottomLeft;
         var vertical = topLeft - bottomLeft;
-        target.anchoredPosition = new(bottomLeft.x + (horizontal.x + vertical.x) * 0.5f, bottomLeft.y + (horizontal.y + vertical.y) * 0.5f);
-        target.sizeDelta = new(horizontal.magnitude, vertical.magnitude);
+        var position = new Vector2(bottomLeft.x + (horizontal.x + vertical.x) * 0.5f, bottomLeft.y + (horizontal.y + vertical.y) * 0.5f);
+        var size = new Vector2(horizontal.magnitude, vertical.magnitude);
+        if (!Finite(position) || !Finite(size) || size.x < 0.0001f || size.y < 0.0001f) return;
+        target.anchoredPosition = position;
+        target.sizeDelta = size;
         target.localRotation = Quaternion.Euler(0, 0, Mathf.Atan2(horizontal.y, horizontal.x) * Mathf.Rad2Deg);
+    }
+
+    private static Matrix4x4 ToAncestor(Transform source, Transform ancestor)
+    {
+        var result = Matrix4x4.identity;
+        var node = source;
+        for (var depth = 0; node && node.Pointer != ancestor.Pointer && depth < 64; depth++, node = node.parent)
+            result = Matrix4x4.TRS(node.localPosition, node.localRotation, node.localScale) * result;
+        return result;
     }
 
     private static bool Finite(Vector2 point) => float.IsFinite(point.x) && float.IsFinite(point.y);
     private static float Safe(float value, float fallback, float min, float max) => float.IsFinite(value) ? Math.Clamp(value, min, max) : fallback;
+
+    private void DestroyBorder()
+    {
+        if (BorderSprite) Object.Destroy(BorderSprite);
+        if (BorderTexture) Object.Destroy(BorderTexture);
+        BorderSprite = null; BorderTexture = null;
+    }
 
     public void Dispose()
     {
@@ -222,7 +302,9 @@ internal sealed class PlayerMinimap : IDisposable
         Disposed = true;
         foreach (var pin in Pins.Values) pin.Dispose();
         Pins.Clear();
+        LocalPlayerPin?.Dispose(); LocalPlayerPin = null;
         if (Frame) { Frame.gameObject.SetActive(false); Object.Destroy(Frame.gameObject); }
+        DestroyBorder();
     }
 
     private sealed class MinimapPin : IDisposable
@@ -231,40 +313,53 @@ internal sealed class PlayerMinimap : IDisposable
         internal readonly RectTransform Root;
         internal float Radius { get; private set; }
         private readonly List<(Graphic Source, Graphic Copy)> Graphics = new();
-        internal bool IsAlive => Poi && Poi.UI && Poi.IconContainer && Root;
-        private MinimapPin(POI poi, RectTransform root) { Poi = poi; Root = root; }
+        private readonly bool IsPlayer;
+        private readonly IntPtr SourceUi, SourceIcon;
+        internal bool HasVisibleArtwork { get; private set; }
+        internal bool IsAlive => Poi && Poi.UI && Poi.IconContainer && Root
+            && Poi.UI.Pointer == SourceUi && Poi.IconContainer.Pointer == SourceIcon;
+        private MinimapPin(POI poi, RectTransform root, bool isPlayer)
+        { Poi = poi; Root = root; IsPlayer = isPlayer; SourceUi = poi.UI.Pointer; SourceIcon = poi.IconContainer.Pointer; }
 
-        internal static MinimapPin Create(POI poi, RectTransform parent)
+        internal static MinimapPin Create(POI poi, RectTransform parent, bool isPlayer)
         {
             var root = Rect(parent, "Minimap point of interest", Vector2.zero, Vector2.zero);
-            var pin = new MinimapPin(poi, root);
+            var pin = new MinimapPin(poi, root, isPlayer);
             try
             {
-                foreach (var source in poi.IconContainer.GetComponentsInChildren<Image>(true))
+                var sourceRoot = isPlayer ? poi.UI : poi.IconContainer;
+                // Preserve native image/raw-image draw order and every player
+                // foreground layer, including siblings outside IconContainer.
+                foreach (var graphic in sourceRoot.GetComponentsInChildren<Graphic>(true))
                 {
-                    var rect = Rect(root, "Map icon", Vector2.zero, Vector2.zero);
-                    var copy = Image(rect, source.color);
-                    copy.type = source.type; copy.preserveAspect = source.preserveAspect;
-                    copy.fillMethod = source.fillMethod; copy.fillOrigin = source.fillOrigin;
-                    copy.fillClockwise = source.fillClockwise;
-                    pin.Graphics.Add((source, copy));
+                    if (graphic.TryCast<Image>() is { } source)
+                    {
+                        var rect = Rect(root, "Map icon", Vector2.zero, Vector2.zero);
+                        var copy = Image(rect, source.color);
+                        copy.type = source.type; copy.preserveAspect = source.preserveAspect;
+                        copy.fillMethod = source.fillMethod; copy.fillOrigin = source.fillOrigin;
+                        copy.fillClockwise = source.fillClockwise;
+                        pin.Graphics.Add((source, copy));
+                    }
+                    else if (graphic.TryCast<RawImage>() is { } raw)
+                    {
+                        var rect = Rect(root, "Map portrait", Vector2.zero, Vector2.zero);
+                        var copy = rect.gameObject.AddComponent<RawImage>();
+                        copy.raycastTarget = false;
+                        pin.Graphics.Add((raw, copy));
+                    }
                 }
-                foreach (var source in poi.IconContainer.GetComponentsInChildren<RawImage>(true))
-                {
-                    var rect = Rect(root, "Map portrait", Vector2.zero, Vector2.zero);
-                    var copy = rect.gameObject.AddComponent<RawImage>();
-                    copy.raycastTarget = false;
-                    pin.Graphics.Add((source, copy));
-                }
-                pin.Sync();
+                pin.Sync(IconScale);
                 return pin;
             }
             catch { pin.Dispose(); throw; }
         }
 
-        internal void Sync()
+        internal void Sync(float iconScale)
         {
             Radius = 0;
+            HasVisibleArtwork = false;
+            var area = false;
             foreach (var (source, copy) in Graphics)
             {
                 if (!source || !copy) continue;
@@ -282,7 +377,10 @@ internal sealed class PlayerMinimap : IDisposable
                 if (!visible) continue;
                 var color = source.color; color.a *= opacity;
                 copy.color = color;
+                copy.material = source.material;
                 MatchRect(copy.rectTransform, source.rectTransform, Poi.UI);
+                var dimensions = copy.rectTransform.sizeDelta;
+                area |= Math.Max(dimensions.x, dimensions.y) > 100;
                 // Large potential-customer search zones may intersect the square
                 // even when their center lies outside it; retain their radius.
                 Radius = Math.Max(Radius, copy.rectTransform.anchoredPosition.magnitude + copy.rectTransform.sizeDelta.magnitude * 0.5f);
@@ -290,10 +388,18 @@ internal sealed class PlayerMinimap : IDisposable
                 {
                     imageCopy.sprite = image.overrideSprite ? image.overrideSprite : image.sprite;
                     imageCopy.fillAmount = image.fillAmount;
+                    HasVisibleArtwork |= imageCopy.sprite && color.a > 0.01f;
                 }
                 else if (source.TryCast<RawImage>() is { } raw && copy.TryCast<RawImage>() is { } rawCopy)
-                { rawCopy.texture = raw.texture; rawCopy.uvRect = raw.uvRect; }
+                {
+                    rawCopy.texture = raw.texture; rawCopy.uvRect = raw.uvRect;
+                    HasVisibleArtwork |= rawCopy.texture && color.a > 0.01f;
+                }
             }
+            // Enlarge symbols, not geographical search-zone footprints.
+            var scale = area && !IsPlayer ? 1 : iconScale;
+            Root.localScale = new(scale, scale, 1);
+            Radius *= scale;
         }
 
         public void Dispose() { if (Root) Object.Destroy(Root.gameObject); }

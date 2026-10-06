@@ -3,7 +3,7 @@ using Il2CppScheduleOne.UI.Compass;
 using Il2CppScheduleOne.UI.Phone.Map;
 using MelonLoader;
 
-[assembly: MelonInfo(typeof(PersonalMods.UIEnhancements.UIEnhancementsMod), "Personal UI Enhancements", "0.2.0", "Axl47")]
+[assembly: MelonInfo(typeof(PersonalMods.UIEnhancements.UIEnhancementsMod), "Personal UI Enhancements", "0.2.1", "Axl47")]
 [assembly: MelonGame("TVGS", "Schedule I")]
 
 namespace PersonalMods.UIEnhancements;
@@ -11,7 +11,7 @@ namespace PersonalMods.UIEnhancements;
 public sealed class UIEnhancementsMod : MelonMod
 {
     internal static MelonPreferences_Entry<bool> Enabled = null!, DealPayouts = null!, CustomerMarkers = null!, PlayerCompassMarkers = null!, MinimapEnabled = null!;
-    internal static MelonPreferences_Entry<float> MarkerScale = null!, MinimapSize = null!, MinimapRange = null!;
+    internal static MelonPreferences_Entry<float> MarkerScale = null!, MinimapSize = null!, MinimapRange = null!, MinimapIconScale = null!;
     private static KnownCustomerMap? CustomerMap;
     private static MultiplayerCompass? PlayerCompass;
     private static PlayerMinimap? Minimap;
@@ -28,6 +28,7 @@ public sealed class UIEnhancementsMod : MelonMod
         MinimapEnabled = ModSupport.Entry(config, "ShowMinimap", true, "Show a square, player-centered map in the top-right gameplay HUD.");
         MinimapSize = ModSupport.Entry(config, "MinimapSize", 240f, "Square minimap width/height in HUD units, from 160 to 480.");
         MinimapRange = ModSupport.Entry(config, "MinimapRange", 160f, "World distance across the minimap, from 60 to 500. Smaller values zoom in.");
+        MinimapIconScale = ModSupport.Entry(config, "MinimapIconScale", 1.55f, "Minimap symbol size multiplier, from 0.5 to 3. Search-zone footprints keep their native size.");
         var self = typeof(UIEnhancementsMod);
         // Both native methods rebuild the title independently; neither calls the other.
         ModSupport.Patch(HarmonyInstance, typeof(QuestHUDUI), "UpdateUI", self, postfix: nameof(DealUpdated));
@@ -45,7 +46,9 @@ public sealed class UIEnhancementsMod : MelonMod
 
     private static void MapOpened(MapApp __instance, bool open)
     {
-        if (!open || !__instance) return;
+        if (!__instance) return;
+        Minimap?.MapVisibilityChanged();
+        if (!open) return;
         try
         {
             EnsureCustomerMap(__instance);
