@@ -3,7 +3,7 @@ using Il2CppScheduleOne.UI.Compass;
 using Il2CppScheduleOne.UI.Phone.Map;
 using MelonLoader;
 
-[assembly: MelonInfo(typeof(PersonalMods.UIEnhancements.UIEnhancementsMod), "Personal UI Enhancements", "0.1.1", "Axl47")]
+[assembly: MelonInfo(typeof(PersonalMods.UIEnhancements.UIEnhancementsMod), "Personal UI Enhancements", "0.1.2", "Axl47")]
 [assembly: MelonGame("TVGS", "Schedule I")]
 
 namespace PersonalMods.UIEnhancements;
@@ -22,7 +22,7 @@ public sealed class UIEnhancementsMod : MelonMod
         DealPayouts = ModSupport.Entry(config, "ShowDealPayouts", true, "Show agreed payments and average price per unit in the left-side tracked deal list.");
         CustomerMarkers = ModSupport.Entry(config, "ShowKnownCustomers", true, "Show portrait markers at unlocked customers' current map locations.");
         MarkerScale = ModSupport.Entry(config, "CustomerMarkerScale", 0.75f, "Known-customer icon scale relative to the native portrait marker (0.35 to 1.5).");
-        PlayerCompassMarkers = ModSupport.Entry(config, "ShowMultiplayerPlayers", true, "Show blue compass markers with names and distances for other players in your session.");
+        PlayerCompassMarkers = ModSupport.Entry(config, "ShowMultiplayerPlayers", true, "Show blue compass markers with player names in the native distance-label position.");
         var self = typeof(UIEnhancementsMod);
         // Both native methods rebuild the title independently; neither calls the other.
         ModSupport.Patch(HarmonyInstance, typeof(QuestHUDUI), "UpdateUI", self, postfix: nameof(DealUpdated));

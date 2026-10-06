@@ -1,7 +1,7 @@
 param([string]$GameDir = 'C:\Program Files (x86)\Steam\steamapps\common\Schedule I')
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path $PSScriptRoot -Parent
-$package = Join-Path $repoRoot 'artifacts\PersonalMods-0.3.2\Mods'
+$package = Join-Path $repoRoot 'artifacts\PersonalMods-0.3.3\Mods'
 $gameRoot = (Resolve-Path -LiteralPath $GameDir).Path
 if (-not (Test-Path -LiteralPath (Join-Path $gameRoot 'Schedule I.exe'))) { throw 'GameDir is not a Schedule I installation.' }
 if (Get-Process -Name 'Schedule I', 'ScheduleI' -ErrorAction SilentlyContinue) { throw 'Close Schedule I before replacing mod DLLs.' }

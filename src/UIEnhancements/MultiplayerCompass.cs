@@ -11,7 +11,6 @@ namespace PersonalMods.UIEnhancements;
 internal sealed class MultiplayerCompass : IDisposable
 {
     private const string ContentName = "Personal player compass content";
-    private const string NameLabelName = "Player name";
     private readonly CompassManager Compass;
     private readonly Dictionary<IntPtr, PlayerMarker> Markers = new();
     private GameObject? Root;
@@ -41,6 +40,9 @@ internal sealed class MultiplayerCompass : IDisposable
                 // element. Native UpdateElements never receives a destroyed peer.
                 pair.Value.Anchor.transform.position = position;
                 Compass.UpdateElement(pair.Value.Element);
+                // The native refresh writes a distance here. Replace it afterward
+                // so the player's name uses the same baseline and clipping bounds.
+                pair.Value.NameLabel.text = pair.Value.DisplayName;
                 Compass.GetCompassData(position, out _, out var alpha);
                 pair.Value.Element.Group.alpha = float.IsFinite(alpha) ? Mathf.Clamp01(alpha) : 0;
             }
@@ -75,13 +77,17 @@ internal sealed class MultiplayerCompass : IDisposable
                     try
                     {
                         element = Compass.AddElement(anchor.transform, Template!, true);
-                        var content = element.Rect.Find(ContentName + "(Clone)");
-                        var label = content ? content.Find(NameLabelName)?.GetComponent<TextMeshProUGUI>() : null;
-                        if (label is null || !label || !element.Group || !element.DistanceLabel)
+                        var label = element.DistanceLabel;
+                        if (label is null || !label || !element.Group)
                             throw new InvalidOperationException("The native player compass element is incomplete.");
                         element.Group.blocksRaycasts = false;
                         element.Group.interactable = false;
-                        element.DistanceLabel.raycastTarget = false;
+                        label.raycastTarget = false;
+                        label.richText = false;
+                        label.enableWordWrapping = false;
+                        label.overflowMode = TextOverflowModes.Ellipsis;
+                        var size = label.rectTransform.sizeDelta;
+                        label.rectTransform.sizeDelta = new(Math.Max(size.x, 110), size.y);
                         marker = new(player, anchor, element, label);
                         Markers.Add(player.Pointer, marker);
                     }
@@ -98,7 +104,8 @@ internal sealed class MultiplayerCompass : IDisposable
                         throw;
                     }
                 }
-                marker.NameLabel.text = string.IsNullOrWhiteSpace(player.PlayerName) ? "Player" : player.PlayerName;
+                var name = player.PlayerName;
+                marker.DisplayName = string.IsNullOrWhiteSpace(name) ? "Player" : name;
             }
             catch (Exception error) { ModSupport.WarnOnce("ui:compass-create", $"A player compass marker could not be created: {error.Message}"); }
         }
@@ -108,8 +115,6 @@ internal sealed class MultiplayerCompass : IDisposable
     private void EnsureTemplate()
     {
         if (Template) return;
-        var fontSource = Compass.ElementPrefab.GetComponentInChildren<TextMeshProUGUI>(true);
-        if (!fontSource || !fontSource.font) throw new InvalidOperationException("The native compass font is missing.");
         if (!Root) { Root = new GameObject("Personal multiplayer compass"); Root.SetActive(false); }
         var template = Rectangle(Root!.transform, ContentName, Vector2.zero, Compass.ElementContentSize);
         try
@@ -119,18 +124,6 @@ internal sealed class MultiplayerCompass : IDisposable
             var image = diamond.gameObject.AddComponent<Image>();
             image.color = new(0.35f, 0.8f, 1, 1);
             image.raycastTarget = false;
-            var labelRect = Rectangle(template, NameLabelName, new(0, 20), new(110, 18));
-            var label = labelRect.gameObject.AddComponent<TextMeshProUGUI>();
-            label.font = fontSource.font;
-            label.fontSharedMaterial = fontSource.fontSharedMaterial;
-            label.fontSize = 13;
-            label.fontStyle = FontStyles.Normal;
-            label.color = new(0.6f, 0.88f, 1, 1);
-            label.richText = false;
-            label.alignment = TextAlignmentOptions.Center;
-            label.enableWordWrapping = false;
-            label.overflowMode = TextOverflowModes.Ellipsis;
-            label.raycastTarget = false;
             Template = template;
         }
         catch { Object.Destroy(template.gameObject); throw; }
@@ -182,6 +175,7 @@ internal sealed class MultiplayerCompass : IDisposable
     public void Dispose() { if (Disposed) return; Clear(); Disposed = true; }
     private sealed record PlayerMarker(Player Player, GameObject Anchor, CompassManager.Element Element, TextMeshProUGUI NameLabel)
     {
+        internal string DisplayName { get; set; } = "Player";
         internal bool IsAlive => Player && Anchor && Element.Rect && Element.Group && NameLabel;
     }
 }

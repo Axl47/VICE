@@ -1,4 +1,4 @@
-# UI Enhancements 0.1.1
+# UI Enhancements 0.1.2
 
 This independent module adds total/per-unit payments to tracked deals, map portrait pins for unlocked customers and compass markers for other multiplayer players. All three features default on. It reads existing contract/NPC/player data and creates local presentation objects; it does not change transactions, progression or saves.
 
@@ -22,7 +22,9 @@ Pins follow the NPC every frame while the map is open. An indoor customer uses `
 
 After the native `CompassManager.Update`, the manager reconciles `Player.PlayerList` every half-second. It excludes the local player, inactive objects and players whose networking has stopped. Remote `PlayerLoaded` is not used as an eligibility gate because it is not a replicated readiness flag. The local player and player camera must be ready before creating elements.
 
-Each marker registers through `CompassManager.AddElement` with a blue diamond and a non-interactive name label. The label reuses the native compass font, disables rich text and truncates long names with an ellipsis. Native `UpdateElement` handles direction placement and distance formatting. The marker applies the bounded opacity from native `GetCompassData`, so it fades at the compass's direction limits and follows the normal hidden/disabled compass canvas.
+Each marker registers through `CompassManager.AddElement` with a blue diamond. Version 0.1.2 uses that element's native `DistanceLabel` for the player name, retaining its parent, vertical position, height, font and alignment. Only its width is increased to at least 110 UI units; long names truncate with an ellipsis and rich text is disabled. The separate label above the icon is removed because it was cropped by the compass bounds in live testing.
+
+Native `UpdateElement` still handles direction placement. Immediately afterward, the mod replaces the distance text with the cached player name on that owned element, so native refreshes cannot leave the number in place. Mission/quest labels retain their normal distance text. The marker applies the bounded opacity from native `GetCompassData`, so it fades at the compass's direction limits and follows the normal hidden/disabled compass canvas.
 
 Targets are mod-owned, non-networked transforms updated from each peer's replicated position. They survive a disconnect until their elements are deregistered, preventing native compass updates from following destroyed player transforms. Removal uses the exact owned `Element`, then destroys its UI and target. Other compass/quest elements are not removed. Missing players, a replacement compass, the main-scene unload and application exit clean up the owned objects. Host and joining clients can display markers independently without new RPCs or save data.
 
