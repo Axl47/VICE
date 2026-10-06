@@ -18,7 +18,7 @@ internal sealed class PreviewEffects : IDisposable
     private LensDistortion? Lens;
     private Beautify? Cartoon;
     private SurfaceRipples? Ripples;
-    private MaterialColorFlow? MaterialColors;
+    private PhoneColorBreathing? PhoneColors;
     private PreviewAudio? Audio;
     private Afterimages? Trails;
     private HudTextBlur? Text;
@@ -75,8 +75,10 @@ internal sealed class PreviewEffects : IDisposable
         Colors.contrast.value = 28 + 4 * Mathf.Sin(elapsed * 0.16f);
         Colors.postExposure.value = 0.15f;
         Colors.hueShift.value = Mathf.Sin(elapsed * 0.18f) * 24;
-        Colors.colorFilter.value = Color.Lerp(new Color(0.97f, 1, 0.99f), new Color(1, 0.96f, 1),
+        var filter = Color.Lerp(new Color(0.97f, 1, 0.99f), new Color(1, 0.96f, 1),
             0.5f + 0.5f * Mathf.Sin(elapsed * 0.13f));
+        var gain = ColorBreathing.Sample(new SurfaceTint(1, 1, 1, 1), 7, elapsed, Strength(LSDPreviewMod.MaterialColorStrength));
+        Colors.colorFilter.value = new Color(filter.r * gain.Red, filter.g * gain.Green, filter.b * gain.Blue, filter.a);
         Lens.intensity.value = Mathf.Sin(elapsed * 0.65f) * 0.11f * motion;
         Chromatic.intensity.value = 0.09f * motion;
         var outline = Strength(LSDPreviewMod.OutlineStrength);
@@ -91,17 +93,17 @@ internal sealed class PreviewEffects : IDisposable
         if (amount > 0)
         {
             TryLayer(ref Ripples, ref AttemptedRipples, () => new SurfaceRipples(Camera), "ripples");
-            if (Strength(LSDPreviewMod.MaterialColorStrength) > 0)
-                TryLayer(ref MaterialColors, ref AttemptedColors, () => new MaterialColorFlow(Camera), "material colors");
+            if (LSDPreviewMod.PhoneEffects.Value && Strength(LSDPreviewMod.MaterialColorStrength) > 0)
+                TryLayer(ref PhoneColors, ref AttemptedColors, () => new PhoneColorBreathing(), "phone colors");
             if (Strength(LSDPreviewMod.AudioStrength) > 0)
-                TryLayer(ref Audio, ref AttemptedAudio, () => new PreviewAudio(Camera), "audio");
+                TryLayer(ref Audio, ref AttemptedAudio, () => new PreviewAudio(), "audio");
             if (Strength(LSDPreviewMod.AfterimageStrength) * motion > 0)
                 TryLayer(ref Trails, ref AttemptedTrails, () => new Afterimages(Camera), "afterimages");
             if (Strength(LSDPreviewMod.TextBlurStrength) > 0)
                 TryLayer(ref Text, ref AttemptedText, () => new HudTextBlur(), "text");
         }
         Ripples?.Tick(elapsed, amount, Strength(LSDPreviewMod.RippleStrength), motion);
-        MaterialColors?.Tick(elapsed, amount * Strength(LSDPreviewMod.MaterialColorStrength));
+        PhoneColors?.Tick(elapsed, LSDPreviewMod.PhoneEffects.Value ? amount * Strength(LSDPreviewMod.MaterialColorStrength) : 0);
         Audio?.Tick(elapsed, amount * Strength(LSDPreviewMod.AudioStrength));
         Trails?.Tick(amount * Strength(LSDPreviewMod.AfterimageStrength) * motion);
         Text?.Tick(elapsed, amount * Strength(LSDPreviewMod.TextBlurStrength));
@@ -138,12 +140,12 @@ internal sealed class PreviewEffects : IDisposable
         if (Volume is not null && Volume) { Volume.weight = 0; Volume.enabled = false; }
         if (Root is not null && Root) Root.SetActive(false);
         DisposeLayer(Ripples, "ripples");
-        DisposeLayer(MaterialColors, "material colors");
+        DisposeLayer(PhoneColors, "phone colors");
         DisposeLayer(Audio, "audio");
         DisposeLayer(Trails, "afterimages");
         DisposeLayer(Text, "text");
         Ripples = null;
-        MaterialColors = null;
+        PhoneColors = null;
         Audio = null;
         Trails = null;
         Text = null;

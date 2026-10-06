@@ -18,7 +18,7 @@ internal sealed class TintLease
 
     internal void Observe(SurfaceTint current)
     {
-        // A weather/daylight/native update becomes the new baseline. Do not
+        // A native UI/theme/other-mod update becomes the new baseline. Do not
         // accumulate our previous modulation or undo another system's write.
         if (!HasWritten || !current.SameAs(LastWritten)) Baseline = current;
     }
@@ -45,11 +45,4 @@ internal static class ColorBreathing
         return new SurfaceTint(baseline.Red * red, baseline.Green * green, baseline.Blue * blue, baseline.Alpha);
     }
 
-    internal static float EchoWetMix(float elapsed, float amount)
-    {
-        if (!float.IsFinite(elapsed) || !float.IsFinite(amount)) return 0;
-        var wave = 0.5f + 0.5f * MathF.Sin(elapsed * 0.19f - 1.6f);
-        var pulse = Math.Clamp((wave - 0.45f) / 0.55f, 0, 1);
-        return 0.06f * Math.Clamp(amount, 0, 1) * pulse * pulse;
-    }
 }

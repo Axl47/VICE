@@ -1,138 +1,109 @@
-using Il2CppInterop.Runtime;
-using Il2CppScheduleOne.PlayerScripts;
-using UnityEngine;
-using Object = UnityEngine.Object;
+using Il2CppInterop.Runtime.InteropTypes.Arrays;
+using Il2CppScheduleOne.Audio;
+using UnityEngine.Audio;
 
 namespace PersonalMods.LSDPreview;
 
-// An owned listener filter: native sources, pitch, volume and existing filters
-// are untouched. Echo is an artistic cue, not a universal reported experience.
+// This build strips AudioEchoFilter's native class. Blend the game's existing
+// mixer snapshots instead of attempting to add an unavailable Unity filter.
 internal sealed class PreviewAudio : IDisposable
 {
-    private readonly Camera Camera;
-    private AudioListener? Listener;
-    private AudioEchoFilter? Echo;
-    private float NextSearch;
-    private bool Disposed, Faulted, LoggedWetSignal;
+    private static IntPtr NativeManager;
+    private static bool NativeDistorted, ObserverReady;
+    private static uint NativeRevision;
+    private readonly AudioSnapshotLease Lease = new();
+    private AudioManager? Manager;
+    private AudioMixer? Mixer;
+    private Il2CppReferenceArray<AudioMixerSnapshot>? Snapshots;
+    private readonly Il2CppStructArray<float> Weights = new(2);
+    private float NextUpdate;
+    private bool Disposed, Faulted, LoggedSignal;
 
-    private static Il2CppSystem.Type ListenerType => Il2CppType.Of<AudioListener>();
-    private static Il2CppSystem.Type EchoType => Il2CppType.Of<AudioEchoFilter>();
+    internal static void ObserveNativeAudio(HarmonyLib.Harmony harmony)
+        => ObserverReady = ModSupport.Patch(harmony, typeof(AudioManager), nameof(AudioManager.SetDistorted),
+            typeof(PreviewAudio), postfix: nameof(NativeTransition), parameters: new[] { typeof(bool), typeof(float) });
 
-    internal PreviewAudio(Camera camera) => Camera = camera;
+    // Observe only: leave every native call intact, including mushroom/product
+    // audio. Installed before a save loads, so its transitions are tracked.
+    private static void NativeTransition(AudioManager __instance, bool distorted)
+    {
+        NativeManager = __instance.Pointer;
+        NativeDistorted = distorted;
+        unchecked { NativeRevision++; }
+    }
 
     internal void Tick(float elapsed, float amount)
     {
-        if (Disposed || Faulted) return;
+        if (Disposed || Faulted || !ObserverReady) return;
         try
         {
-            if (amount <= 0.001f) { Mute(); return; }
-            if (!Usable(Listener))
+            if (amount <= 0.001f) { Restore(); return; }
+            var manager = AudioManager.Instance;
+            if (!manager) return;
+            if (Manager is null || !Manager || Manager.Pointer != manager.Pointer)
             {
-                Release();
-                if (elapsed < NextSearch) return;
-                NextSearch = elapsed + 2;
-                Listener = FindListener();
-                if (!Usable(Listener))
-                    ModSupport.WarnOnce("lsd:no-listener", "LSD audio is waiting for an active AudioListener.");
+                Restore();
+                Bind(manager);
             }
-            if (!Usable(Listener)) return;
-            if (Echo is null || !Echo)
+            if (Mixer is null || !Mixer || Snapshots is null) return;
+            // Native intoxication takes precedence. Its transition also makes
+            // our previous write ineligible for restoration.
+            if (NativeManager == manager.Pointer && NativeDistorted) { Lease.Release(); return; }
+            if (elapsed < NextUpdate && Lease.CanRestore(NativeRevision)) return;
+            NextUpdate = elapsed + 0.25f;
+            var mix = AudioBlend.Sample(elapsed, amount);
+            Weights[0] = 1 - mix;
+            Weights[1] = mix;
+            Mixer.TransitionToSnapshots(Snapshots, Weights, 0.3f);
+            Lease.Written(NativeRevision);
+            if (!LoggedSignal && mix > 0.03f)
             {
-                // This game can lack IL2CPP instantiations for generic audio
-                // component lookups. Use native Type overloads throughout.
-                if (Listener!.GetComponent(EchoType))
-                {
-                    ModSupport.WarnOnce("lsd:native-echo", "LSD audio leaves an existing listener echo filter in control.");
-                    return;
-                }
-                Echo = Listener.gameObject.AddComponent(EchoType)?.TryCast<AudioEchoFilter>();
-                if (Echo is null || !Echo) throw new InvalidOperationException("Unity did not create the preview's echo filter.");
-                Echo.enabled = false;
-                Echo.hideFlags = HideFlags.DontSave;
-                Echo.dryMix = 1;
-                Echo.wetMix = 0;
-                Echo.delay = 210;
-                Echo.decayRatio = 0.18f;
-                MelonLoader.MelonLogger.Msg($"LSD echo filter attached to active listener '{Listener.gameObject.name}' (210 ms delay; dry mix 1).");
-            }
-            Echo.wetMix = ColorBreathing.EchoWetMix(elapsed, amount);
-            Echo.enabled = true;
-            if (!LoggedWetSignal && Echo.wetMix > 0.005f)
-            {
-                LoggedWetSignal = true;
-                MelonLoader.MelonLogger.Msg($"LSD audio echo is enabled at {Echo.wetMix:P1} wet mix on '{Listener!.gameObject.name}'.");
+                LoggedSignal = true;
+                MelonLoader.MelonLogger.Msg($"LSD audio is blending the native distorted mixer snapshot at {mix:P1}; no echo filter is required.");
             }
         }
         catch (Exception error)
         {
             Faulted = true;
-            Release();
+            Restore();
             ModSupport.WarnOnce("lsd:audio", $"LSD audio layer stopped: {error.GetBaseException().Message}");
         }
     }
 
-    private AudioListener? FindListener()
+    private void Bind(AudioManager manager)
     {
-        if (Camera)
+        Manager = manager;
+        var normal = manager._defaultSnapshot;
+        var distorted = manager._distortedSnapshot;
+        if (!normal || !distorted || !normal.audioMixer || normal.audioMixer.Pointer != distorted.audioMixer.Pointer)
+            throw new InvalidOperationException("The game's normal and distorted audio snapshots are unavailable or use different mixers.");
+        Mixer = normal.audioMixer;
+        Snapshots = new Il2CppReferenceArray<AudioMixerSnapshot>(new[] { normal, distorted });
+        NextUpdate = 0;
+        MelonLoader.MelonLogger.Msg($"LSD audio bound native snapshots '{normal.name}' and '{distorted.name}' on '{Mixer.name}'.");
+    }
+
+    private void Restore()
+    {
+        try
         {
-            var listener = InRig(Camera);
-            if (Usable(listener)) return listener;
-            var node = Camera.transform.parent;
-            for (var depth = 0; node && depth < 2; node = node.parent, depth++)
+            if (Manager is not null && Manager && Lease.CanRestore(NativeRevision))
             {
-                listener = node.GetComponent(ListenerType)?.TryCast<AudioListener>();
-                if (Usable(listener)) return listener;
+                var distorted = NativeManager == Manager.Pointer && NativeDistorted;
+                var snapshot = distorted ? Manager._distortedSnapshot : Manager._defaultSnapshot;
+                if (snapshot) snapshot.TransitionTo(0.1f);
             }
         }
-        // Transport may swap the rendering camera while retaining the player's
-        // listener on the regular camera.
-        var native = PlayerCamera.Instance;
-        if (native)
-        {
-            var fallback = native.Camera ? InRig(native.Camera) : null;
-            if (Usable(fallback)) return fallback;
-            fallback = native.CameraContainer ? InRig(native.CameraContainer) : null;
-            if (Usable(fallback)) return fallback;
-        }
-        // An alternate audio rig may live outside the camera hierarchy. Search
-        // by listener type only when binding, never once per rendered frame.
-        foreach (var candidate in Object.FindObjectsOfType(ListenerType))
-        {
-            var listener = candidate?.TryCast<AudioListener>();
-            if (Usable(listener)) return listener;
-        }
-        return null;
+        finally { Lease.Release(); }
     }
 
-    private static AudioListener? InRig(Component rig)
+    public void Dispose()
     {
-        var direct = rig.GetComponent(ListenerType)?.TryCast<AudioListener>();
-        if (Usable(direct)) return direct;
-        foreach (var component in rig.GetComponentsInChildren(ListenerType, false))
-        {
-            var listener = component?.TryCast<AudioListener>();
-            if (Usable(listener)) return listener;
-        }
-        return null;
+        if (Disposed) return;
+        Disposed = true;
+        Restore();
+        Manager = null;
+        Mixer = null;
+        Snapshots = null;
     }
-
-    private static bool Usable(AudioListener? listener)
-        => listener is not null && listener && listener.enabled && listener.gameObject.activeInHierarchy;
-
-    private void Mute()
-    {
-        if (Echo is null || !Echo) return;
-        Echo.wetMix = 0;
-        Echo.enabled = false;
-    }
-
-    private void Release()
-    {
-        Mute();
-        if (Echo is not null && Echo) Object.Destroy(Echo);
-        Echo = null;
-        Listener = null;
-    }
-
-    public void Dispose() { if (Disposed) return; Disposed = true; Release(); }
 }

@@ -35,7 +35,7 @@ trip.Start(90);
 trip.Step(10);
 var beforePause = trip.Envelope;
 trip.Step(400, suspended: true);
-Check(trip.Elapsed == 10 && trip.Envelope == beforePause, "Menus/focus loss must suspend the timeline.");
+Check(trip.Elapsed == 10 && trip.Envelope == beforePause, "A real pause must suspend the timeline.");
 trip.RequestStop();
 Near(trip.Envelope, beforePause, "Stopping must begin at the current strength without a jump.");
 trip.Step(1);
@@ -119,7 +119,7 @@ for (var run = 0; run < 120; run++)
         if (wallTime > duration + 3) throw new InvalidOperationException("Effect failed to end.");
     }
 }
-// Vehicle/skateboard camera restrictions are independent of real menus.
+// Exhaustive regression checks for the contexts that used to hide the effect.
 foreach (var riding in new[] { false, true })
 foreach (var paused in new[] { false, true })
 foreach (var focused in new[] { false, true })
@@ -129,24 +129,45 @@ foreach (var canLook in new[] { false, true })
 foreach (var cameraUi in new[] { false, true })
 {
     var suspend = PreviewVisibility.Suspend(paused, focused, typing, menu, riding, canLook, cameraUi);
-    if (paused || !focused || typing || menu) Check(suspend, "Real menus, typing, pause and focus loss must hide effects in every transport mode.");
-    else if (riding) Check(!suspend, "Mounted/driving camera restrictions must never hide the preview.");
-    else Check(suspend == (!canLook || cameraUi), "Ordinary on-foot input blocks must still hide the preview.");
+    Check(suspend == paused, "Only a real pause may suspend perception; focus, phone, dialogue, typing, voice/UI and transport restrictions must not.");
 }
 trip.Start(100);
 trip.Step(20);
 trip.Step(10, PreviewVisibility.Suspend(false, true, false, false, true, false, true));
 Near(trip.Elapsed, 30, "The trip must keep advancing during skateboard/car camera restrictions.");
 trip.Step(10, PreviewVisibility.Suspend(false, true, false, true, true, false, true));
-Near(trip.Elapsed, 30, "Opening an actual menu while riding must suspend the trip.");
+Near(trip.Elapsed, 40, "Opening the phone while riding must keep the trip advancing.");
+trip.Step(10, PreviewVisibility.Suspend(false, false, true, true, false, false, true));
+Near(trip.Elapsed, 50, "Unfocused gameplay with typing/dialogue/UI restrictions must keep the trip advancing.");
+trip.Step(10, PreviewVisibility.Suspend(true, false, true, true, false, false, true));
+Near(trip.Elapsed, 50, "A true pause must still preserve trip progress.");
+for (var step = 0; step <= 1200; step++)
+{
+    var time = step * 0.1f;
+    var oldDefaultAmplitude = 0.12675f * (0.008f + 0.006f * (0.5f + 0.5f * MathF.Sin(time * 0.23f))) * 0.5f * 0.5f;
+    var newMaximum = RippleRange.Amplitude(time, 1, 0.5f);
+    Check(Math.Abs(newMaximum / oldDefaultAmplitude - 1.1f) < 0.00001f, "New maximum must be 10% above the approved 0.5.0 default at every wave phase.");
+    Check(Math.Abs(RippleRange.Amplitude(time, RippleRange.DefaultStrength, 0.5f) / newMaximum - 0.30f) < 0.00001f,
+        "New default must be 30% of the calibrated maximum.");
+    Near(RippleRange.Blend(0.6f, 1, 0.5f), 0.15f, "The new range must preserve the old default blend so amplitude scales linearly.");
+    Near(RippleRange.Amplitude(time, 0, 1), 0, "Zero displacement must retain no amplitude.");
+    Near(RippleRange.Blend(1, 0, 1), 0, "Zero displacement must disable the native pass.");
+    Near(RippleRange.Amplitude(time, 1, 0), 0, "Zero motion must retain no displacement.");
+}
+foreach (var invalid in new[] { float.NaN, float.PositiveInfinity, float.NegativeInfinity })
+{
+    Near(RippleRange.Amplitude(invalid, 1, 1), 0, "Invalid displacement time must remain inert.");
+    Near(RippleRange.Amplitude(10, invalid, 1), 0, "Invalid displacement strength must remain inert.");
+    Near(RippleRange.Blend(invalid, 1, 1), 0, "Invalid blend intensity must remain inert.");
+}
 var original = new SurfaceTint(0.25f, 0.6f, 1.3f, 0.42f);
 Check(ColorBreathing.Sample(original, 7, 20, 0) == original, "Zero color strength must be an exact identity, including HDR color and alpha.");
 foreach (var invalid in new[] { float.NaN, float.PositiveInfinity, float.NegativeInfinity })
 {
     Check(ColorBreathing.Sample(original, 7, invalid, 1) == original, "Invalid animation time must preserve native color.");
     Check(ColorBreathing.Sample(original, 7, 20, invalid) == original, "Invalid strength must preserve native color.");
-    Near(ColorBreathing.EchoWetMix(invalid, 1), 0, "Invalid audio time must mute added echoes.");
-    Near(ColorBreathing.EchoWetMix(20, invalid), 0, "Invalid audio strength must mute added echoes.");
+    Near(AudioBlend.Sample(invalid, 1), 0, "Invalid audio time must preserve the default snapshot.");
+    Near(AudioBlend.Sample(20, invalid), 0, "Invalid audio strength must preserve the default snapshot.");
 }
 foreach (var seed in new[] { int.MinValue, -1, 0, 1, 42, int.MaxValue })
 {
@@ -154,7 +175,7 @@ foreach (var seed in new[] { int.MinValue, -1, 0, 1, 42, int.MaxValue })
     for (var step = 0; step <= 1200; step++)
     {
         var tint = ColorBreathing.Sample(original, seed, step * 0.1f, 1);
-        Check(tint.Alpha == original.Alpha, "Material animation must preserve alpha exactly.");
+        Check(tint.Alpha == original.Alpha, "Phone color animation must preserve alpha exactly.");
         Check(tint.Red / original.Red is >= 0.7899f and <= 1.2101f
             && tint.Green / original.Green is >= 0.7899f and <= 1.2101f
             && tint.Blue / original.Blue is >= 0.7899f and <= 1.2101f,
@@ -166,9 +187,9 @@ foreach (var seed in new[] { int.MinValue, -1, 0, 1, 42, int.MaxValue })
     }
 }
 Check(ColorBreathing.Sample(original, 1, 20, 1) != ColorBreathing.Sample(original, 42, 20, 1),
-    "Different materials must not all breathe in synchrony.");
+    "Color phases remain available as a future artistic parameter.");
 var lease = new TintLease(original);
-Check(!lease.CanRestore(original), "A material not yet written must never be restored.");
+Check(!lease.CanRestore(original), "A phone graphic not yet written must never be restored.");
 var owned = ColorBreathing.Sample(original, 7, 20, 1);
 lease.Observe(original);
 lease.Written(owned);
@@ -186,12 +207,21 @@ var audible = 0;
 for (var step = 0; step <= 1200; step++)
 {
     var time = step * 0.1f;
-    var wet = ColorBreathing.EchoWetMix(time, 1);
-    Check(float.IsFinite(wet) && wet is >= 0 and <= 0.06f, "Even maximum audio strength must retain a faint bounded wet signal.");
-    Near(ColorBreathing.EchoWetMix(time, 0), 0, "Zero audio strength must always be dry.");
-    Check(ColorBreathing.EchoWetMix(time, 0.6f * 0.35f) <= 0.01261f, "Default added echo must stay below 1.3% wet mix.");
+    var wet = AudioBlend.Sample(time, 1);
+    Check(float.IsFinite(wet) && wet is >= 0 and <= 0.5f, "The preview may blend at most halfway toward the game's distorted snapshot.");
+    Near(AudioBlend.Sample(time, 0), 0, "Zero audio strength must always select native normal audio.");
+    Check(AudioBlend.Sample(time, 0.6f * 0.35f) <= 0.10501f, "Default audio must stay at or below 10.5% distorted snapshot weight.");
     if (wet == 0) quiet++;
-    if (wet > 0.03f) audible++;
+    if (wet > 0.25f) audible++;
 }
-Check(quiet > 200 && audible > 100, "Echo must swell occasionally with dry intervals between swells.");
-Console.WriteLine($"Passed {assertions:N0} LSD preview timing, gaze, transport, color ownership and audio envelope assertions.");
+Check(quiet > 200 && audible > 100, "Audio distortion must swell occasionally with native intervals between swells.");
+var audioLease = new AudioSnapshotLease();
+Check(!audioLease.CanRestore(0), "Audio cleanup must not restore a snapshot before writing one.");
+audioLease.Written(4);
+Check(audioLease.CanRestore(4), "Audio cleanup must restore an unchanged native baseline.");
+Check(!audioLease.CanRestore(5), "A later native distortion transition must invalidate the preview's restoration claim.");
+audioLease.Written(5);
+Check(audioLease.CanRestore(5), "After rebinding, audio cleanup must track the latest native transition.");
+audioLease.Release();
+Check(!audioLease.CanRestore(5), "Released audio must never retain a restoration claim.");
+Console.WriteLine($"Passed {assertions:N0} LSD preview timing, visibility, displacement calibration, color ownership and audio assertions.");

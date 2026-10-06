@@ -4,5 +4,7 @@
     <Compile Include="..\..\src\LSDPreview\TripTimeline.cs" Link="TripTimeline.cs" />
     <Compile Include="..\..\src\LSDPreview\PreviewVisibility.cs" Link="PreviewVisibility.cs" />
     <Compile Include="..\..\src\LSDPreview\ColorBreathing.cs" Link="ColorBreathing.cs" />
+    <Compile Include="..\..\src\LSDPreview\RippleRange.cs" Link="RippleRange.cs" />
+    <Compile Include="..\..\src\LSDPreview\AudioBlend.cs" Link="AudioBlend.cs" />
   </ItemGroup>
 </Project>

@@ -8,16 +8,16 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering.Universal;
 
-[assembly: MelonInfo(typeof(PersonalMods.LSDPreview.LSDPreviewMod), "Personal LSD Visual Preview", "0.5.0", "Axl47")]
+[assembly: MelonInfo(typeof(PersonalMods.LSDPreview.LSDPreviewMod), "Personal LSD Visual Preview", "0.6.0", "Axl47")]
 [assembly: MelonGame("TVGS", "Schedule I")]
 
 namespace PersonalMods.LSDPreview;
 
 public sealed class LSDPreviewMod : MelonMod
 {
-    private const float DefaultIntensity = 0.60f, DefaultMotion = 0.50f, DefaultRipple = 0.50f,
+    private const float DefaultIntensity = 0.60f, DefaultMotion = 0.50f, DefaultRipple = RippleRange.DefaultStrength,
         DefaultAfterimage = 0.625f, DefaultTextBlur = 0.375f;
-    internal static MelonPreferences_Entry<bool> Enabled = null!, WorldVisuals = null!;
+    internal static MelonPreferences_Entry<bool> Enabled = null!, WorldVisuals = null!, PhoneEffects = null!;
     internal static MelonPreferences_Entry<string> GhostModelNPC = null!;
     internal static MelonPreferences_Entry<float> Intensity = null!, MotionStrength = null!, DurationSeconds = null!,
         RippleStrength = null!, AfterimageStrength = null!, OutlineStrength = null!, TextBlurStrength = null!,
@@ -32,25 +32,27 @@ public sealed class LSDPreviewMod : MelonMod
         var config = MelonPreferences.CreateCategory("PersonalLSDPreview");
         Enabled = ModSupport.Entry(config, "Enabled", true, "Allow the manual F8 preview. Effects never start automatically.");
         WorldVisuals = ModSupport.Entry(config, "WorldVisuals", true, "Show faded hallucinations built from the game's character meshes.");
+        PhoneEffects = ModSupport.Entry(config, "PhoneEffects", true, "Gentle color breathing and soft colored text fringes on the open phone.");
         Intensity = ModSupport.Entry(config, "Intensity", DefaultIntensity, "Overall artistic effect strength from 0 to 1.");
         MotionStrength = ModSupport.Entry(config, "MotionStrength", DefaultMotion, "Lens breathing, color separation, ripples and afterimages from 0 to 1; 0 disables all four.");
         DurationSeconds = ModSupport.Entry(config, "DurationSeconds", TripTimeline.DefaultDuration, "Compressed preview length in seconds, from 20 to 600.");
-        RippleStrength = ModSupport.Entry(config, "RippleStrength", DefaultRipple, "Surface/cloud rippling from 0 to 1; also follows MotionStrength.");
+        RippleStrength = ModSupport.Entry(config, "RippleStrength", DefaultRipple, "Displacement from 0 to 1; maximum is 10% above the 0.5.0 default, new default 0.30. Also follows MotionStrength.");
         AfterimageStrength = ModSupport.Entry(config, "AfterimageStrength", DefaultAfterimage, "Brief delayed image trails from 0 to 1; also follows MotionStrength.");
-        MaterialColorStrength = ModSupport.Entry(config, "MaterialColorStrength", 0.45f, "Gentle, independently phased color breathing in visible opaque world materials, from 0 to 1. No texture patterns or copies.");
+        MaterialColorStrength = ModSupport.Entry(config, "MaterialColorStrength", 0.45f, "Continuous slow RGB color breathing across the scene and phone, from 0 to 1. No material discovery or texture copies.");
         HallucinationStrength = ModSupport.Entry(config, "HallucinationStrength", 0.55f, "Opacity of faded character hallucinations, from 0 to 1; 0 hides them.");
-        AudioStrength = ModSupport.Entry(config, "AudioStrength", 0.35f, "Occasional faint echoes from 0 to 1; 0 disables added audio processing.");
+        AudioStrength = ModSupport.Entry(config, "AudioStrength", 0.35f, "Occasional gentle swells of the game's existing distorted audio snapshot, from 0 to 1; 0 restores native audio.");
         OutlineStrength = ModSupport.Entry(config, "OutlineStrength", 0.7f, "Defined cartoon-like edges and sharpening from 0 to 1.");
-        TextBlurStrength = ModSupport.Entry(config, "TextBlurStrength", DefaultTextBlur, "Soft/indistinct gameplay HUD text from 0 to 1. Menus remain clear.");
+        TextBlurStrength = ModSupport.Entry(config, "TextBlurStrength", DefaultTextBlur, "Soft/indistinct HUD and dialogue text from 0 to 1; also colors phone text fringes when PhoneEffects is enabled.");
         GhostModelNPC = ModSupport.Entry(config, "GhostModelNPC", "", "NPC ID or full name used for hallucination meshes. Empty selects a nearby loaded character.");
         UpgradeDefaults(config);
+        PreviewAudio.ObserveNativeAudio(HarmonyInstance);
         LoggerInstance.Msg("LSD visual experiment ready: F8 starts/fades out; F9 clears immediately. No product is registered.");
     }
 
     private void UpgradeDefaults(MelonPreferences_Category config)
     {
         var revision = config.CreateEntry("DefaultsRevision", 0, description: "Internal marker for one-time preview default upgrades.", is_hidden: true);
-        if (revision.Value >= 2) return;
+        if (revision.Value >= 3) return;
         // A one-time upgrade of untouched defaults, leaving custom values intact.
         // The marker also lets a later edit deliberately restore the old strength.
         var changed = 0;
@@ -59,7 +61,8 @@ public sealed class LSDPreviewMod : MelonMod
                 + Upgrade(RippleStrength, 0.75f) + Upgrade(AfterimageStrength, 0.65f);
         if (revision.Value < 2)
             changed += Upgrade(AfterimageStrength, 0.50f) + Upgrade(TextBlurStrength, 0.25f) + Upgrade(DurationSeconds, 90f);
-        revision.Value = 2;
+        if (revision.Value < 3) changed += Upgrade(RippleStrength, 0.50f);
+        revision.Value = 3;
         config.SaveToFile(false);
         if (changed > 0) LoggerInstance.Msg("Applied updated LSD preview defaults; custom settings were preserved.");
     }
@@ -102,7 +105,7 @@ public sealed class LSDPreviewMod : MelonMod
                 if (Timeline.Active) Timeline.RequestStop();
                 else
                 {
-                    // Each preview owns its objects and profile, with no native effect detours.
+                    // Each preview owns its visual objects and profile.
                     Effects = new PreviewEffects(camera);
                     PlayerPointer = player.Pointer;
                     ProductPointer = player.ConsumedProduct?.Pointer ?? IntPtr.Zero;

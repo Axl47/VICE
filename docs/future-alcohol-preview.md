@@ -2,7 +2,7 @@
 
 Status: a future design note only. No alcohol effect is implemented or enabled.
 
-Preserve the **LSD preview 0.5.0 displacement range**, before the narrower LSD range introduced in 0.6.0. The 0.5.0 baseline commit contains the original implementation in `src/LSDPreview/SurfaceRipples.cs`; the existing `artifacts/LSDPreview-0.5.0.zip` also remains available locally for comparison.
+Preserve the **LSD preview 0.5.0 displacement range**, before the narrower LSD range introduced in 0.6.0. [Baseline commit `eb55537`](https://github.com/Axl47/ScheduleOne-Mods/commit/eb55537) contains the original implementation in `src/LSDPreview/SurfaceRipples.cs`; the existing `artifacts/LSDPreview-0.5.0.zip` also remains available locally for comparison.
 
 ## Preserved displacement
 

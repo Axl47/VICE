@@ -57,10 +57,9 @@ internal sealed class SurfaceRipples : IDisposable
     internal void Tick(float elapsed, float amount, float strength, float motion)
     {
         if (Disposed || Feature is null || !Feature || Properties is null) return;
-        Properties.Blend = amount * strength * motion;
+        Properties.Blend = RippleRange.Blend(amount, strength, motion);
         Properties.NoiseScale = 12 + 3 * Mathf.Sin(elapsed * 0.08f);
-        // 30% of the 0.4.0 amplitude, leaving the separate breathing layers intact.
-        Properties.Amplitude = 0.12675f * (0.008f + 0.006f * (0.5f + 0.5f * Mathf.Sin(elapsed * 0.23f))) * strength * motion;
+        Properties.Amplitude = RippleRange.Amplitude(elapsed, strength, motion);
         Feature.SetActive(Properties.Blend > 0.001f);
     }
 
