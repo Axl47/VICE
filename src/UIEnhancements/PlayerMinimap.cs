@@ -257,15 +257,14 @@ internal sealed class PlayerMinimap : IDisposable
     // Compose only transforms below the common ancestor. A hidden phone may
     // scale that ancestor to zero; world-space inversion would collapse the map
     // until it was reopened. Common phone pan/zoom/fades are excluded entirely.
-    private static void MatchRect(RectTransform target, RectTransform source, RectTransform coordinates,
-        Transform? rotationTarget = null, Quaternion? rotation = null)
+    private static void MatchRect(RectTransform target, RectTransform source, RectTransform coordinates)
     {
         Transform? common = source;
         for (var depth = 0; common && !coordinates.IsChildOf(common) && depth < 64; depth++) common = common.parent;
         if (!common || !coordinates.IsChildOf(common)) return;
         var coordinateMatrix = ToAncestor(coordinates, common!);
         if (Math.Abs(coordinateMatrix.determinant) < 0.000001f) return;
-        var relative = coordinateMatrix.inverse * ToAncestor(source, common!, rotationTarget, rotation);
+        var relative = coordinateMatrix.inverse * ToAncestor(source, common!);
         var bounds = source.rect;
         var bottomLeft = relative.MultiplyPoint3x4(new(bounds.xMin, bounds.yMin, 0));
         var topLeft = relative.MultiplyPoint3x4(new(bounds.xMin, bounds.yMax, 0));
@@ -280,17 +279,12 @@ internal sealed class PlayerMinimap : IDisposable
         target.localRotation = Quaternion.Euler(0, 0, Mathf.Atan2(horizontal.y, horizontal.x) * Mathf.Rad2Deg);
     }
 
-    private static Matrix4x4 ToAncestor(Transform source, Transform ancestor,
-        Transform? rotationTarget = null, Quaternion? rotation = null)
+    private static Matrix4x4 ToAncestor(Transform source, Transform ancestor)
     {
         var result = Matrix4x4.identity;
         var node = source;
         for (var depth = 0; node && node.Pointer != ancestor.Pointer && depth < 64; depth++, node = node.parent)
-        {
-            var localRotation = rotation.HasValue && rotationTarget is not null && rotationTarget && node.Pointer == rotationTarget.Pointer
-                ? rotation.Value : node.localRotation;
-            result = Matrix4x4.TRS(node.localPosition, localRotation, node.localScale) * result;
-        }
+            result = Matrix4x4.TRS(node.localPosition, node.localRotation, node.localScale) * result;
         return result;
     }
 
@@ -321,6 +315,7 @@ internal sealed class PlayerMinimap : IDisposable
         internal readonly RectTransform Root;
         internal float Radius { get; private set; }
         private readonly List<(Graphic Source, Graphic Copy)> Graphics = new();
+        private readonly Dictionary<IntPtr, (RectTransform Source, RectTransform Copy)> PlayerRects = new();
         private readonly bool IsPlayer;
         private readonly IntPtr SourceUi, SourceIcon;
         private float Heading;
@@ -337,13 +332,27 @@ internal sealed class PlayerMinimap : IDisposable
             try
             {
                 var sourceRoot = isPlayer ? poi.UI : poi.IconContainer;
+                if (isPlayer)
+                {
+                    // Retain native pivots, anchors, scales and nesting. Flattening
+                    // a composite into independently sized/rotated rectangles can
+                    // change sliced shadows and the alignment of its circular layers.
+                    foreach (var sourceRect in poi.UI.GetComponentsInChildren<RectTransform>(true))
+                    {
+                        var parentRect = sourceRect.Pointer == poi.UI.Pointer ? root
+                            : pin.PlayerRects[sourceRect.parent.Pointer].Copy;
+                        var copyRect = Rect(parentRect, "Player icon layer", Vector2.zero, Vector2.zero);
+                        pin.PlayerRects.Add(sourceRect.Pointer, (sourceRect, copyRect));
+                    }
+                }
                 // Preserve native image/raw-image draw order and every player
                 // foreground layer, including siblings outside IconContainer.
                 foreach (var graphic in sourceRoot.GetComponentsInChildren<Graphic>(true))
                 {
                     if (graphic.TryCast<Image>() is { } source)
                     {
-                        var rect = Rect(root, "Map icon", Vector2.zero, Vector2.zero);
+                        var rect = isPlayer ? pin.PlayerRects[source.rectTransform.Pointer].Copy
+                            : Rect(root, "Map icon", Vector2.zero, Vector2.zero);
                         var copy = Image(rect, source.color);
                         copy.type = source.type; copy.preserveAspect = source.preserveAspect;
                         copy.fillMethod = source.fillMethod; copy.fillOrigin = source.fillOrigin;
@@ -352,7 +361,8 @@ internal sealed class PlayerMinimap : IDisposable
                     }
                     else if (graphic.TryCast<RawImage>() is { } raw)
                     {
-                        var rect = Rect(root, "Map portrait", Vector2.zero, Vector2.zero);
+                        var rect = isPlayer ? pin.PlayerRects[raw.rectTransform.Pointer].Copy
+                            : Rect(root, "Map portrait", Vector2.zero, Vector2.zero);
                         var copy = rect.gameObject.AddComponent<RawImage>();
                         copy.raycastTarget = false;
                         pin.Graphics.Add((raw, copy));
@@ -369,7 +379,6 @@ internal sealed class PlayerMinimap : IDisposable
             Radius = 0;
             HasVisibleArtwork = false;
             var area = false;
-            Quaternion? rotation = null;
             if (IsPlayer)
             {
                 var facing = viewDirection ?? Poi.transform.forward;
@@ -378,7 +387,7 @@ internal sealed class PlayerMinimap : IDisposable
                 if (float.IsFinite(facing.x) && float.IsFinite(facing.z)
                     && facing.x * facing.x + facing.z * facing.z > 0.000001f)
                     Heading = Mathf.Atan2(-facing.x, facing.z) * Mathf.Rad2Deg;
-                rotation = Quaternion.Euler(0, 0, Heading);
+                SyncPlayerLayout();
             }
             foreach (var (source, copy) in Graphics)
             {
@@ -393,24 +402,29 @@ internal sealed class PlayerMinimap : IDisposable
                     var group = node.GetComponent<CanvasGroup>();
                     if (group) opacity *= group.alpha;
                 }
-                copy.gameObject.SetActive(visible);
+                // A disabled parent Graphic must not hide its child graphics:
+                // player copies now share the native transform hierarchy.
+                if (IsPlayer) copy.enabled = visible;
+                else copy.gameObject.SetActive(visible);
                 if (!visible) continue;
                 var color = source.color; color.a *= opacity;
                 copy.color = color;
                 copy.material = source.material;
-                // POI.UpdatePosition rotates IconContainer only. Replace that
-                // transform in our copied geometry: native phone updates can be
-                // stale, and rotating the whole glyph would apply heading twice.
-                MatchRect(copy.rectTransform, source.rectTransform, Poi.UI,
-                    IsPlayer ? Poi.IconContainer : null, rotation);
+                if (!IsPlayer) MatchRect(copy.rectTransform, source.rectTransform, Poi.UI);
                 var dimensions = copy.rectTransform.sizeDelta;
                 area |= Math.Max(dimensions.x, dimensions.y) > 100;
                 // Large potential-customer search zones may intersect the square
                 // even when their center lies outside it; retain their radius.
-                Radius = Math.Max(Radius, copy.rectTransform.anchoredPosition.magnitude + copy.rectTransform.sizeDelta.magnitude * 0.5f);
+                Radius = Math.Max(Radius, IsPlayer ? PlayerLayerRadius(copy.rectTransform)
+                    : copy.rectTransform.anchoredPosition.magnitude + copy.rectTransform.sizeDelta.magnitude * 0.5f);
                 if (source.TryCast<Image>() is { } image && copy.TryCast<Image>() is { } imageCopy)
                 {
                     imageCopy.sprite = image.overrideSprite ? image.overrideSprite : image.sprite;
+                    imageCopy.type = image.type; imageCopy.preserveAspect = image.preserveAspect;
+                    imageCopy.fillCenter = image.fillCenter; imageCopy.useSpriteMesh = image.useSpriteMesh;
+                    imageCopy.pixelsPerUnitMultiplier = image.pixelsPerUnitMultiplier;
+                    imageCopy.fillMethod = image.fillMethod; imageCopy.fillOrigin = image.fillOrigin;
+                    imageCopy.fillClockwise = image.fillClockwise;
                     imageCopy.fillAmount = image.fillAmount;
                     HasVisibleArtwork |= imageCopy.sprite && color.a > 0.01f;
                 }
@@ -424,6 +438,47 @@ internal sealed class PlayerMinimap : IDisposable
             var scale = area && !IsPlayer ? 1 : iconScale;
             Root.localScale = new(scale, scale, 1);
             Radius *= scale;
+        }
+
+        private void SyncPlayerLayout()
+        {
+            foreach (var (source, copy) in PlayerRects.Values)
+            {
+                if (!source || !copy) continue;
+                copy.pivot = source.pivot;
+                if (source.Pointer == SourceUi)
+                {
+                    // Phone position, pan/zoom and fades belong to the source UI.
+                    // Only the inner glyph layout is shared with our centered pin.
+                    copy.anchorMin = copy.anchorMax = new(0.5f, 0.5f);
+                    copy.sizeDelta = source.rect.size;
+                    copy.anchoredPosition3D = Vector3.zero;
+                    copy.localScale = Vector3.one;
+                    copy.localRotation = Quaternion.identity;
+                }
+                else
+                {
+                    copy.anchorMin = source.anchorMin; copy.anchorMax = source.anchorMax;
+                    copy.sizeDelta = source.sizeDelta;
+                    copy.anchoredPosition3D = source.anchoredPosition3D;
+                    copy.localScale = source.localScale;
+                    // Rotate the owned container once, preserving all child offsets
+                    // and local rotations, including the arrow's native 90 degrees.
+                    copy.localRotation = source.Pointer == SourceIcon
+                        ? Quaternion.Euler(0, 0, Heading) : source.localRotation;
+                }
+            }
+        }
+
+        private float PlayerLayerRadius(RectTransform layer)
+        {
+            var relative = ToAncestor(layer, Root);
+            var bounds = layer.rect;
+            var radius = Math.Max(relative.MultiplyPoint3x4(new(bounds.xMin, bounds.yMin, 0)).magnitude,
+                relative.MultiplyPoint3x4(new(bounds.xMin, bounds.yMax, 0)).magnitude);
+            radius = Math.Max(radius, relative.MultiplyPoint3x4(new(bounds.xMax, bounds.yMin, 0)).magnitude);
+            radius = Math.Max(radius, relative.MultiplyPoint3x4(new(bounds.xMax, bounds.yMax, 0)).magnitude);
+            return float.IsFinite(radius) ? radius : 0;
         }
 
         public void Dispose() { if (Root) Object.Destroy(Root.gameObject); }
