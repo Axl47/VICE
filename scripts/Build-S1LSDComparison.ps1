@@ -32,6 +32,10 @@ $definition = [Mono.Cecil.AssemblyDefinition]::ReadAssembly($builtDll)
 try {
     if ($definition.MainModule.AssemblyReferences | Where-Object { $_.Name -in @('S1LSD', 'S1API', 'Personal.LSDPreview') }) { throw 'Comparison must be independently loadable.' }
     if ($definition.MainModule.GetTypeReferences() | Where-Object { $_.FullName -match '^S1LSD\.(Content|Persistence|Patches|Runtime)\.' -or $_.FullName -eq 'UnityEngine.AudioEchoFilter' }) { throw 'Original runtime/content/persistence or stripped audio filter found.' }
+    if ($definition.MainModule.GetTypeReferences() | Where-Object { $_.FullName -in @('UnityEngine.GUI', 'UnityEngine.GUILayout', 'UnityEngine.GUIContent') }) { throw 'Comparison controls must not use stripped IMGUI APIs.' }
+    foreach ($control in @('UnityEngine.UI.Button', 'UnityEngine.UI.GraphicRaycaster', 'Il2CppTMPro.TextMeshProUGUI')) {
+        if (-not ($definition.MainModule.GetTypeReferences() | Where-Object FullName -eq $control)) { throw "Missing native panel control: $control" }
+    }
     foreach ($resourceCheck in @(
         @{ Name = 'Comparison.Shaders.bundle'; Hash = $provenance.shaderBundleSha256 },
         @{ Name = 'Comparison.Defaults.json'; Hash = $provenance.defaultConfigSha256 }
@@ -54,7 +58,7 @@ try {
     if ($leaseCalls | Where-Object { $_.DeclaringType.FullName -match 'MelonPreferences|System\.IO\.' }) { throw 'Baseline isolation must not change preferences or files.' }
     Write-Output 'PASS: original embedded assets verified; no original gameplay/persistence runtime, audio filter, camera callbacks, or baseline preference/file writes.'
 } finally { $definition.Dispose() }
-$packageRoot = Join-Path $repoRoot 'artifacts/S1LSDComparison-0.1.0'
+$packageRoot = Join-Path $repoRoot 'artifacts/S1LSDComparison-0.1.1'
 $null = New-Item -ItemType Directory -Force -Path (Join-Path $packageRoot 'Mods'), (Join-Path $packageRoot 'licenses/S1LSD')
 Copy-Item -LiteralPath $builtDll -Destination (Join-Path $packageRoot 'Mods/Personal.S1LSDComparison.dll')
 Copy-Item -LiteralPath (Join-Path $repoRoot 'docs/s1lsd-comparison.md') -Destination (Join-Path $packageRoot 'README.md')

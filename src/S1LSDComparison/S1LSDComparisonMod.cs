@@ -8,7 +8,7 @@ using S1LSD.Core;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(PersonalMods.S1LSDComparison.S1LSDComparisonMod), "Disposable S1LSD Visual Comparison", "0.1.0", "Axl47; S1LSD Contributors (MIT effects)")]
+[assembly: MelonInfo(typeof(PersonalMods.S1LSDComparison.S1LSDComparisonMod), "Disposable S1LSD Visual Comparison", "0.1.1", "Axl47; S1LSD Contributors (MIT effects)")]
 [assembly: MelonGame("TVGS", "Schedule I")]
 
 namespace PersonalMods.S1LSDComparison;
@@ -22,9 +22,11 @@ public sealed class S1LSDComparisonMod : MelonMod
     private BaselineLease? Baseline;
     private Camera? Camera;
     private PlayerCamera? PanelCamera;
+    private ComparisonPanel? Panel;
     private object? FrameLoop;
     private ShaderTargets Targets;
     private bool PanelOpen, PreviousLook, PreviousTyping, Tracked;
+    private bool PreviousMove, PreviousHotbar, PreviousEquipping, SelectedClassic = true, SelectedPeak = true;
     private Quaternion LastRotation;
     private float Dwell, Gaze = 1, Saccade;
     private int PendingDose;
@@ -32,6 +34,7 @@ public sealed class S1LSDComparisonMod : MelonMod
     private readonly bool RequestedCheck = Environment.GetCommandLineArgs().Contains("--s1lsd-comparison-check");
     private bool Checked;
     private ComparisonCheck? Diagnostic;
+    private readonly bool RequestedPanelCheck = Environment.GetCommandLineArgs().Contains("--s1lsd-panel-check");
 
     public override void OnInitializeMelon()
     {
@@ -56,25 +59,40 @@ public sealed class S1LSDComparisonMod : MelonMod
                 FrameLoop = MelonCoroutines.Start(RenderCheck());
             }
             if (Diagnostic is not null) return;
+            var menuTest = RequestedPanelCheck && UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == "Menu";
             var loading = LoadManager.Instance;
-            if (!loading || !loading.IsGameLoaded || loading.IsLoading || !Player.Local || !Player.Local.PlayerLoaded) {
+            if (!menuTest && (!loading || !loading.IsGameLoaded || loading.IsLoading || !Player.Local || !Player.Local.PlayerLoaded)) {
                 if (PanelOpen || Session.Active || Renderer is not null) Stop();
                 return;
             }
             var playerCamera = PlayerCamera.Instance;
-            if (!playerCamera || !playerCamera.Camera) { if (Session.Active) Stop(); return; }
+            var view = menuTest ? UnityEngine.Camera.allCameras.FirstOrDefault(c => c && c.enabled && !c.targetTexture && c.cameraType == CameraType.Game)
+                : playerCamera ? playerCamera.Camera : null;
+            if (!view) { if (Session.Active) Stop(); return; }
             if (keyboard?.f6Key.wasPressedThisFrame == true) {
                 if (PanelOpen) ClosePanel();
-                else if (!GameInput.IsTyping && playerCamera.ActiveUIElementCount == 0) OpenPanel(playerCamera);
+                else if (menuTest || (!GameInput.IsTyping && playerCamera && playerCamera.ActiveUIElementCount == 0)) OpenPanel(menuTest ? null : playerCamera);
             }
             if (PanelOpen && keyboard?.escapeKey.wasPressedThisFrame == true) ClosePanel();
+            if (PanelOpen && keyboard is not null) {
+                if (keyboard.cKey.wasPressedThisFrame) SelectStyle(true);
+                if (keyboard.sKey.wasPressedThisFrame) SelectStyle(false);
+                if (keyboard.pKey.wasPressedThisFrame) SelectTiming(true);
+                if (keyboard.tKey.wasPressedThisFrame) SelectTiming(false);
+                if (keyboard.digit1Key.wasPressedThisFrame) RequestDose(70);
+                if (keyboard.digit2Key.wasPressedThisFrame) RequestDose(140);
+                if (keyboard.digit3Key.wasPressedThisFrame) RequestDose(280);
+                if (keyboard.digit4Key.wasPressedThisFrame) RequestDose(360);
+                // Keep the cursor free for the complete life of the panel.
+                Cursor.lockState = CursorLockMode.None; Cursor.visible = true;
+            }
             if (PendingDose < 0) { Stop(); return; }
-            if (PendingDose != 0) { var dose = PendingDose; PendingDose = 0; Start(dose, playerCamera.Camera); }
+            if (PendingDose != 0) { var dose = PendingDose; PendingDose = 0; Start(dose, view!); }
             if (!Session.Active) return;
-            var currentCamera = playerCamera.Camera;
-            if (!currentCamera || !currentCamera.enabled || !currentCamera.gameObject.activeInHierarchy) {
+            var currentCamera = view;
+            if (!currentCamera || !currentCamera!.enabled || !currentCamera.gameObject.activeInHierarchy) {
                 currentCamera = UnityEngine.Camera.allCameras.FirstOrDefault(c => c && c.enabled && c.gameObject.activeInHierarchy
-                    && c != playerCamera.OverlayCamera && !c.targetTexture && c.cameraType == CameraType.Game);
+                    && (!playerCamera || c != playerCamera!.OverlayCamera) && !c.targetTexture && c.cameraType == CameraType.Game);
             }
             if (!currentCamera) return;
             Camera = currentCamera;
@@ -101,6 +119,7 @@ public sealed class S1LSDComparisonMod : MelonMod
             Baseline = new BaselineLease();
             Renderer = new ComparisonRenderer(); Volume = new ComparisonVolume(camera);
             Camera = camera; Tracked = false; Gaze = 1; Dwell = Saccade = 0;
+            Session.Classic = SelectedClassic; Session.HoldPeak = SelectedPeak;
             Session.Start(dose);
             Status = $"{dose} tier / {(Session.Classic ? "Classic" : "Subtle")} / {(Session.HoldPeak ? "held peak" : "full timeline")}";
             LoggerInstance.Msg($"S1LSD comparison started: {Status}. Original shader, neutral setting, no tolerance; original audio omitted.");
@@ -138,51 +157,56 @@ public sealed class S1LSDComparisonMod : MelonMod
         }
     }
 
-    private void OpenPanel(PlayerCamera camera)
+    private void OpenPanel(PlayerCamera? camera)
     {
-        PanelCamera = camera; PreviousLook = camera.CanLook; PreviousTyping = GameInput.IsTyping;
-        camera.AddActiveUIElement(UIKey); camera.SetCanLook(false); camera.FreeMouse(true);
+        Panel ??= new ComparisonPanel(SelectStyle, SelectTiming, RequestDose, () => PendingDose = -1, ClosePanel);
+        PanelCamera = camera; PreviousTyping = GameInput.IsTyping;
+        if (camera) {
+            PreviousLook = camera!.CanLook;
+            PreviousMove = PlayerMovement.Instance._canMove;
+            PreviousHotbar = PlayerInventory.Instance.HotbarEnabled; PreviousEquipping = PlayerInventory.Instance.EquippingEnabled;
+            camera.AddActiveUIElement(UIKey); camera.SetCanLook(false); camera.FreeMouse(true);
+            PlayerMovement.Instance._canMove = false; PlayerInventory.Instance.SetInventoryEnabled(false);
+        }
         GameInput.IsTyping = true; PanelOpen = true;
+        Cursor.lockState = CursorLockMode.None; Cursor.visible = true;
+        Panel.Show(SelectedClassic, SelectedPeak, Status);
+        LoggerInstance.Msg("S1LSD comparison native panel opened: clickable style/timing/dose controls, keyboard 1–4 backup.");
     }
 
     private void ClosePanel()
     {
         if (!PanelOpen) return;
-        PanelOpen = false;
+        PanelOpen = false; Panel?.Hide();
         if (PanelCamera) {
             PanelCamera!.RemoveActiveUIElement(UIKey);
             PanelCamera.SetCanLook(PreviousLook);
             if (PanelCamera.ActiveUIElementCount == 0) PanelCamera.LockMouse(true);
+            if (PlayerMovement.Instance) PlayerMovement.Instance._canMove = PreviousMove;
+            if (PlayerInventory.Instance) {
+                PlayerInventory.Instance.SetInventoryEnabled(PreviousHotbar);
+                PlayerInventory.Instance.SetEquippingEnabled(PreviousEquipping);
+            }
         }
         GameInput.IsTyping = PreviousTyping; PanelCamera = null;
     }
 
-    public override void OnGUI()
+    private void SelectStyle(bool classic)
     {
-        if (!PanelOpen || Session is null) return;
-        var width = Mathf.Min(560, Screen.width - 24);
-        GUILayout.BeginArea(new Rect((Screen.width - width) / 2, 90, width, 405), GUI.skin.box);
-        GUILayout.Label("S1LSD 0.11.0 — disposable visual comparison");
-        GUILayout.Label("Original dose labels: 70 / 140 / 280 / 360 µg");
-        GUILayout.Label("Visuals only: texture crawl, trails, breathing, colors and geometry.");
-        GUILayout.Space(8);
-        var classic = GUILayout.Toolbar(Session.Classic ? 0 : 1, new[] { "Classic", "Subtle" }) == 0;
-        var hold = GUILayout.Toolbar(Session.HoldPeak ? 0 : 1, new[] { "Hold peak", "Full timeline" }) == 0;
-        if (classic != Session.Classic || hold != Session.HoldPeak) {
-            Session.Classic = classic; Session.HoldPeak = hold;
-            if (Session.Active) PendingDose = Session.Effect.Dose;
-        }
-        GUILayout.Space(8); GUILayout.BeginHorizontal();
-        foreach (var dose in ComparisonSession.Doses) if (GUILayout.Button($"Preview {dose}")) PendingDose = dose;
-        GUILayout.EndHorizontal(); GUILayout.Space(8);
-        GUILayout.Label("Full timeline: 3.5 / 5.5 / 8.5 / 11 minutes respectively.");
-        GUILayout.Label(Status);
-        if (Session.Active) GUILayout.Label($"Phase: {Session.Effect.Phase} · rendered frames: {Renderer?.Frames ?? 0}");
-        GUILayout.Space(8);
-        if (GUILayout.Button("Stop comparison — restore personal preview")) PendingDose = -1;
-        if (GUILayout.Button("Close panel (F6)")) ClosePanel();
-        GUILayout.Label("F10 clears immediately, including while the phone is open.");
-        GUILayout.EndArea();
+        SelectedClassic = classic; Panel?.Refresh(SelectedClassic, SelectedPeak, Status);
+        LoggerInstance.Msg($"S1LSD comparison selected {(classic ? "Classic" : "Subtle")}; click a dose to apply.");
+    }
+
+    private void SelectTiming(bool peak)
+    {
+        SelectedPeak = peak; Panel?.Refresh(SelectedClassic, SelectedPeak, Status);
+        LoggerInstance.Msg($"S1LSD comparison selected {(peak ? "Hold peak" : "Full timeline")}; click a dose to apply.");
+    }
+
+    private void RequestDose(int dose)
+    {
+        PendingDose = dose;
+        LoggerInstance.Msg($"S1LSD comparison requested tier {dose} from panel input.");
     }
 
     private void Stop()
@@ -201,7 +225,11 @@ public sealed class S1LSDComparisonMod : MelonMod
         LoggerInstance.Error($"{Status}\n{error.GetBaseException()}");
     }
 
-    public override void OnSceneWasUnloaded(int buildIndex, string sceneName) { if (PanelOpen || Renderer is not null) Stop(); }
+    public override void OnSceneWasUnloaded(int buildIndex, string sceneName)
+    {
+        if (Panel is not null || Renderer is not null) Stop();
+        Panel?.Dispose(); Panel = null;
+    }
     public override void OnApplicationQuit() => Stop();
-    public override void OnDeinitializeMelon() => Stop();
+    public override void OnDeinitializeMelon() { Stop(); Panel?.Dispose(); Panel = null; }
 }

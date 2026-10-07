@@ -2,7 +2,7 @@
   <PropertyGroup>
     <IsGameMod>true</IsGameMod>
     <AssemblyName>Personal.S1LSDComparison</AssemblyName>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
   <ItemGroup>

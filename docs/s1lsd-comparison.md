@@ -1,4 +1,4 @@
-# Disposable S1LSD visual comparison 0.1.0
+# Disposable S1LSD visual comparison 0.1.1
 
 This is a separate removable preview based on the user-supplied **S1LSD 0.11.0** archive. Its MIT license allows adaptation with attribution. The original perception shader tree/programs and dose defaults are preserved byte for byte, and selected pure configuration/visual calculations were recovered from the supplied DLL. The shader's container was repaired for loading, as described below. This is a comparison of its visual direction, not a complete port of the original mod.
 
@@ -11,6 +11,8 @@ With `Personal.S1LSDComparison.dll` in the game's `Mods` directory, load your ga
 3. Click a tier: **70**, **140**, **280** or **360**. The original UI labels these tiers in µg.
 4. Look at textured walls, road surfaces, shadows and moving bright objects. Stand still for a few seconds to see gaze amplification; turn to compare trails. The completed-frame shader also includes the phone and HUD.
 5. Press **F10** to clear the comparison immediately. F6 reopens the panel while testing. After stopping, **F8** starts our personal preview again with its existing settings.
+
+The panel uses native game UI buttons with hover/selection colors. Version 0.1.0 stopped drawing at a stripped `GUILayout.Toolbar` call, leaving only labels; version 0.1.1 replaces that entire panel. While the panel is open, **C/S** select Classic/Subtle, **P/T** select Hold peak/Full timeline, and **1–4** start the four tiers as keyboard alternatives. **F6** or **Esc** closes the panel. Style/timing selections apply when you start a tier.
 
 | Original tier label | Full timeline | Classic crawl scale at normalized peak, 1080p | Subtle crawl scale at normalized peak, 1080p | Geometry channel peak |
 | --- | --- | --- | --- | --- |
@@ -47,12 +49,15 @@ Close the game, then remove or rename only `Mods/Personal.S1LSDComparison.dll`. 
 ./scripts/Build-S1LSDComparison.ps1 -Install
 ```
 
-The package is `artifacts/S1LSDComparison-0.1.0.zip`. It contains one mod DLL, this guide and the original MIT license/notices. No game or loader DLLs are distributed. The build verifies both source and embedded asset hashes, rejects dependencies on the original gameplay/persistence runtime and checks the completed-frame rendering calls. Standalone checks cover all four dose/style fixtures, original durations, peak holding without freezing breathing, finite targets, timeline completion and cleanup.
+The package is `artifacts/S1LSDComparison-0.1.1.zip`. It contains one mod DLL, this guide and the original MIT license/notices. No game or loader DLLs are distributed. The build verifies both source and embedded asset hashes, rejects dependencies on the original gameplay/persistence runtime and checks the completed-frame rendering calls. Standalone checks cover all four dose/style fixtures, original durations, peak holding without freezing breathing, finite targets, timeline completion and cleanup.
 
 An explicit **`--s1lsd-comparison-check`** launch flag runs a menu-only shader diagnostic: controlled texture identity, time-varying movement, final-screen identity/orientation and visible final-screen displacement. It loads no save and is never run during an ordinary launch. Native rendering and gameplay observations are recorded below after checks run.
 
 The visible menu check on **October 7, 2026 at 05:40** passed with **zero controlled-image identity errors**, **205,366 time-varying pixels** at tier 360 in the 1280×720 offscreen image, **zero final-screen changes at zero strength**, and **153,318 changed final-screen pixels** with the effect active. Native color profile creation/update/disposal also passed, and the personal preview callback restored successfully. The final pass emitted no render-texture cleanup warning. No save was loaded. Evidence is retained locally in `artifacts/s1lsd-comparison-check/final-menu.log` and `player-final.log`. This verifies loading, bindings, screen orientation, animation, native grading APIs and cleanup; the four tiers' appearance in the city and phone interaction remain playtest observations.
 
+Version **0.1.1** replaces the stripped IMGUI toolbar with an owned uGUI Canvas, GraphicRaycaster, native Buttons and TextMeshPro labels. Its build guard rejects IMGUI dependencies and verifies the native control types. The October 7 live UI check visibly confirmed distinct controls, selected-state colors and mouse clicks on Subtle, Full timeline and tier 70; the log recorded the requested settings and completed-frame rendering. The 70 full timeline completed and restored the personal callback, and the same live session subsequently started tier 360 and reopened its panel. The check began at the main menu, but the game entered Main before button testing; this is not a menu-only UI result. Individual clicks on tiers 140/280, Stop/Close and the keyboard alternatives were not separately verified by automation. All four dose/style calculations and cleanup pass the standalone checks. Evidence: `artifacts/s1lsd-panel-check/native-panel.log`.
+
+The opt-in **`--s1lsd-panel-check`** flag permits manual F6 panel testing at the main menu without a loaded player. Ordinary launches continue to require a loaded game. This flag never loads a save itself.
 ## Attribution and provenance
 
 Original effects/configuration: **S1LSD Contributors**, copyright 2026, MIT. See `licenses/S1LSD/LICENSE.txt` and `licenses/S1LSD/THIRD_PARTY_NOTICES.txt`. New preview wrapper, controls, frame presentation and isolation: this repository. Vendor source headers identify adapted files; the comparison-only `HoldPreviewPhase` method is marked in the dose controller. `Assets/provenance.json` records the original assembly and embedded asset SHA-256 hashes.
