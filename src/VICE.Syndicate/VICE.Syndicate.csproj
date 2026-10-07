@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsGameMod>true</IsGameMod><UseViceCore>true</UseViceCore>
+    <AssemblyName>VICE.Syndicate</AssemblyName><RootNamespace>VICE.Syndicate</RootNamespace>
+    <Version>0.1.0</Version><Product>VICE Syndicate</Product><Authors>Axl47</Authors>
+    <Description>VICE cartel module for Schedule I IL2CPP beta.</Description>
+    <Copyright>Based on MIT source Copyright (c) 2026 XOWithSauce; VICE adaptations by Axl47.</Copyright>
+    <Nullable>disable</Nullable><AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DefineConstants>$(DefineConstants);IL2CPP;BETA</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../VICE.Core/VICE.Core.csproj" />
+    <Reference Include="$(LoaderDir)\Newtonsoft.Json.dll"><Private>false</Private></Reference>
+    <EmbeddedResource Include="LICENSE.CartelEnforcer" />
+    <EmbeddedResource Include="Defaults/**/*.json"><LogicalName>VICE.Syndicate.Defaults/%(RecursiveDir)%(Filename)%(Extension)</LogicalName></EmbeddedResource>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,22 @@
+{
+  "interceptFail": 0.025,
+  "interceptSuccess": -0.05,
+  "deadDropFail": 0.025,
+  "deadDropSuccess": -0.05,
+  "gatheringFail": 0.025,
+  "gatheringSuccess": -0.08,
+  "robberyPlayerEscape": 0.025,
+  "robberyGoonEscapeSuccess": 0.025,
+  "robberyGoonDead": -0.08,
+  "robberyGoonEscapeDead": -0.05,
+  "sabotageBombDefused": -0.15,
+  "sabotageGoonKilled": -0.05,
+  "sabotageBombExploded": 0.2,
+  "cartelDealerPersuaded": -0.1,
+  "trucedGreetingChallenge": -0.15,
+  "passiveInfluenceGainPerDay": 0.025,
+  "cartelDealerDied": -0.1,
+  "ambushDefeated": -0.1,
+  "graffitiInfluenceReduction": -0.05,
+  "customerUnlockInfluenceChange": -0.075
+}

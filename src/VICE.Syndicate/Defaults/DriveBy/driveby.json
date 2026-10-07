@@ -1,0 +1,364 @@
+{
+  "triggers": [
+    {
+      "name": "Suburbia Bus Stop",
+      "triggerPosition": {
+        "x": 110.39,
+        "y": 5.36,
+        "z": -111.69
+      },
+      "radius": 2.0,
+      "spawnEulerAngles": {
+        "x": 0.0,
+        "y": 270.0,
+        "z": 0.0
+      },
+      "startPosition": {
+        "x": 144.68,
+        "y": 5.6,
+        "z": -103.69
+      },
+      "endPosition": {
+        "x": 17.4,
+        "y": 1.37,
+        "z": -103.53
+      }
+    },
+    {
+      "name": "Suburbia Gazebo Park",
+      "triggerPosition": {
+        "x": 84.99,
+        "y": 5.36,
+        "z": -122.38
+      },
+      "radius": 7.0,
+      "spawnEulerAngles": {
+        "x": 0.0,
+        "y": 270.0,
+        "z": 0.0
+      },
+      "startPosition": {
+        "x": 144.68,
+        "y": 5.6,
+        "z": -103.69
+      },
+      "endPosition": {
+        "x": 17.4,
+        "y": 1.37,
+        "z": -103.53
+      }
+    },
+    {
+      "name": "Barn path towards road",
+      "triggerPosition": {
+        "x": 163.29,
+        "y": 1.18,
+        "z": -9.95
+      },
+      "radius": 6.0,
+      "spawnEulerAngles": {
+        "x": 0.0,
+        "y": 240.0,
+        "z": 0.0
+      },
+      "startPosition": {
+        "x": 155.2,
+        "y": 1.37,
+        "z": 22.79
+      },
+      "endPosition": {
+        "x": 89.85,
+        "y": 5.37,
+        "z": -81.81
+      }
+    },
+    {
+      "name": "Mollys apartment",
+      "triggerPosition": {
+        "x": -168.44,
+        "y": -2.54,
+        "z": 88.32
+      },
+      "radius": 15.0,
+      "spawnEulerAngles": {
+        "x": 0.0,
+        "y": 310.0,
+        "z": 0.0
+      },
+      "startPosition": {
+        "x": -146.4,
+        "y": -2.63,
+        "z": 39.92
+      },
+      "endPosition": {
+        "x": -111.28,
+        "y": -2.64,
+        "z": 123.4
+      }
+    },
+    {
+      "name": "Car Wash Computer",
+      "triggerPosition": {
+        "x": -6.05,
+        "y": 1.21,
+        "z": -17.83
+      },
+      "radius": 5.0,
+      "spawnEulerAngles": {
+        "x": 0.0,
+        "y": 180.0,
+        "z": 0.0
+      },
+      "startPosition": {
+        "x": -19.96,
+        "y": 1.37,
+        "z": 20.44
+      },
+      "endPosition": {
+        "x": -10.61,
+        "y": 1.37,
+        "z": -102.43
+      }
+    },
+    {
+      "name": "Laundromat computer",
+      "triggerPosition": {
+        "x": -29.19,
+        "y": 1.96,
+        "z": 26.13
+      },
+      "radius": 4.0,
+      "spawnEulerAngles": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "startPosition": {
+        "x": -17.17,
+        "y": 1.37,
+        "z": -22.86
+      },
+      "endPosition": {
+        "x": -16.98,
+        "y": -2.51,
+        "z": 123.42
+      }
+    },
+    {
+      "name": "Grocery Market Downtown",
+      "triggerPosition": {
+        "x": 17.62,
+        "y": 1.61,
+        "z": -3.31
+      },
+      "radius": 6.0,
+      "spawnEulerAngles": {
+        "x": 0.0,
+        "y": 60.0,
+        "z": 0.0
+      },
+      "startPosition": {
+        "x": -11.64,
+        "y": 1.15,
+        "z": -43.54
+      },
+      "endPosition": {
+        "x": 33.02,
+        "y": 1.15,
+        "z": 65.28
+      }
+    },
+    {
+      "name": "Jane's RV",
+      "triggerPosition": {
+        "x": -36.74,
+        "y": 0.14,
+        "z": -77.14
+      },
+      "radius": 11.0,
+      "spawnEulerAngles": {
+        "x": 0.0,
+        "y": 270.0,
+        "z": 0.0
+      },
+      "startPosition": {
+        "x": 3.98,
+        "y": 1.37,
+        "z": -103.35
+      },
+      "endPosition": {
+        "x": -16.9,
+        "y": 1.37,
+        "z": 52.0
+      }
+    },
+    {
+      "name": "Town hall stairs",
+      "triggerPosition": {
+        "x": 51.28,
+        "y": 1.48,
+        "z": 31.03
+      },
+      "radius": 6.0,
+      "spawnEulerAngles": {
+        "x": 0.0,
+        "y": 180.0,
+        "z": 0.0
+      },
+      "startPosition": {
+        "x": 29.97,
+        "y": 1.37,
+        "z": 81.63
+      },
+      "endPosition": {
+        "x": -12.39,
+        "y": 1.37,
+        "z": -40.43
+      }
+    },
+    {
+      "name": "Alley between Ham Legal and Hyland Tower",
+      "triggerPosition": {
+        "x": 84.01,
+        "y": 1.46,
+        "z": 63.21
+      },
+      "radius": 2.0,
+      "spawnEulerAngles": {
+        "x": 0.0,
+        "y": 90.0,
+        "z": 0.0
+      },
+      "startPosition": {
+        "x": 61.99,
+        "y": 1.37,
+        "z": 49.59
+      },
+      "endPosition": {
+        "x": 90.05,
+        "y": 5.37,
+        "z": -79.52
+      }
+    },
+    {
+      "name": "Road in front of Ray's Estate and Blueball Boutique",
+      "triggerPosition": {
+        "x": 74.65,
+        "y": 1.37,
+        "z": -3.24
+      },
+      "radius": 8.0,
+      "spawnEulerAngles": {
+        "x": 6.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "startPosition": {
+        "x": 93.06,
+        "y": 2.3,
+        "z": -37.39
+      },
+      "endPosition": {
+        "x": 30.11,
+        "y": 1.37,
+        "z": 72.9
+      }
+    },
+    {
+      "name": "Behind the Taco Ticklers",
+      "triggerPosition": {
+        "x": -33.19,
+        "y": 1.46,
+        "z": 85.58
+      },
+      "radius": 6.0,
+      "spawnEulerAngles": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "startPosition": {
+        "x": -17.13,
+        "y": 1.37,
+        "z": 61.0
+      },
+      "endPosition": {
+        "x": -28.73,
+        "y": -2.63,
+        "z": 132.68
+      }
+    },
+    {
+      "name": "Skatepark and surrounding area",
+      "triggerPosition": {
+        "x": -49.25,
+        "y": 1.09,
+        "z": 75.8
+      },
+      "radius": 10.0,
+      "spawnEulerAngles": {
+        "x": -8.0,
+        "y": 110.0,
+        "z": 0.0
+      },
+      "startPosition": {
+        "x": -93.33,
+        "y": -1.43,
+        "z": 70.9
+      },
+      "endPosition": {
+        "x": -16.86,
+        "y": 1.37,
+        "z": -5.03
+      }
+    },
+    {
+      "name": "Behind Crimson Canary",
+      "triggerPosition": {
+        "x": 48.51,
+        "y": 1.46,
+        "z": 66.55
+      },
+      "radius": 8.0,
+      "spawnEulerAngles": {
+        "x": 0.0,
+        "y": 90.0,
+        "z": 0.0
+      },
+      "startPosition": {
+        "x": 27.37,
+        "y": 1.37,
+        "z": 49.58
+      },
+      "endPosition": {
+        "x": 90.05,
+        "y": 1.37,
+        "z": 22.96
+      }
+    },
+    {
+      "name": "Suburbia Jeremys house",
+      "triggerPosition": {
+        "x": 69.55,
+        "y": 5.93,
+        "z": -117.93
+      },
+      "radius": 2.0,
+      "spawnEulerAngles": {
+        "x": 0.0,
+        "y": 270.0,
+        "z": 0.0
+      },
+      "startPosition": {
+        "x": 144.68,
+        "y": 5.6,
+        "z": -103.69
+      },
+      "endPosition": {
+        "x": 17.4,
+        "y": 1.37,
+        "z": -103.53
+      }
+    }
+  ]
+}

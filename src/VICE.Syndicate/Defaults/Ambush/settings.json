@@ -1,0 +1,12 @@
+{
+  "RangedWeapons": [
+    "PumpShotgun"
+  ],
+  "MeleeWeapons": [
+    "BrokenBottle"
+  ],
+  "MinRankForRanged": 2,
+  "AfterDealAmbushEnabled": true,
+  "AmbushTriggerProbability": 0.8,
+  "AmbushWeaponLethality": 0.33
+}

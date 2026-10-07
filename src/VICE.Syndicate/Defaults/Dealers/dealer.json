@@ -1,0 +1,13 @@
+{
+  "CartelDealerWalkSpeed": 2.8,
+  "CartelDealerHP": 200.0,
+  "CartelDealerLethality": 0.5,
+  "CartelDealerWeapon": "M1911",
+  "StealDealerContractChance": 0.06,
+  "StealPlayerPendingChance": 0.08,
+  "DealerActivityDecreasePerKill": 0.10,
+  "DealerActivityIncreasePerDay": 0.25,
+  "SafetyThreshold": -0.85,
+  "SafetyEnabled": true,
+  "FreeTimeWalking": true
+}

@@ -1,0 +1,335 @@
+using VICE.Syndicate.Compatibility;
+using HarmonyLib;
+using MelonLoader;
+using UnityEngine;
+using System.Collections;
+
+using static VICE.Syndicate.SyndicateMod;
+using static VICE.Syndicate.DebugModule;
+using static VICE.Syndicate.AlliedCartelDialogue;
+using static VICE.Syndicate.AlliedExtension;
+using static VICE.Syndicate.CartelPersuade;
+
+using Il2CppScheduleOne.Economy;
+using Il2CppScheduleOne.PlayerScripts;
+using Il2CppScheduleOne.Combat;
+using Il2CppScheduleOne.Cartel;
+using Il2CppScheduleOne.Dialogue;
+using Il2CppScheduleOne.DevUtilities;
+using Il2CppScheduleOne.VoiceOver;
+using Il2CppScheduleOne.Persistence;
+using Il2CppScheduleOne.NPCs;
+using Il2CppScheduleOne.Map;
+
+
+namespace VICE.Syndicate
+{
+    // Patch the Dialogue Controller for cartel dealers Check Choice and Choice Callback for custom dialogues
+    // Show reasoning for disabled choice opt patch here
+    [HarmonyPatch(typeof(DialogueController_Dealer), "CheckChoice")]
+    public static class DialogueController_Dealer_CheckChoice_Patch
+    {
+        public static bool IsHireChoiceValid(Dealer d, out string invalidReason)
+        {
+            Log("Run recruit choice validator");
+            invalidReason = "";
+            if (d.IsRecruited)
+            {
+                invalidReason = "Already recruited.";
+                return false;
+            }
+            if (!d.HasBeenRecommended)
+            {
+                invalidReason = "Persuade the dealer first.";
+                return false;
+            }
+            Il2CppSystem.Collections.Generic.List<NPC> lockedConnections = d.RelationData.GetLockedConnections();
+            if (lockedConnections != null && lockedConnections.Count > 0)
+            {
+                if (d.Region == EMapRegion.Westville)
+                {
+                    invalidReason = $"Unlock Molly first.";
+                    return false;
+                }
+                else
+                {
+                    EMapRegion prev = (EMapRegion)((int)d.Region - 1);
+                    invalidReason = $"Unlock {prev} dealer first.";
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        [HarmonyPostfix]
+        public static void Postfix(DialogueController_Dealer __instance, ref string choiceLabel, ref bool __result, ref string invalidReason)
+        {
+            // If the dealer is not cartel dealer dont patch
+            if (__instance.Dealer.DealerData.DealerType == EDealerType.PlayerDealer) return;
+            // If the allied extensions features not enabled dont patch this method
+            if (!currentConfig.alliedExtensions) return;
+
+            // Check if the custom dialogue is active
+            if (DialogueHandler.ActiveDialogue == null) return;
+
+            // Cant think of a better way to get this to work, choice index 0 is recruit choice...
+            if (__instance._shownChoices.Contains(__instance.Dealer.recruitChoice) && choiceLabel == "GENERIC_CHOICE_0")
+            {
+                if (!IsHireChoiceValid(__instance.Dealer, out invalidReason))
+                {
+                    __result = false;
+                }
+                else
+                {
+                    __result = true;
+                }
+            }
+            else if (DialogueHandler.ActiveDialogue.name == "CARTEL_ENFORCER_PERSUADE")
+            {
+                __instance.OverrideContainer.DialogueNodeData[0].DialogueText = dealerEntryNodeTexts[UnityEngine.Random.Range(0, dealerEntryNodeTexts.Count)];
+
+                if (choiceLabel == "EXIT")
+                {
+                    __result = true;
+                    return;
+                }
+                if (__instance.Dealer.IsRecruited || __instance.Dealer.HasBeenRecommended)
+                {
+                    invalidReason = "Can't persuade this dealer.";
+                    __result = false; // Because it shouldnt be interactable
+                }
+                if (choiceLabel == "START_PERSUADE")
+                {
+                    if (persuadeCooldown != 0)
+                    {
+                        invalidReason = $"<color=#DE3F31>On cooldown: {persuadeCooldown}</color>";
+                        // Update the cooldown text while the dialogue is open
+                        coros.Add(MelonCoroutines.Start(UpdatePersuadeCooldownText()));
+                        __result = false;
+                    }
+                    else
+                    {
+                        __result = true;
+                    }
+                }
+                else
+                {
+                    __result = true;
+                }
+            }
+            return;
+        }
+    }
+    // First it should check the custom entry which opens choices
+    // That triggers the chance calculation for the next choices and then changes the displayed text on them
+    // After selecting any of the applicable choice labels 
+    // Use the percentage that is currently displayed on it
+    // And then compute the chance -> callback action for failure/success
+    [HarmonyPatch(typeof(DialogueController_Dealer), "ChoiceCallback")]
+    public static class DialogueController_Dealer_ChoiceCallback_Patch
+    {
+        public static readonly float redColorThreshold = 0.12f;
+        public static readonly float yellowColorThreshold = 0.25f;
+
+        public static IEnumerator EnableDelayed(DialogueController_Dealer __instance, string choiceLabel)
+        {
+            yield return Wait01;
+            AlliedExtension.alliedQuests.timesPersuaded = 0;
+            __instance.Dealer.HasBeenRecommended = true;
+            __instance.handler.EndDialogue();
+            __instance.Dealer.DialogueController.DialogueEnabled = false;
+            yield return Wait1;
+            if (!registered) yield break;
+
+            // Get rid of the override container
+            if (__instance.OverrideContainer != null)
+                __instance.ClearOverrideContainer();
+
+            // Add the base dialogue options
+            __instance.Dealer.SetUpDialogue();
+
+            if (__instance.Dealer.recruitChoice != null)
+            {
+                void DisableInventoryClear()
+                {
+                    coros.Add(MelonCoroutines.Start(DisableInventoryClearDelayed(__instance.Dealer)));
+                }
+                __instance.Dealer.recruitChoice.onChoosen.AddListener((UnityEngine.Events.UnityAction)DisableInventoryClear);
+            }
+            else
+            {
+                Log("Dealer recruit choice is missing");
+            }
+
+            
+            if (choiceLabel == "THREATEN_CARTEL")
+            {
+                __instance.Dealer.SetPanicked_Server();
+                __instance.npc.PlayVO(EVOLineType.Scared, false);
+            }
+            else
+            {
+                __instance.npc.PlayVO(EVOLineType.Think, false);
+            }
+            yield return Wait1;
+            if (!registered) yield break;
+
+            switch (UnityEngine.Random.Range(0, 4))
+            {
+                case 0:
+                    __instance.handler.WorldspaceRend.ShowText($"Pay me ${__instance.Dealer.DealerData.SigningFee} and I'll work for you.", 10f);
+                    break;
+
+                case 1:
+                    __instance.handler.WorldspaceRend.ShowText($"Come back with ${__instance.Dealer.DealerData.SigningFee}. Then we can talk.", 10f);
+                    break;
+
+                case 2:
+                    __instance.handler.WorldspaceRend.ShowText($"My price is ${__instance.Dealer.DealerData.SigningFee}. Take it or leave it!", 10f);
+                    break;
+
+                case 3:
+                    __instance.handler.WorldspaceRend.ShowText($"Fine! For ${__instance.Dealer.DealerData.SigningFee} cash I'm in.", 10f);
+                    break;
+
+                default:
+                    __instance.handler.WorldspaceRend.ShowText($"Pay me ${__instance.Dealer.DealerData.SigningFee} and I'll work for you.", 10f);
+                    break;
+            }
+
+            __instance.Dealer.DialogueController.DialogueEnabled = true;
+            Log("Finished enable delayed");
+            yield break;
+        }
+
+        public static IEnumerator DisableInventoryClearDelayed(Dealer d)
+        {
+            // Check after dialogue choice was choosen if its now recruited
+            // just incase
+            yield return Wait2;
+            if (d.IsRecruited)
+                d.NPCData.Inventory.ClearInventoryOnNewDay = false;
+            yield break;
+        }
+
+        [HarmonyPrefix]
+        public static bool Prefix(DialogueController_Dealer __instance, string choiceLabel)
+        {
+            // If the dealer is not cartel dealer dont patch
+            if (__instance.Dealer.DealerData.DealerType == EDealerType.PlayerDealer) return true;
+            // If the allied extensions features not enabled dont patch this method
+            if (!currentConfig.alliedExtensions) return true;
+
+            // Check if the custom dialogue is active
+            if (DialogueHandler.ActiveDialogue?.name != "CARTEL_ENFORCER_PERSUADE") return true;
+
+            if (choiceLabel == "START_PERSUADE")
+            {
+                Log("START PERSUADE");
+                if (__instance.OverrideContainer.DialogueNodeData.Count != 2)
+                {
+                    Log("Override container is missing nodes");
+                    return true;
+                }
+                // compute the chance
+                persuasionChances["CLOTHING_SIMILARITY"] = CalculateClothingSimilarity(__instance.Dealer);
+                persuasionChances["CARTEL_INFLUENCE"] = CalculateInfluenceProbability();
+                persuasionChances["THREATEN_CARTEL"] = CalculateThreathenProbability();
+                persuasionChances["SPREAD_RUMOURS"] = CalculateRumourProbability();
+                persuadeCooldown = alliedConfig.PersuadeCooldownMins;
+                Log("gen choices");
+                for (int i = 0; i < __instance.OverrideContainer.DialogueNodeData[1].choices.Length; i++)
+                {
+                    DialogueChoiceData choice = __instance.OverrideContainer.DialogueNodeData[1].choices[i];
+                    List<string> textTemplates;
+                    float chance = 0f;
+                    string colorHex = "#000000";
+                    
+                    if (alliedDialogue.TryGetValue(choice.ChoiceLabel, out textTemplates) && persuasionChances.TryGetValue(choice.ChoiceLabel, out chance))
+                    {
+                        // Change the chance text color based on probability
+                        if (chance <= redColorThreshold)
+                            colorHex = "#F08473";
+                        else if (chance > redColorThreshold && chance <= yellowColorThreshold)
+                            colorHex = "#E2E872";
+                        else
+                            colorHex = "#65E07C";
+
+                        string formattedChoiceText = $"{textTemplates[UnityEngine.Random.Range(0, textTemplates.Count)]} <color={colorHex}>({Mathf.RoundToInt(chance * 100)}% Chance)</color>";
+                        choice.ChoiceText = formattedChoiceText;
+                    }
+                }
+                Log($"Nodes reset");
+            }
+            else if (choiceLabel == "EXIT")
+            {
+                // Close the dialogue container
+                __instance.handler.EndDialogue();
+                __instance.handler.WorldspaceRend.ShowText($"Just a waste of my time...", 5f);
+                __instance.npc.PlayVO(EVOLineType.Annoyed, false);
+            }
+            else // one of the 4 inner choices
+            {
+                NetworkSingleton<Il2CppScheduleOne.Cartel.Cartel>.Instance.Influence.ChangeInfluence(__instance.Dealer.Region, influenceConfig.cartelDealerPersuaded);
+
+                if (!(!registered || SaveManager.Instance.IsSaving || isSaving))
+                {
+                    if (AlliedExtension.alliedQuests != null)
+                        AlliedExtension.alliedQuests.timesPersuaded++;
+                    else
+                        Log("Allied Quests are null");
+                }
+
+                // Check if chance hits
+                float chance = 0f;
+                if (AlliedCartelDialogue.persuasionChances.TryGetValue(choiceLabel, out chance))
+                {
+                    if (chance != 0f && UnityEngine.Random.Range(0f, 1f) < chance)
+                    {
+                        Log("Eval chance hits!");
+                        string label = choiceLabel;
+                        coros.Add(MelonCoroutines.Start(EnableDelayed(__instance, label)));
+                        Log("Enable delayed past");
+                    }
+                    else
+                    {
+                        switch (UnityEngine.Random.Range(0, 5))
+                        {
+                            case 0:
+                                __instance.handler.WorldspaceRend.ShowText($"Piss off mate!", 10f);
+                                __instance.npc.PlayVO(EVOLineType.Annoyed, false);
+                                break;
+
+                            case 1:
+                                __instance.handler.WorldspaceRend.ShowText($"I'm busy...", 10f);
+                                __instance.npc.PlayVO(EVOLineType.No, false);
+                                break;
+
+                            case 2:
+                                __instance.handler.WorldspaceRend.ShowText($"Get out of here!", 10f);
+                                __instance.npc.PlayVO(EVOLineType.Angry, false);
+                                break;
+
+                            case 3:
+                                __instance.handler.WorldspaceRend.ShowText($"Keep walking bloke!", 10f);
+                                __instance.npc.PlayVO(EVOLineType.Annoyed, false);
+                                break;
+                        }
+
+                        if (choiceLabel == "THREATEN_CARTEL")
+                        {
+                            __instance.Dealer.Behaviour.CombatBehaviour.SetTarget(Player.Local.GetComponent<ICombatTargetable>().NetworkObject);
+                            __instance.Dealer.Behaviour.CombatBehaviour.Enable_Networked();
+                        }
+                    }
+                }
+
+                Log("End logic");
+            }
+            Log("Continue prefix");
+            return true;
+        }
+    }
+
+
+}

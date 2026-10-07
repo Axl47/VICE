@@ -1,0 +1,70 @@
+{
+  "events": [
+    {
+      "Identifier": "Ambush",
+      "CooldownHours": 0,
+      "InfluenceRequirement": -1.0,
+      "RandomTimeRangePercentage": 0.0
+    },
+    {
+      "Identifier": "RegionActivity",
+      "CooldownHours": 0,
+      "InfluenceRequirement": -1.0,
+      "RandomTimeRangePercentage": 0.0
+    },
+    {
+      "Identifier": "StealDeadDrop",
+      "CooldownHours": 0,
+      "InfluenceRequirement": -1.0,
+      "RandomTimeRangePercentage": 0.0
+    },
+    {
+      "Identifier": "CartelCustomerDeal",
+      "CooldownHours": 0,
+      "InfluenceRequirement": -1.0,
+      "RandomTimeRangePercentage": 0.0
+    },
+    {
+      "Identifier": "RobDealer",
+      "CooldownHours": 0,
+      "InfluenceRequirement": -1.0,
+      "RandomTimeRangePercentage": 0.0
+    },
+    {
+      "Identifier": "SprayGraffiti",
+      "CooldownHours": 0,
+      "InfluenceRequirement": -1.0,
+      "RandomTimeRangePercentage": 0.0
+    },
+    {
+      "Identifier": "CartelPlayerDeal",
+      "CooldownHours": 0,
+      "InfluenceRequirement": -1.0,
+      "RandomTimeRangePercentage": 0.0
+    },
+    {
+      "Identifier": "DriveBy",
+      "CooldownHours": 0,
+      "InfluenceRequirement": -1.0,
+      "RandomTimeRangePercentage": 0.0
+    },
+    {
+      "Identifier": "InterceptDeals",
+      "CooldownHours": 0,
+      "InfluenceRequirement": -1.0,
+      "RandomTimeRangePercentage": 0.0
+    },
+    {
+      "Identifier": "Gathering",
+      "CooldownHours": 0,
+      "InfluenceRequirement": -1.0,
+      "RandomTimeRangePercentage": 0.0
+    },
+    {
+      "Identifier": "Sabotage",
+      "CooldownHours": 0,
+      "InfluenceRequirement": -1.0,
+      "RandomTimeRangePercentage": 0.0
+    }
+  ]
+}

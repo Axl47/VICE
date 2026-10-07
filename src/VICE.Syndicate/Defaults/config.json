@@ -1,0 +1,15 @@
+{
+  "debugMode": false,
+  "driveByEnabled": true,
+  "realRobberyEnabled": true,
+  "defaultRobberyEnabled": true,
+  "miniQuestsEnabled": true,
+  "interceptDeals": true,
+  "enhancedDealers": true,
+  "cartelGatherings": true,
+  "businessSabotage": true,
+  "stealBackCustomers": true,
+  "alliedExtensions": true,
+  "endGameQuest": true,
+  "endGameQuestMonologueSpeed": 1.0
+}

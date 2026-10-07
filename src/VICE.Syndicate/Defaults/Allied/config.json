@@ -1,0 +1,14 @@
+{
+  "WestvilleCartelDealerCut": 0.3,
+  "WestvilleCartelSigningFee": 6000.0,
+  "DowntownCartelDealerCut": 0.4,
+  "DowntownCartelSigningFee": 12000.0,
+  "DocksCartelDealerCut": 0.5,
+  "DocksCartelSigningFee": 18000.0,
+  "SuburbiaCartelDealerCut": 0.55,
+  "SuburbiaCartelSigningFee": 24000.0,
+  "UptownCartelDealerCut": 0.6,
+  "UptownCartelSigningFee": 36000.0,
+  "PersuadeCooldownMins": 60,
+  "SupplyQuestCooldownHours": 48
+}

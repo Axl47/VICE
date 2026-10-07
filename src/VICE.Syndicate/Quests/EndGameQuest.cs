@@ -1,0 +1,1761 @@
+using VICE.Syndicate.Compatibility;
+using System.Collections;
+using MelonLoader;
+using HarmonyLib;
+using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.Events;
+
+using static VICE.Syndicate.SyndicateMod;
+using static VICE.Syndicate.DebugModule;
+using static VICE.Syndicate.EndGameQuest;
+using static VICE.Syndicate.InterceptEvent;
+using static VICE.Syndicate.AlliedExtension;
+using static VICE.Syndicate.RandomManorGenerator;
+using static VICE.Syndicate.NPCInitHelper;
+
+using Il2CppScheduleOne.Law;
+using Il2CppScheduleOne.PlayerScripts;
+using Il2CppScheduleOne.ItemFramework;
+using Il2CppScheduleOne.Interaction;
+using Il2CppScheduleOne.Economy;
+using Il2CppScheduleOne.Levelling;
+using Il2CppScheduleOne.Money;
+using Il2CppScheduleOne.Map;
+using Il2CppScheduleOne.Cartel;
+using Il2CppScheduleOne.GameTime;
+using Il2CppScheduleOne.Property;
+using Il2CppScheduleOne.Quests;
+using Il2CppScheduleOne.DevUtilities;
+using Il2CppScheduleOne.NPCs.Schedules;
+using Il2CppScheduleOne.Dialogue;
+using Il2CppScheduleOne.NPCs;
+using Il2CppScheduleOne.NPCs.CharacterClasses;
+using Il2CppScheduleOne.VoiceOver;
+using Il2CppScheduleOne.UI;
+using Il2CppScheduleOne.UI.Handover;
+using Il2CppScheduleOne.NPCs.Behaviour;
+using Il2CppScheduleOne.Persistence;
+using Il2CppScheduleOne.Police;
+using Il2CppScheduleOne.Messaging;
+using Il2CppScheduleOne.AvatarFramework;
+using static Il2CppScheduleOne.Console;
+using Il2CppFishNet;
+using Il2CppFishNet.Object;
+using Il2CppFishNet.Managing;
+using Il2CppInterop.Runtime.Injection;
+
+namespace VICE.Syndicate
+{
+
+    // Fix shotgun ragdolls + flinches, but only for manor goons, boss and car meetup goons
+    // Previously this was used to fix a bug where it drops weapon when impacted, in 0.4.1f13 no longer an issue
+    // Now this provides just additional difficulty by preventing those mechanics
+
+    [HarmonyPatch(typeof(NPC), "ProcessImpactForce")]
+    public static class NPC_ProcessImpactForce_Patch
+    {
+        [HarmonyPrefix]
+        public static bool Prefix(NPC __instance, Vector3 forcePoint, Vector3 forceDirection, ref float force)
+        {
+            if (activeDefeatEnforcerQuest == null && activeManorQuest == null && activeCarMeetupQuest == null) return true;
+
+            if (activeDefeatEnforcerQuest != null && activeDefeatEnforcerQuest.gameObject.activeSelf) 
+            {
+                if (bossGoon != null && bossGoon.GUID == __instance.GUID)
+                {
+                    force = 10f;
+                }
+            }
+            else if (activeManorQuest != null && activeManorQuest.gameObject.activeSelf)
+            {
+                if (manorGoonGuids.Count > 0 && manorGoonGuids.Contains(__instance.GUID.ToString()))
+                {
+                    force = 10f;
+                }
+            }
+            else if (activeCarMeetupQuest != null && activeCarMeetupQuest.gameObject.activeSelf)
+            {
+                if (activeCarMeetupQuest.spawnedGoonsGuids.Count > 0 && activeCarMeetupQuest.spawnedGoonsGuids.Contains(__instance.GUID.ToString()))
+                {
+                    force = 10f;
+                }
+            }
+
+            return true;
+        }
+
+    }
+
+    // Fix the car meetup getting easily reported to police
+    [HarmonyPatch(typeof(CallPoliceBehaviour), "IsTargetValid")]
+    public static class Behaviour_IsTargetValid_Patch
+    {
+        [HarmonyPrefix]
+        public static bool Prefix(CallPoliceBehaviour __instance)
+        {
+            if (activeCarMeetupQuest != null && activeCarMeetupQuest.QuestEntry_StopCarMeetup?.State == EQuestState.Active)
+            {
+                __instance.Target = null;
+            }
+            return true;
+        }
+
+    }
+
+    // Fix the Il2Cpp backend having issues with the ActiveEntryCount LINQ
+    [HarmonyPatch(typeof(Quest), nameof(Quest.ActiveEntryCount), MethodType.Getter)]
+    public static class Quest_ActiveEntryCount_Get_Patch
+    {
+        [HarmonyPrefix]
+        public static bool Prefix(Quest __instance, ref int __result)
+        {
+
+            if (__instance is not ModQuestBase)
+                return true;
+
+            Log($"ActiveEntryCount called in Quest {__instance.Title}");
+            int count = 0;
+            for (int i = 0; i < __instance.Entries.Count; i++)
+                if (__instance.Entries[i].State == EQuestState.Active)
+                    count++;
+            __result = count;
+            return false;
+        }
+    }
+    public class ModQuestBase : Quest
+    {
+        public ModQuestBase(IntPtr ptr) : base(ptr) { }
+        public ModQuestBase() : base(ClassInjector.DerivedConstructorPointer<ModQuestBase>())
+            => ClassInjector.DerivedConstructorBody(this);
+    }
+
+    // Mod added quest helper base
+    public class QuestHelperBase<T> where T : Quest
+    {
+        protected readonly T _quest;
+        public QuestHelperBase(T quest)
+        {
+            _quest = quest;
+        }
+        protected string QuestTypeName => _quest.GetType().Name;
+        public void InitializeQuest(string title, int xp, bool expires = false, GameDateTime expiry = default, bool trackOnBegin = true)
+        {
+            _quest.name = QuestTypeName;
+            _quest.Expires = expires;
+            _quest.title = title;
+            _quest.CompletionXP = xp;
+            _quest.Description = "";
+            _quest.TrackOnBegin = trackOnBegin;
+            _quest.autoInitialize = false;
+            _quest.AutoCompleteOnAllEntriesComplete = false;
+            _quest.AutoStartFirstEntry = false; // default true
+            _quest.ShouldSendExpiryReminder = false; // default true
+            _quest.ShouldSendExpiredNotification = false; // default true
+
+            if (expires)
+            {
+                _quest.Expiry = expiry;
+                _quest.ExpiryVisibility = EExpiryVisibility.Always;
+            }
+
+            /*
+            _quest.onActiveState = new UnityEvent();
+            _quest.onComplete = new UnityEvent();
+            _quest.onInitialComplete = new UnityEvent();
+             */
+            _quest.onQuestBegin = new UnityEvent();
+            _quest.onQuestEnd = new UnityEvent<EQuestState>();
+            _quest.onTrackChange = new UnityEvent<bool>();
+
+            _quest.Entries = new Il2CppSystem.Collections.Generic.List<QuestEntry>();
+
+            Transform target = NetworkSingleton<QuestManager>.Instance.QuestContainer?.GetChild(0);
+            if (target != null)
+                _quest.transform.SetParent(target);
+
+            _quest.IconPrefab = MakeIcon(_quest.transform);
+            _quest.PoIPrefab = MakePOI();
+            _quest.SetGUID(Il2CppSystem.Guid.NewGuid());
+        }
+
+        public void InitializeQuestEntry(ref QuestEntry targetEntry, string name, string title, PoIConfig poiSettings, UnityAction completeCallback = null)
+        {
+            GameObject entryObj = new GameObject($"QuestEntry_{name}");
+            entryObj.SetActive(false);
+            entryObj.transform.SetParent(_quest.transform);
+            targetEntry = entryObj.AddComponent<QuestEntry>();
+
+            targetEntry.EntryTitle = title;
+            targetEntry.ParentQuest = _quest;
+            targetEntry.CompleteParentQuest = false;
+
+            targetEntry.PoILocation = new GameObject($"{name}Entry_POI").transform;
+            if (poiSettings.usePoI) 
+            {
+                if (poiSettings.useParent && poiSettings.parent != null)
+                    targetEntry.PoILocation.transform.SetParent(poiSettings.parent);
+                else
+                    targetEntry.PoILocation.transform.SetParent(targetEntry.transform);
+
+                if (poiSettings.useTransformLocal)
+                    targetEntry.PoILocation.transform.localPosition = poiSettings.poiPosition;
+                else
+                    targetEntry.PoILocation.transform.position = poiSettings.poiPosition;
+
+                targetEntry.AutoUpdatePoILocation = true;
+            }
+            else
+            {
+                targetEntry.AutoCreatePoI = false;
+                targetEntry.PoILocation.transform.SetParent(targetEntry.transform);
+                targetEntry.AutoUpdatePoILocation = false;
+            }
+
+            targetEntry.onComplete = new UnityEvent();
+            if (completeCallback != null)
+                targetEntry.onComplete.AddListener(completeCallback);
+            /*
+            targetEntry.onEnd = new UnityEvent();
+            targetEntry.onStart = new UnityEvent();
+            targetEntry.onInitialComplete = new UnityEvent();
+             */
+
+            targetEntry.state = EQuestState.Inactive;
+            _quest.Entries.Add(targetEntry);
+            return;
+        }
+
+        public void StartQuestFromEntry(QuestEntry startEntry)
+        {
+            _quest.SetupHUDUI();
+            _quest.SetupJournalEntry();
+
+            // After the setup it should in theory have QuestHUDUI.EntryContainer
+            Log($"EntryContainer exists {_quest.hudUI.EntryContainer != null}");
+            // So that whenever QuestEntry calls UpdateUI -> QuestEntryHudUI it wouldnt be null?
+
+            if (_quest.hudUI != null)
+            {
+                if (_quest.hudUI.MainLabel != null)
+                    _quest.hudUI.MainLabel.text = _quest.title;
+                _quest.hudUI.gameObject.SetActive(true);
+            }
+
+            foreach (QuestEntry entry in _quest.Entries)
+                entry.gameObject.SetActive(true);
+
+            _quest.SetIsTracked(true);
+            _quest.SetQuestState(EQuestState.Active);
+            startEntry.SetState(EQuestState.Active, false);
+
+            UpdateQuestMapLogo(startEntry);
+        }
+    }
+    public class PoIConfig
+    {
+        public bool usePoI;
+        public bool useParent;
+        public bool useTransformLocal;
+        public Transform parent;
+        public Vector3 poiPosition;
+
+        public PoIConfig(bool usePoI, bool useParent, bool useTransformLocal, Transform parent = null, Vector3 poiPosition = default)
+        {
+            this.usePoI = usePoI;
+            this.useParent = useParent;
+            this.useTransformLocal = useTransformLocal;
+            this.parent = parent;
+            this.poiPosition = poiPosition;
+        }
+    }
+
+    public static class EndGameQuest
+    {
+        #region End Game Quest start eval
+        public static bool hasGeneratedDefeatEnforcerQuest = false;
+        public static bool hasGeneratedManorQuest = false;
+        public static bool hasGeneratedCarQuest = false;
+
+
+        public static bool CanEvaluate()
+        {
+            return !Singleton<DialogueCanvas>.Instance.IsOpen && !Singleton<HandoverScreen>.Instance.IsOpen && PlayerSingleton<PlayerCamera>.Instance.ActiveUIElementCount <= 0;
+        }
+
+        public static IEnumerator InitializeEndGameQuest()
+        {
+            yield return Wait10;
+            if (!registered) yield break;
+
+            coros.Add(MelonCoroutines.Start(InitManorItemRef()));
+            Log("Evaluating End Game Quest Creation");
+
+            DialogueController frankController;
+            while (registered)
+            {
+                yield return Wait30;
+                if (!registered) yield break;
+                if (!currentConfig.endGameQuest) continue;
+
+                yield return new WaitUntil((Il2CppSystem.Func<bool>)CanEvaluate);
+
+                if (PreRequirementsMet() && !defeatEnforcerCompleted && !hasGeneratedDefeatEnforcerQuest && activeDefeatEnforcerQuest == null)
+                {
+                    Log("Fixer quest opt generated");
+                    hasGeneratedDefeatEnforcerQuest = true;
+                    coros.Add(MelonCoroutines.Start(GenDialogOption()));
+                }
+                if (PreRequirementsMet() && !manorCompleted && !hasGeneratedManorQuest && activeManorQuest == null)
+                {
+                    Log("Manor quest opt generated");
+                    hasGeneratedManorQuest = true;
+                    coros.Add(MelonCoroutines.Start(GenManorDialogOption()));
+                }
+
+                bool inTimeWindowForCarQuest = (NetworkSingleton<TimeManager>.Instance.CurrentTime >= 1559 && NetworkSingleton<TimeManager>.Instance.CurrentTime <= 1801);
+                if (CarQuestPreRequirementsMet() && !carMeetupCompleted && !hasGeneratedCarQuest && frankDiagIndex == -1 && inTimeWindowForCarQuest && activeCarMeetupQuest == null)
+                {
+                    // Gen quest opt in time window
+                    Log("Car Quest opt generated");
+                    hasGeneratedCarQuest = true;
+                    coros.Add(MelonCoroutines.Start(GenFrankOption()));
+                }
+                else if (hasGeneratedCarQuest && !carMeetupCompleted && frankDiagIndex != -1 && !inTimeWindowForCarQuest && crankyFrank != null && activeCarMeetupQuest == null)
+                {
+                    Log("Car Quest opt removed");
+                    hasGeneratedCarQuest = false;
+                    frankController = crankyFrank.DialogueHandler.gameObject.GetComponent<DialogueController>();
+                    // Del quest opt out of time window when it exists and quest not generated
+                    coros.Add(MelonCoroutines.Start(DisposeFrankChoice(frankController)));
+                }
+            }
+
+            yield break;
+        }
+        #endregion
+
+        #region End Game Quest Unexpected Alliances
+        public static bool defeatEnforcerCompleted = false;
+        public static int StageDeadDropsObserved = 0;
+        public static int StageGatheringsDefeated = 0;
+        public static NPC fixer;
+        public static CartelGoon bossGoon;
+        public static Quest_DefeatEnforcer activeDefeatEnforcerQuest = null;
+        public static int fixerDiagIndex = 0;
+
+        public static bool PreRequirementsMet()
+        {
+            
+            if (!InstanceFinder.IsServer) 
+                return false;
+            if (NetworkSingleton<Il2CppScheduleOne.Cartel.Cartel>.Instance.Status != Il2Cpp.ECartelStatus.Hostile)
+                return false;
+
+            // Suburbia region, has to have atleast 1 customer unlocked
+            int numUnlocked = 0;
+            for (int i = 0; i < Customer.UnlockedCustomers.Count; i++)
+            {
+                if (Customer.UnlockedCustomers[i].NPC.Region == EMapRegion.Suburbia)
+                {
+                    numUnlocked++;
+                }
+            }
+            if (numUnlocked < 1)
+                return false;
+
+            if ((int)NetworkSingleton<LevelManager>.Instance.Rank < (int)ERank.Bagman) // If not atleast Bagman rank
+                return false; 
+
+            return true;
+        }
+
+        #region Fixer dialogue
+        public static IEnumerator GenDialogOption()
+        {
+            NPC npc = UnityEngine.Object.FindObjectOfType<Fixer>(true);
+            if (npc != null)
+                fixer = npc;
+
+            DialogueController controller = npc.DialogueHandler.gameObject.GetComponent<DialogueController>();
+            DialogueController.DialogueChoice choice = new();
+            choice.ChoiceText = $"How do we get rid of the Benzies? (Bribe <color=#FF3008>$5000</color>)";
+            choice.Enabled = true;
+            void OnQuestChosenWrapped()
+            {
+                OnQuestChosen(controller);
+            }
+            choice.onChoosen.AddListener((UnityEngine.Events.UnityAction)OnQuestChosenWrapped);
+            fixerDiagIndex = controller.AddDialogueChoice(choice);
+            yield break;
+        }
+
+        public static IEnumerator DisposeChoice(DialogueController controller)
+        {
+            yield return Wait05;
+            if (!registered) yield break;
+
+            var oldChoices = controller.Choices;
+            oldChoices.RemoveAt(fixerDiagIndex);
+            controller.Choices = oldChoices;
+            Log("Disposed Choice");
+            yield break;
+        }
+
+        public static void OnQuestChosen(DialogueController controller)
+        {
+            controller.handler.ContinueSubmitted();
+
+            bool hasCash = NetworkSingleton<MoneyManager>.Instance.cashBalance >= 5000f;
+            if (hasCash)
+            {
+                NetworkSingleton<MoneyManager>.Instance.ChangeCashBalance(-5000f, true, false);
+                MelonCoroutines.Start(DisposeChoice(controller));
+                MelonCoroutines.Start(EventInstructions(controller));
+                MelonCoroutines.Start(GenerateQuestState());
+            }
+            else
+            {
+                controller.npc.PlayVO(EVOLineType.Annoyed);
+            }
+            
+        }
+        #endregion
+
+        // 3 Alternatives for the worldspace dialogue
+        public static List<List<string>> dialogOptions = new()
+        {
+            new List<string>()
+            {
+                "I ain't having the Benzies come messing with my operation. Not here, not ever.",
+                "First move, we gotta rattle them a little bit.",
+                "Go make a couple of their dead drops disappear.",
+                "After that, I'll set you up with a gig."
+            },
+
+            new List<string>()
+            {
+                "The Benzies are getting bold. I can't have that.",
+                "I'm about to show them how we do things out here. No games.",
+                "Find their dead drops and clean 'em out. A couple of them going missing will send a message.",
+                "Once you get that done, I'll tell you how to proceed."
+            },
+
+            new List<string>()
+            {
+                "I don't want the Benzies to ruin my business here either.",
+                "We need to send a message. They got to leave.",
+                "They have been moving product through dead drops. You know what to do.",
+                "Get started and I'll see how we can take down the Benzies..."
+            }
+        };
+        public static IEnumerator EventInstructions(DialogueController controller)
+        {
+            float lerpWait = Mathf.Lerp(10f, 5f, currentConfig.endGameQuestMonologueSpeed);
+            WaitForSeconds waitObj = new WaitForSeconds(lerpWait);
+            List<string> dialog = dialogOptions[UnityEngine.Random.Range(0, dialogOptions.Count)];
+            controller.handler.WorldspaceRend.ShowText(dialog[0], lerpWait);
+            yield return waitObj;
+            if (!registered) yield break;
+
+            controller.npc.PlayVO(EVOLineType.Think);
+            controller.handler.WorldspaceRend.ShowText(dialog[1], lerpWait);
+            yield return waitObj;
+            if (!registered) yield break;
+
+            controller.handler.WorldspaceRend.ShowText(dialog[2], lerpWait);
+            yield return waitObj;
+            if (!registered) yield break;
+
+            controller.npc.PlayVO(EVOLineType.Acknowledge);
+            controller.handler.WorldspaceRend.ShowText(dialog[3], lerpWait);
+            yield return waitObj;
+            if (!registered) yield break;
+
+            yield break;
+        }
+        public static IEnumerator GenerateQuestState()
+        {
+            Log("Starting");
+            GameObject newQuestObject = new GameObject();
+            Log("Add Component");
+            activeDefeatEnforcerQuest = newQuestObject.AddComponent<Quest_DefeatEnforcer>();
+            newQuestObject.SetActive(true);
+            activeDefeatEnforcerQuest.enabled = true;
+            Log("SetupSelf");
+            activeDefeatEnforcerQuest.SetupSelf();
+
+            yield break;
+        }
+        public static IEnumerator QuestReward(CartelGoon goon)
+        {
+            yield return Wait025;
+            if (!registered) yield break;
+
+            goon.Inventory.Clear();
+
+            Func<string, ItemDefinition> GetItem;
+
+            GetItem = Il2CppScheduleOne.Registry.GetItem;
+            ItemDefinition defWatch = GetItem("goldwatch");
+            ItemInstance goldWatch = defWatch.GetDefaultInstance(1);
+            goon.Inventory.InsertItem(goldWatch, true);
+
+            ItemDefinition defChain = GetItem("goldchain");
+            ItemInstance goldChain = defChain.GetDefaultInstance(1);
+            goon.Inventory.InsertItem(goldChain, true);
+
+            ItemDefinition defGun = GetItem("pumpshotgun");
+            ItemInstance gunInst = defGun.GetDefaultInstance(1);
+            goon.Inventory.InsertItem(gunInst, true);
+
+            ItemDefinition defShell = GetItem("shotgunshell");
+            ItemInstance shell = defShell.GetDefaultInstance(UnityEngine.Random.Range(4, 10));
+            goon.Inventory.InsertItem(shell, true);
+
+            // Change globally customer relation
+            for (int i = 0; i < Customer.UnlockedCustomers.Count; i++)
+            {
+                yield return Wait025;
+                if (!registered) yield break;
+
+                if (Customer.UnlockedCustomers[i].NPC.RelationData.RelationDelta != 5.0f)
+                    Customer.UnlockedCustomers[i].NPC.RelationData.ChangeRelationship(0.25f, true);
+            }
+
+            // Change influence in all unlocked regions
+            if (InstanceFinder.IsServer)
+            {
+                foreach (EMapRegion unlmapReg in Singleton<Map>.Instance.GetUnlockedRegions())
+                {
+                    if (unlmapReg == EMapRegion.Northtown) continue;
+                    yield return Wait5; // play animation
+                    if (!registered) yield break;
+
+                    float current = NetworkSingleton<Il2CppScheduleOne.Cartel.Cartel>.Instance.Influence.GetRegionData(unlmapReg).Influence;
+                    if (current > 0.0f)
+                    {
+                        float result = current * 0.75f;
+                        float delta = current - result;
+                        float rounded = Mathf.Round(delta * 100) / 100;
+                        NetworkSingleton<Il2CppScheduleOne.Cartel.Cartel>.Instance.Influence.ChangeInfluence(unlmapReg, -rounded);
+                    }
+                }
+            }
+
+            // last reward lower Law intensity by 25%
+            float change = Mathf.Clamp(Singleton<LawController>.Instance.internalLawIntensity * 0.25f, 0f, 2.5f);
+            if (change != 0f)
+                Singleton<LawController>.Instance.ChangeInternalIntensity(-change);
+
+            yield return Wait60;
+            if (!registered) yield break;
+
+            if (bossGoon.IsGoonSpawned)
+            {
+                // Reset all non default stats that would carry on modified
+                bossGoon.NPCData.Health.MaxHealth = 100f;
+                bossGoon.Health.SetCurrentHealth(100f);
+                bossGoon.Movement.SpeedController.SetSpeedMultiplier(0.8f);
+                bossGoon.transform.localScale = new Vector3(1.0f, 1.0f, 1.0f);
+                bossGoon.Behaviour.ScheduleManager.EnableSchedule();
+                bossGoon.Behaviour.ScheduleManager.ActionList[0].gameObject.SetActive(true);
+                bossGoon.Despawn();
+                bossGoon = null;
+            }
+
+            yield break;
+        }
+        #endregion
+
+        #region Create Manor Infiltration quest
+        public static NPC ray;
+        public static Quest_InfiltrateManor activeManorQuest = null;
+        public static bool manorCompleted = false;
+        public static int rayChoiceIndex = 0;
+        public static readonly Vector3 standPos = new(70.96f, 1.46f, 16.03f);
+        public static List<CartelGoon> manorGoons = new();
+        public static List<string> manorGoonGuids = new();
+
+        public static IEnumerator GenManorDialogOption()
+        {
+            // Should this be NPC Registry instead? TODO Fix
+            NPC npc = UnityEngine.Object.FindObjectOfType<Il2CppScheduleOne.NPCs.CharacterClasses.Ray>(true);
+            if (npc != null)
+                ray = npc;
+
+            DialogueController controller = npc.DialogueHandler.gameObject.GetComponent<DialogueController>();
+            DialogueController.DialogueChoice choice = new();
+            // So what is it its a symbol that when color parsed now crashes the game here
+            // either dash or dolar 
+            // A fucking dash crashes the game
+            choice.ChoiceText = "Who owns that big manor? (Bribe <color=#FF3008>$2500</color>)";
+            choice.Enabled = true;
+            
+            void OnQuestChosenWrapped()
+            {
+                OnManorQuestChosen(controller);
+            }
+            choice.onChoosen.AddListener((UnityEngine.Events.UnityAction)OnQuestChosenWrapped);
+            rayChoiceIndex = controller.AddDialogueChoice(choice);
+
+            yield return null;
+        }
+        public static void OnManorQuestChosen(DialogueController controller)
+        {
+            controller.handler.ContinueSubmitted();
+
+            bool inTimeWindow = NetworkSingleton<TimeManager>.Instance.CurrentTime >= 1815 && NetworkSingleton<TimeManager>.Instance.CurrentTime <= 1858;
+
+            bool hasCash = NetworkSingleton<MoneyManager>.Instance.cashBalance >= 2500f;
+            bool isInPos = (Vector3.Distance(ray.CenterPoint, standPos) < 1f);
+            if (hasCash && inTimeWindow && isInPos)
+            {
+                NetworkSingleton<MoneyManager>.Instance.ChangeCashBalance(-2500f, true, false);
+                MelonCoroutines.Start(DisposeRayChoice(controller));
+                MelonCoroutines.Start(EventManorInstructions(controller));
+                MelonCoroutines.Start(GenerateManorQuestState());
+            }
+            else
+            {
+                controller.handler.WorldspaceRend.ShowText("Talk with me at the courthouse between 18:15 and 19:00.", 7f);
+                controller.npc.PlayVO(EVOLineType.Annoyed);
+                Log("Refuse Quest Give Reason");
+                Log($"In Position: {isInPos} (distance: {Vector3.Distance(ray.CenterPoint, standPos)})");
+                Log("Has Cash: " + hasCash);
+                Log("In Time Window: " + inTimeWindow);
+            }
+        }
+
+        public static IEnumerator DisposeRayChoice(DialogueController controller)
+        {
+            yield return Wait05;
+            if (!registered) yield break;
+            NPCEvent_LocationBasedAction temp = ray.Behaviour.ScheduleManager.ActiveAction.TryCast<NPCEvent_LocationBasedAction>();
+            if (temp != null)
+            {
+                temp.EndTime = 2200;
+                temp.Duration = 240;
+                temp.Start();
+            }
+            ray.Behaviour.ScheduleManager.DisableSchedule();
+
+            var oldChoices = controller.Choices;
+            oldChoices.RemoveAt(rayChoiceIndex);
+            controller.Choices = oldChoices;
+            Log("Disposed Choice");
+            yield return null;
+        }
+
+        // 3 Alternatives for the worldspace dialogue
+        public static List<List<string>> dialogManorOptions = new()
+        {
+            new List<string>()
+            {
+                "Look, the Benzies family have been here for longer than I can remember.",
+                "Thomas Benzie owns the manor but you don't want to mess with him.",
+                "Honestly, he is a criminal and overall thats bad for my business.",
+                "Property values have been plummeting so I wouldn't mind him leaving..."
+            },
+
+            new List<string>()
+            {
+                "Oh, Thomas? I don't know much about him. The Benzies family runs the town.",
+                "He paid off a lot of people to get where he is today.",
+                "Cops, lawyers, even some folks at Town Hall...",
+                "He's been trying to get me to sell him my agency."
+            },
+
+            new List<string>()
+            {
+                "His manor is a monument to his ego. He bought it just to show off.",
+                "Don't go near the place. He has people guarding the property.",
+                "You'll get yourself killed poking around.",
+                "He's not someone you want to mess with."
+            }
+
+        };
+
+        public static IEnumerator EventManorInstructions(DialogueController controller)
+        {
+            float lerpWait = Mathf.Lerp(10f, 5f, currentConfig.endGameQuestMonologueSpeed);
+            WaitForSeconds waitObj = new WaitForSeconds(lerpWait);
+            List<string> dialog = dialogManorOptions[UnityEngine.Random.Range(0, dialogManorOptions.Count)];
+            controller.npc.PlayVO(EVOLineType.Acknowledge);
+            controller.handler.WorldspaceRend.ShowText(dialog[0], lerpWait);
+            yield return waitObj;
+            if (!registered) yield break;
+
+            controller.npc.PlayVO(EVOLineType.Concerned);
+            controller.handler.WorldspaceRend.ShowText(dialog[1], lerpWait);
+            yield return waitObj;
+            if (!registered) yield break;
+
+            controller.handler.WorldspaceRend.ShowText(dialog[2], lerpWait);
+            yield return waitObj;
+            if (!registered) yield break;
+
+            controller.npc.PlayVO(EVOLineType.Surprised);
+            controller.handler.WorldspaceRend.ShowText(dialog[3], lerpWait);
+            yield return waitObj;
+            if (!registered) yield break;
+
+
+            yield return null;
+        }
+        public static IEnumerator GenerateManorQuestState()
+        {
+            Log("Starting");
+            GameObject newQuestObject = new GameObject();
+            Log("Add Component");
+            activeManorQuest = newQuestObject.AddComponent<Quest_InfiltrateManor>();
+            newQuestObject.SetActive(true);
+            activeManorQuest.enabled = true;
+            Log("SetupSelf");
+            activeManorQuest.SetupSelf();
+
+            yield return null;
+        }
+
+        // 2nd quest entry dialog gen and lines
+        public static IEnumerator GenRaySecondDialog(Action cb)
+        {
+            Log("Generating second dialogue");
+            DialogueController controller = ray.DialogueHandler.gameObject.GetComponent<DialogueController>();
+            DialogueController.DialogueChoice choice = new();
+            string text = "Is there any way I can get in the Manor?";
+            choice.ChoiceText = $"{text}";
+            choice.Enabled = true;
+            void OnQuestChosenWrapped()
+            {
+                OnSecondDialogChosen(controller, cb);
+            }
+            choice.onChoosen.AddListener((UnityEngine.Events.UnityAction)OnQuestChosenWrapped);
+            rayChoiceIndex = controller.AddDialogueChoice(choice);
+            yield return null;
+        }
+        public static void OnSecondDialogChosen(DialogueController controller, Action cb)
+        {
+            controller.handler.ContinueSubmitted();
+
+            MelonCoroutines.Start(DisposeRaySecondChoice(controller));
+            MelonCoroutines.Start(PlaySecondRayDialog(controller, cb));
+        }
+        public static IEnumerator DisposeRaySecondChoice(DialogueController controller)
+        {
+            yield return Wait05;
+            if (!registered) yield break;
+
+            var oldChoices = controller.Choices;
+            oldChoices.RemoveAt(rayChoiceIndex);
+            controller.Choices = oldChoices;
+            Log("Disposed Choice");
+
+            yield return Wait30;
+            if (!registered) yield break;
+
+            coros.Add(MelonCoroutines.Start(ResetRayAFK()));
+            yield return null;
+        }
+
+        public static IEnumerator ResetRayAFK()
+        {
+            NPCEvent_LocationBasedAction temp = ray.Behaviour.ScheduleManager.ActiveAction.TryCast<NPCEvent_LocationBasedAction>();
+            if (temp != null)
+            {
+                temp.EndTime = 1800;
+                temp.Duration = 60;
+            }
+            ray.Behaviour.ScheduleManager.EnableSchedule();
+            yield return null;
+        }
+
+        public static IEnumerator PlaySecondRayDialog(DialogueController controller, Action cb)
+        {
+            float lerpWait = Mathf.Lerp(10f, 5f, currentConfig.endGameQuestMonologueSpeed);
+            WaitForSeconds waitObj = new WaitForSeconds(lerpWait);
+
+            float lerpWaitLong = Mathf.Lerp(15f, 7f, currentConfig.endGameQuestMonologueSpeed);
+            WaitForSeconds waitObjLong = new WaitForSeconds(lerpWaitLong);
+
+            controller.npc.PlayVO(EVOLineType.No);
+            controller.handler.WorldspaceRend.ShowText("I don't think so. The whole place is fenced off.", lerpWait);
+            yield return waitObj;
+            if (!registered) yield break;
+
+            controller.npc.PlayVO(EVOLineType.Think);
+            controller.handler.WorldspaceRend.ShowText("If you manage to make it over the fence, there is a way for me to get you inside.", lerpWaitLong);
+            yield return waitObjLong;
+            if (!registered) yield break;
+
+            controller.handler.WorldspaceRend.ShowText("Here, take my master key. It's from back when the Manor was built.", lerpWait + 2f);
+            yield return Wait2;
+            if (!registered) yield break;
+
+            controller.npc.PlayVO(EVOLineType.Acknowledge);
+            controller.npc.SetAnimationTrigger("GrabItem");
+            yield return waitObj;
+            if (!registered) yield break;
+
+            controller.handler.WorldspaceRend.ShowText("It won't work on the main entrance so try the back door.", 5f);
+            yield return waitObj;
+            if (!registered) yield break;
+
+
+            if (cb != null)
+                cb();
+
+            yield return null;
+        }
+
+        public static IEnumerator QuestManorReward()
+        {
+            yield return Wait025;
+            if (!registered) yield break;
+
+            for (int i = 0; i < Business.Businesses.Count; i++)
+            {
+                yield return Wait025;
+                if (!registered) yield break;
+
+                Business.Businesses[i].Price = Business.Businesses[i].Price * 0.85f;
+            }
+
+            for (int i = 0; i < Property.Properties.Count; i++)
+            {
+                yield return Wait025;
+                if (!registered) yield break;
+
+                Property.Properties[i].Price = Property.Properties[i].Price * 0.85f;
+            }
+
+            // Change influence in all unlocked regions
+            if (InstanceFinder.IsServer)
+            {
+                foreach (EMapRegion unlmapReg in Singleton<Map>.Instance.GetUnlockedRegions())
+                {
+                    if (unlmapReg == EMapRegion.Northtown) continue;
+                    yield return Wait5; // play animation
+                    if (!registered) yield break;
+
+                    float current = NetworkSingleton<Il2CppScheduleOne.Cartel.Cartel>.Instance.Influence.GetRegionData(unlmapReg).Influence;
+                    if (current > 0.0f)
+                    {
+                        float result = current * 0.85f;
+                        float delta = current - result;
+                        float rounded = Mathf.Round(delta * 100) / 100;
+                        NetworkSingleton<Il2CppScheduleOne.Cartel.Cartel>.Instance.Influence.ChangeInfluence(unlmapReg, -rounded);
+                    }
+                }
+            }
+
+            yield return null;
+        }
+        #endregion
+
+        #region Car Meetup Quest
+        public static NPC crankyFrank = null;
+        public static NPC jeremy = null;
+        public static Quest_CarMeetup activeCarMeetupQuest = null;
+
+        public static Vector3 frankStandPos = new(-55.29f, -3.64f, 167.14f);
+        public static Vector3 jeremyStandPos = new(69.00f, 5.93f, -119.09f);
+
+        public static bool carMeetupCompleted = false;
+
+        public static int frankDiagIndex = -1;
+        public static int jeremyDiagIndex = -1;
+        public static bool jeremyDialogueActive = false;
+
+        public static bool CarQuestPreRequirementsMet()
+        {
+            if (!InstanceFinder.IsServer)
+                return false;
+            if (NetworkSingleton<Il2CppScheduleOne.Cartel.Cartel>.Instance.Status != Il2Cpp.ECartelStatus.Hostile)
+                return false;
+
+            // Docks region, has to have atleast 3 customer unlocked
+            int numUnlocked = 0;
+            for (int i = 0; i < Customer.UnlockedCustomers.Count; i++)
+            {
+                if (Customer.UnlockedCustomers[i].NPC.Region == EMapRegion.Docks)
+                {
+                    numUnlocked++;
+                }
+            }
+
+
+            if (numUnlocked < 3)
+                return false;
+
+            if ((int)NetworkSingleton<LevelManager>.Instance.Rank < 3) // If not atleast hustler rank
+                return false;
+            return true;
+        }
+
+        public static IEnumerator GenFrankOption()
+        {
+            if (crankyFrank == null)
+            {
+                NPC npc = UnityEngine.Object.FindObjectOfType<Il2CppScheduleOne.NPCs.CharacterClasses.Frank>(true);
+                if (npc != null)
+                    crankyFrank = npc;
+            }
+
+            DialogueController controller = crankyFrank.DialogueHandler.gameObject.GetComponent<DialogueController>();
+            DialogueController.DialogueChoice choice = new();
+            choice.ChoiceText = $"Have you seen any Benzies around here? (Bribe <color=#FF3008>$3500</color>)";
+            choice.Enabled = true;
+            void OnQuestChosenWrapped()
+            {
+                OnCarQuestChosen(controller);
+            }
+            choice.onChoosen.AddListener((UnityEngine.Events.UnityAction)OnQuestChosenWrapped);
+            frankDiagIndex = controller.AddDialogueChoice(choice);
+            yield return null;
+        }
+
+        public static void OnCarQuestChosen(DialogueController controller)
+        {
+            controller.handler.ContinueSubmitted();
+
+            bool inTimeWindow = NetworkSingleton<TimeManager>.Instance.CurrentTime >= 1600 && NetworkSingleton<TimeManager>.Instance.CurrentTime <= 1800;
+
+            bool hasCash = NetworkSingleton<MoneyManager>.Instance.cashBalance >= 3500f;
+            bool isInPos = (Vector3.Distance(crankyFrank.CenterPoint, frankStandPos) < 0.7f);
+            if (hasCash && inTimeWindow && isInPos)
+            {
+                NetworkSingleton<MoneyManager>.Instance.ChangeCashBalance(-3500f, true, false);
+                MelonCoroutines.Start(DisposeFrankChoice(controller));
+                MelonCoroutines.Start(EventFrankInstructions(controller));
+            }
+            else
+            {
+                controller.handler.WorldspaceRend.ShowText("Meet me at the north waterfront between 16:00 and 18:00.", 7f);
+                controller.npc.PlayVO(EVOLineType.Annoyed);
+            }
+        }
+
+        public static IEnumerator DisposeFrankChoice(DialogueController controller)
+        {
+            yield return Wait05;
+            if (!registered) yield break;
+
+            if (frankDiagIndex != -1)
+            {
+                var oldChoices = controller.Choices;
+                oldChoices.RemoveAt(frankDiagIndex);
+                controller.Choices = oldChoices;
+                Log("Disposed Choice");
+
+                frankDiagIndex = -1;
+            }
+            yield return null;
+        }
+
+        // 3 Alternatives for the worldspace dialogue
+        public static List<List<string>> frankDialogOptions = new()
+        {
+            new List<string>()
+            {
+                "I've seen some green clunkers speeding down the street like they're running from something.",
+                "They always pull up behind that obnoxious red building. Hard to miss.",
+                "You should ask Jeremy. He might know who owns the cars.",
+            },
+
+            new List<string>()
+            {
+                "Bunch of damn green cars driving around late at night.",
+                "They always cruise past here then turn down the alley next to that ugly red building.",
+                "You know Jeremy, the Car Shop guy? He should know who they are.",
+            },
+
+            new List<string>()
+            {
+                "The only thing I've seen is some shiny green cars causing trouble after the sun goes down.",
+                "Yeah, those punks always hide behind that red building over there.",
+                "Go bug Jeremy, the car guy. He knows who's in those cars.",
+            }
+        };
+
+        public static IEnumerator EventFrankInstructions(DialogueController controller)
+        {
+            controller.npc.Behaviour.ScheduleManager.DisableSchedule();
+            float lerpWait = Mathf.Lerp(11f, 6f, currentConfig.endGameQuestMonologueSpeed);
+            WaitForSeconds waitObj = new WaitForSeconds(lerpWait);
+            List<string> dialog = frankDialogOptions[UnityEngine.Random.Range(0, frankDialogOptions.Count)];
+            controller.npc.PlayVO(EVOLineType.Angry);
+            controller.handler.WorldspaceRend.ShowText(dialog[0], lerpWait);
+            yield return waitObj;
+            if (!registered) yield break;
+
+            controller.npc.PlayVO(EVOLineType.Annoyed);
+            controller.handler.WorldspaceRend.ShowText(dialog[1], lerpWait + 2f);
+            controller.npc.Movement.FacePoint(new Vector3(-32.68f, -2.54f, 168.73f), lerpTime: 1f);
+            yield return Wait2;
+            if (!registered) yield break;
+
+            controller.npc.Movement.FacePoint(PlayerManager.GetClosestPlayer(controller.npc.CenterPoint, out _).CenterPointTransform.position, lerpTime: 1f);
+            yield return waitObj;
+            if (!registered) yield break;
+
+            controller.npc.PlayVO(EVOLineType.Think);
+            controller.handler.WorldspaceRend.ShowText(dialog[2], lerpWait);
+            yield return waitObj;
+            if (!registered) yield break;
+            controller.npc.Behaviour.ScheduleManager.EnableSchedule();
+
+            MelonCoroutines.Start(GenerateCarQuestState());
+            yield return null;
+        }
+
+        public static IEnumerator GenerateCarQuestState()
+        {
+            Log("Starting");
+            GameObject newQuestObject = new GameObject();
+            activeCarMeetupQuest = newQuestObject.AddComponent<Quest_CarMeetup>();
+            newQuestObject.SetActive(true);
+            activeCarMeetupQuest.enabled = true;
+            activeCarMeetupQuest.SetupSelf();
+            yield return null;
+        }
+
+        // Jeremy Dialogue opt for 1st quest entry
+        public static IEnumerator GenJeremyOption(Action cb)
+        {
+            if (jeremy == null)
+            {
+                NPC npc = UnityEngine.Object.FindObjectOfType<Il2CppScheduleOne.NPCs.CharacterClasses.Jeremy>(true);
+                if (npc != null)
+                    jeremy = npc;
+            }
+
+
+            DialogueController controller = jeremy.DialogueHandler.gameObject.GetComponent<DialogueController>();
+            DialogueController.DialogueChoice choice = new();
+            string text = "Who is buying green cars from you?";
+            choice.ChoiceText = $"{text} (Bribe <color=#FF3008>$6000</color>)";
+            choice.Enabled = true;
+            void OnQuestChosenWrapped()
+            {
+                OnJeremyOptionSelected(controller, cb);
+            }
+            choice.onChoosen.AddListener((UnityEngine.Events.UnityAction)OnQuestChosenWrapped);
+            jeremyDiagIndex = controller.AddDialogueChoice(choice);
+            yield return null;
+        }
+
+        public static void OnJeremyOptionSelected(DialogueController controller, Action cb)
+        {
+
+
+            controller.handler.ContinueSubmitted();
+            controller.npc.Behaviour.ScheduleManager.transform.GetChild(0)?.gameObject?.SetActive(false);
+            bool inTimeWindow = NetworkSingleton<TimeManager>.Instance.CurrentTime >= 2059 && NetworkSingleton<TimeManager>.Instance.CurrentTime <= 2359;
+            bool playerHasPoliceAttention = Player.Local.CrimeData.CurrentPursuitLevel != PlayerCrimeData.EPursuitLevel.None; // because next stage fails immediate in minpass if there is pursuit level
+            bool hasCash = NetworkSingleton<MoneyManager>.Instance.cashBalance >= 6000f;
+            bool isInPos = (Vector3.Distance(jeremy.CenterPoint, jeremyStandPos) < 10f);
+            if (hasCash && inTimeWindow && isInPos && !playerHasPoliceAttention)
+            {
+                NetworkSingleton<MoneyManager>.Instance.ChangeCashBalance(-6000f, true, false);
+                MelonCoroutines.Start(DisposeJeremyChoice(controller));
+                MelonCoroutines.Start(JeremyDialogue(controller, cb));
+            }
+            else
+            {
+                if (playerHasPoliceAttention)
+                {
+                    controller.handler.WorldspaceRend.ShowText("Get out of here! I don't want police at my house!", 8f);
+                    controller.npc.PlayVO(EVOLineType.Angry);
+                    controller.npc.Avatar.EmotionManager.AddEmotionOverride("Annoyed", "product_rejected", 8f, 1);
+                }
+                else
+                {
+                    controller.handler.WorldspaceRend.ShowText("Talk to me after 21:00 at my house.", 8f);
+                    controller.npc.PlayVO(EVOLineType.Annoyed);
+                }
+                controller.npc.Behaviour.ScheduleManager.transform.GetChild(0)?.gameObject?.SetActive(true);
+            }
+        }
+
+        public static IEnumerator DisposeJeremyChoice(DialogueController controller)
+        {
+            yield return Wait05;
+            if (!registered) yield break;
+
+            if (jeremyDiagIndex != -1)
+            {
+                var oldChoices = controller.Choices;
+                oldChoices.RemoveAt(jeremyDiagIndex);
+                controller.Choices = oldChoices;
+                Log("Disposed Choice");
+
+                jeremyDiagIndex = -1;
+            }
+            yield return null;
+        }
+
+        public static IEnumerator JeremyDialogue(DialogueController controller, Action cb)
+        {
+            jeremyDialogueActive = true;
+
+            float lerpWait = Mathf.Lerp(10f, 5f, currentConfig.endGameQuestMonologueSpeed);
+            WaitForSeconds waitObj = new WaitForSeconds(lerpWait);
+            controller.npc.PlayVO(EVOLineType.Thanks);
+            controller.handler.WorldspaceRend.ShowText("You got to be careful now. The Benzies Cartel is no joke.", lerpWait);
+            yield return waitObj;
+            if (!registered) yield break;
+
+            controller.npc.PlayVO(EVOLineType.Think);
+            controller.handler.WorldspaceRend.ShowText("Thomas Benzie has been putting in alot of orders for those Green SUVs.", lerpWait);
+            yield return waitObj;
+            if (!registered) yield break;
+
+            controller.npc.PlayVO(EVOLineType.Acknowledge);
+            controller.handler.WorldspaceRend.ShowText("I don't really ask around. He always pays more than the retail price.", lerpWait);
+            yield return waitObj;
+            if (!registered) yield break;
+
+            jeremyDialogueActive = false;
+
+            if (cb != null)
+                cb();
+
+            controller.npc.Behaviour.ScheduleManager.transform.GetChild(0)?.gameObject?.SetActive(true);
+            yield return null;
+        }
+
+        public static IEnumerator QuestCarMeetupReward()
+        {
+            yield return Wait5;
+
+            // Change influence in all unlocked regions
+            if (InstanceFinder.IsServer)
+            {
+                foreach (EMapRegion unlmapReg in Singleton<Map>.Instance.GetUnlockedRegions())
+                {
+                    if (unlmapReg == EMapRegion.Northtown) continue;
+                    yield return Wait5; // play animation
+                    if (!registered) yield break;
+
+                    float current = NetworkSingleton<Il2CppScheduleOne.Cartel.Cartel>.Instance.Influence.GetRegionData(unlmapReg).Influence;
+                    if (current > 0.0f)
+                    {
+                        float result = current * 0.90f;
+                        float delta = current - result;
+                        float rounded = Mathf.Round(delta * 100) / 100;
+                        NetworkSingleton<Il2CppScheduleOne.Cartel.Cartel>.Instance.Influence.ChangeInfluence(unlmapReg, -rounded);
+                    }
+                }
+            }
+            
+            yield return null;
+        }
+
+        #endregion
+
+        #region Allied Intro Quest
+        public static Quest_TrucedRecruits activeTruceIntro = null;
+
+        public static IEnumerator SetupTruceIntroQuest()
+        {
+            Log("Generate Truce Intro Quest");
+            GameObject newQuestObject = new GameObject();
+            activeTruceIntro = newQuestObject.AddComponent<Quest_TrucedRecruits>();
+            newQuestObject.SetActive(true);
+            activeTruceIntro.enabled = true;
+            activeTruceIntro.SetupSelf();
+            yield return null;
+        }
+
+        #endregion
+
+        #region Allied True Brothers Quest
+        public static Quest_TrueBrothers activeTrueBrothersQuest = null;
+        public static bool trueBrothersCompleted = false;
+        public static bool encounterActive = false;
+        public static GameObject copBaseClone = null;
+
+        public static IEnumerator SetupTrueBrothersQuest(CartelGoon spawnedGoon)
+        {
+            Log("Generate True brothers quest");
+            GameObject newQuestObject = new GameObject();
+            activeTrueBrothersQuest = newQuestObject.AddComponent<Quest_TrueBrothers>();
+            activeTrueBrothersQuest.startGoon = spawnedGoon;
+            newQuestObject.SetActive(true);
+            
+            activeTrueBrothersQuest.enabled = true;
+            activeTrueBrothersQuest.SetupSelf();
+
+            if (encounterActive)
+                encounterActive = false;
+            yield break;
+        }
+
+        // todo set somewhere?
+        public static bool TrueBrothersQuestPreRequirementsMet()
+        {
+            if (!InstanceFinder.IsServer)
+                return false;
+            if (NetworkSingleton<Il2CppScheduleOne.Cartel.Cartel>.Instance.Status != Il2Cpp.ECartelStatus.Truced)
+                return false;
+
+            // Suburbia region, has to have atleast 4 customer unlocked
+            int numUnlocked = 0;
+            for (int i = 0; i < Customer.UnlockedCustomers.Count; i++)
+            {
+                if (Customer.UnlockedCustomers[i].NPC.Region == EMapRegion.Suburbia)
+                {
+                    numUnlocked++;
+                }
+            }
+
+            if (numUnlocked < 4)
+                return false;
+
+            return true;
+        }
+
+        public static bool CanStartConversate()
+        {
+            return !Singleton<DialogueCanvas>.Instance.IsOpen && !Singleton<HandoverScreen>.Instance.IsOpen && PlayerSingleton<PlayerCamera>.Instance.ActiveUIElementCount <= 0;
+        }
+
+        // TODO: FIX THIS CAN SPPAWN BLOCKED AREAS: IF V3 DOESNT MOVE FOR N AMOUNT OF ITERS WARP NEARBY
+        public static IEnumerator SummonConversateGoon()
+        {
+
+            // if (NetworkSingleton<Il2CppScheduleOne.Cartel.Cartel>.Instance.GoonPool.UnspawnedGoonCount < 2) return;
+
+            Vector3 randomDirection;
+            Vector3 randomPoint = Vector3.zero;
+            float randomRadius;
+            int maxAttempts = 8;
+            int i = 0;
+            do
+            {
+                if (!registered) yield break;
+                if (i == maxAttempts) break; // just send it
+
+                randomDirection = UnityEngine.Random.onUnitSphere;
+                randomDirection.y = 0f;
+                randomDirection.Normalize();
+                randomRadius = UnityEngine.Random.Range(20f, 32f);
+                randomPoint = Player.Local.CenterPointTransform.position + randomDirection * randomRadius;
+                i++;
+
+            } while (Player.Local.IsPointVisibleToPlayer(randomPoint));
+
+            if (randomPoint == Vector3.zero) yield break;
+
+            CartelGoon spawnedGoon = null;
+
+            // Spawn the goon
+            encounterActive = true;
+            spawnedGoon = NetworkSingleton<Il2CppScheduleOne.Cartel.Cartel>.Instance.GoonPool.SpawnGoon(randomPoint);
+            spawnedGoon.Behaviour.ScheduleManager.ActionList[0].gameObject.SetActive(false);
+            spawnedGoon.Behaviour.ScheduleManager.DisableSchedule();
+            spawnedGoon.Movement.SpeedController.AddSpeedControl("combat", Quest_TrueBrothers.startGoonMoveSpeed, 5, Il2CppScheduleOne.NPCs.SpeedControl.EType.Normalized);
+
+            // create dialogue choices
+
+            DialogueController controller = spawnedGoon.DialogueHandler.gameObject.GetComponent<DialogueController>();
+
+            DialogueController.GreetingOverride greeting = new();
+            greeting.ShouldShow = true;
+            greeting.Greeting = "We need your help at the northern waterfront!";
+            greeting.VOType = EVOLineType.Greeting;
+            greeting.PlayVO = true;
+            controller.AddGreetingOverride(greeting);
+
+            DialogueController.DialogueChoice choiceAccept = new();
+            string acceptText = "Accept Quest";
+            choiceAccept.ChoiceText = $"{acceptText}";
+            choiceAccept.Enabled = true;
+
+            DialogueController.DialogueChoice choiceRefuse = new();
+            string refuseText = "Refuse Quest";
+            choiceRefuse.ChoiceText = $"{refuseText}";
+            choiceRefuse.Enabled = true;
+
+
+            bool accepted = false;
+            bool refused = false;
+
+            void AcceptChosen()
+            {
+                controller.npc.PlayVO(EVOLineType.Acknowledge);
+                controller.handler.WorldspaceRend.ShowText("Follow me", 6f);
+                controller.handler.ContinueSubmitted();
+
+                accepted = true;
+                coros.Add(MelonCoroutines.Start(SetupTrueBrothersQuest(spawnedGoon)));
+
+                //Remove Choices
+                controller.Choices = new();
+                if (controller.GreetingOverrides.Contains(greeting))
+                    controller.GreetingOverrides.Remove(greeting);
+            }
+            choiceAccept.onChoosen.AddListener((UnityEngine.Events.UnityAction)AcceptChosen);
+            controller.AddDialogueChoice(choiceAccept);
+
+            void RefuseChosen()
+            {
+                controller.npc.PlayVO(EVOLineType.Annoyed);
+                controller.handler.WorldspaceRend.ShowText("God damnit!", 6f);
+                controller.handler.ContinueSubmitted();
+
+                refused = true;
+                // Remove choices
+                controller.Choices = new();
+                if (controller.GreetingOverrides.Contains(greeting))
+                    controller.GreetingOverrides.Remove(greeting);
+            }
+            choiceRefuse.onChoosen.AddListener((UnityEngine.Events.UnityAction)RefuseChosen);
+            controller.AddDialogueChoice(choiceRefuse);
+
+            // Set destination to player
+            int maxTraverseTime = 60;
+            int traverseTime = 0;
+            bool playerConversated = false;
+
+            for (; ; )
+            {
+                // While traversing to player (check proximity and conversate OR interrupt -> cancel despawn)
+                yield return Wait1;
+                if (!registered) yield break;
+
+                Log($"Goon Pos: {spawnedGoon.transform.position.x} {spawnedGoon.transform.position.y} {spawnedGoon.transform.position.z}");
+
+                if (traverseTime >= maxTraverseTime)
+                {
+                    Log("Traverse time out");
+                    break;
+                }
+
+                traverseTime++;
+
+                if (spawnedGoon == null || spawnedGoon.Health.IsDead || spawnedGoon.Health.IsKnockedOut || spawnedGoon.Behaviour.activeBehaviour == spawnedGoon.Behaviour.CombatBehaviour)
+                    break;
+
+                if (playerConversated)
+                {
+                    spawnedGoon.Movement.EndSetDestination(NPCMovement.WalkResult.Success);
+                    spawnedGoon.Movement.FacePoint(Player.Local.CenterPointTransform.position);
+                    spawnedGoon.Movement.PauseMovement();
+                    controller.StartGenericDialogue(false);
+                    Log("Start Conversate");
+                    break;
+                }
+
+                float distFromPlayer = Vector3.Distance(Player.Local.CenterPointTransform.position, spawnedGoon.CenterPoint);
+                if (distFromPlayer < 3f)
+                {
+                    // start dialogue when possible
+                    Log("Wait conversate");
+                    yield return new WaitUntil((Il2CppSystem.Func<bool>)CanStartConversate);
+                    Log("Can start conversate");
+                    playerConversated = true;
+                    continue;
+                }
+                else
+                {
+                    Log("Traverse to player");
+                    if (!spawnedGoon.Movement._hasDestination)
+                    {
+                        spawnedGoon.Movement.SetDestination(Player.Local.CenterPointTransform);
+                    }
+                    if (spawnedGoon.Movement.SpeedController.DoesSpeedControlExist(BetaNpc.PauseId))
+                        spawnedGoon.Movement.ResumeMovement();
+                }
+            }
+
+            // After loop ends check how the loop ended
+            bool shouldDespawn = false;
+
+            if (traverseTime >= maxTraverseTime)
+            {
+                Log("max traverse despawn");
+                // If player was not conversated remove the greeting and choices
+                controller.Choices = new();
+                if (controller.GreetingOverrides.Contains(greeting))
+                    controller.GreetingOverrides.Remove(greeting);
+                spawnedGoon.Behaviour.ScheduleManager.ActionList[0].gameObject.SetActive(true);
+                yield return Wait10;
+                if (!registered) yield break;
+
+                // Decrease the chance to encounter, but not reset the value since player never saw/interacted with the npc
+                if (!isSaving)
+                    alliedQuests.daysPassedSinceEncounter = Mathf.Clamp(alliedQuests.daysPassedSinceEncounter - 2, 0, 7);
+
+                shouldDespawn = true;
+            }
+            else if (playerConversated)
+            {
+                // Wait until player made a decision
+                yield return new WaitUntil((Il2CppSystem.Func<bool>)(() => (accepted || refused)));
+                if (!registered) yield break;
+
+                // if the player accepted -> quest starts and handles rest of the logic
+                if (accepted)
+                {
+                    spawnedGoon.Movement.SetDestination(Quest_TrueBrothers.followDestination);
+                    spawnedGoon.Movement.ResumeMovement();
+                    controller.handler.WorldspaceRend.ShowText("Follow me", 6f);
+                }
+                // if refused -> wait and despawn
+                if (refused)
+                {
+                    Log("refused despawn");
+                    spawnedGoon.Behaviour.ScheduleManager.ActionList[0].gameObject.SetActive(true);
+                    yield return Wait10;
+                    if (!registered) yield break;
+
+                    shouldDespawn = true;
+                }
+
+                // Reset the chance for encounter
+                if (!isSaving)
+                    alliedQuests.daysPassedSinceEncounter = 0;
+
+            }
+            else if (spawnedGoon == null || spawnedGoon.Health.IsDead || spawnedGoon.Health.IsKnockedOut || spawnedGoon.Behaviour.activeBehaviour == spawnedGoon.Behaviour.CombatBehaviour)
+            {
+                Log("Dead or in combat despawn");
+                // If player was not conversated remove the greeting and choices
+                controller.Choices = new();
+                if (controller.GreetingOverrides.Contains(greeting))
+                    controller.GreetingOverrides.Remove(greeting);
+
+                yield return Wait10;
+                if (!registered) yield break;
+
+                // Reset the chance for encounter
+                if (!isSaving)
+                    alliedQuests.daysPassedSinceEncounter = 0;
+
+                shouldDespawn = true;
+            }
+            
+            if (shouldDespawn)
+            {
+                spawnedGoon.Behaviour.ScheduleManager.EnableSchedule();
+                if (!spawnedGoon.Behaviour.ScheduleManager.ActionList[0].gameObject.activeSelf)
+                    spawnedGoon.Behaviour.ScheduleManager.ActionList[0].gameObject.SetActive(true); // set stayinside enable
+                spawnedGoon.Despawn();
+                spawnedGoon = null;
+                encounterActive = false;
+            }
+            yield break;
+        }
+
+        public static IEnumerator CleanupTrueBrothersQuest()
+        {
+            yield return Wait10;
+            if (activeTrueBrothersQuest.State == EQuestState.Completed)
+                coros.Add(MelonCoroutines.Start(RewardTrueBrothersQuest()));
+
+            yield return Wait30;
+            if (!registered) yield break;
+
+            Log("Reset goons + despawn props");
+            // Reset the quest goons
+            foreach (CartelGoon goon in activeTrueBrothersQuest.alliedGoons)
+            {
+                Log("Despawn");
+                goon.Behaviour.ScheduleManager.ActionList[0].gameObject.SetActive(true);
+                goon.Behaviour.ScheduleManager.EnableSchedule();
+                goon.Movement.SpeedController.RemoveSpeedControl("combat");
+
+                goon.Despawn();
+            }
+
+            // Remove quest related instantiated items
+            foreach (GameObject go in activeTrueBrothersQuest.spawnedDecor)
+            {
+                if (go != null)
+                {
+                    yield return Wait05;
+                    if (!registered) yield break;
+                    Log($"Destroying: {go.name} ({activeTrueBrothersQuest.spawnedDecor.Count})");
+                    UnityEngine.Object.Destroy(go);
+                }
+            }
+
+            Log("Despawn cops");
+            // Despawn cops
+            foreach (PoliceOfficer offc in activeTrueBrothersQuest.ambushCops)
+                if (offc.gameObject != null)
+                    UnityEngine.Object.Destroy(offc.gameObject);
+
+            // Despawn the land vehicle
+            if (activeTrueBrothersQuest.spawnedVehicle != null && activeTrueBrothersQuest.spawnedVehicle.gameObject != null)
+                UnityEngine.Object.Destroy(activeTrueBrothersQuest.spawnedVehicle.gameObject);
+
+            // Reset quest values
+            activeTrueBrothersQuest.startGoon = null;
+            activeTrueBrothersQuest.destinationStorage = null;
+            activeTrueBrothersQuest.spawnedVehicle = null;
+            activeTrueBrothersQuest.brickBase = null;
+            activeTrueBrothersQuest.alliedGoons.Clear();
+            activeTrueBrothersQuest.ambushCops.Clear();
+            activeTrueBrothersQuest.spawnedDecor.Clear();
+            activeTrueBrothersQuest.spawnedBrickPiles.Clear();
+
+            Log("Cleanup complete");
+            yield break;
+        }
+
+        public static IEnumerator RewardTrueBrothersQuest()
+        {
+            // SEnd 30k
+            NetworkSingleton<MoneyManager>.Instance.CreateOnlineTransaction("Business Investment", 30000f, 1f, string.Empty);
+
+            yield return Wait2;
+            // MSG Player inform unlocked new feature (TODO STILL)
+
+            string msg = $"Your help has been very valuable. If you need to launder some cash, I can help with bigger batches. But for now, I've wired you $30000 for your trouble.";
+            Thomas thomas = UnityEngine.Object.FindObjectOfType<Thomas>(true);
+            if (thomas == null)
+            {
+                Log("Failed to find thomas obj");
+                yield break;
+            }
+
+            thomas.MSGConversation.SendMessage(
+                new Message(msg,
+                Message.ESenderType.Other,
+                true),
+                notify: true,
+                network: true);
+
+            yield break;
+        }
+        public static IEnumerator ReplicateCopNPC()
+        {
+            Log("Replicating COP NPC");
+            NetworkManager netManager = UnityEngine.Object.FindObjectOfType<NetworkManager>(true);
+
+            PoliceOfficer officer = UnityEngine.Object.FindObjectOfType<PoliceOfficer>();
+
+
+            if (officer == null)
+            {
+                Log("No officer found");
+                yield break;
+            }
+            GameObject obj = officer.gameObject;
+            obj.SetActive(false);
+
+            List<CartelGoon> clones = new();
+            WaitForEndOfFrame frameEnd = new WaitForEndOfFrame();
+
+            GameObject clone = UnityEngine.Object.Instantiate(obj);
+            copBaseClone = clone;
+
+            clone.transform.position = Vector3.zero;
+            clone.transform.rotation = Quaternion.identity;
+
+            NPC npc = clone.GetComponent<NPC>();
+            NetworkObject newNob = clone.GetComponent<NetworkObject>();
+            PoliceOfficer offc = clone.GetComponent<PoliceOfficer>();
+            offc.AutoDeactivate = false; // Prevent from returning to station and from being added to officer pool
+
+            clone.name = $"RuntimeOfficer";
+            yield return MelonCoroutines.Start(InitiateClone(newNob, netManager));
+
+            npc.NPCData.BasicInfo.ID = "officerPrefab";
+
+            if (!NPCManager.NPCRegistry.Contains(npc))
+                NPCManager.NPCRegistry.Add(npc);
+            else
+                Log("NPC already registered in NPCRegistry");
+
+            BetaAppearance.CopyAppearance(officer.Avatar, npc.Avatar);
+            offc.PursuitBehaviour.arrestingEnabled = false;
+
+            Log("Spawn");
+            try
+            {
+                netManager.ServerManager.Spawn(newNob);
+            }
+            catch (Exception ex)
+            {
+                Log($"Failed to spawn officer {ex}");
+            }
+
+            offc.Behaviour.ScheduleManager.DisableSchedule();
+            offc.Movement.PauseMovement();
+
+            obj.SetActive(true);
+            Log("Finished replicating COP NPC");
+            yield break;
+        }
+        #endregion
+
+        #region Allied Supplies Quest
+        public static Quest_AlliedSupplies activeAlliedSupplies = null;
+        public static bool alliedSuppliesActive = false;
+        public static CartelGoon alliedGuard = null;
+        public static NetworkObject alliedVanObject = null;
+        public static int guardChoiceIndex = -1;
+
+        public static IEnumerator SetupTruceSuppliesQuest()
+        {
+            Log("Generate Truce Supplies Quest");
+            GameObject newQuestObject = new GameObject();
+            activeAlliedSupplies = newQuestObject.AddComponent<Quest_AlliedSupplies>();
+            newQuestObject.SetActive(true);
+            activeAlliedSupplies.enabled = true;
+            activeAlliedSupplies.SetupSelf();
+            yield return null;
+        }
+
+        public static IEnumerator CleanupTruceSuppliesQuest(SupplyLocation location)
+        {
+            if (location.Type == ESupplyType.Barrel)
+            {
+                foreach (GameObject go in location.BarrelObjects)
+                {
+                    InteractableObject intObj = go.GetComponent<InteractableObject>();
+                    if (intObj != null)
+                        UnityEngine.Object.Destroy(intObj);
+                }
+            }
+            yield return Wait30;
+            if (!registered) yield break;
+
+            if (location.Type == ESupplyType.Van)
+            {
+                // despawn car needs delay it despawns insta after clear
+                if (alliedVanObject != null)
+                    UnityEngine.Object.Destroy(alliedVanObject.gameObject);
+                alliedVanObject = null;
+            }
+
+            // despawn goon
+            if (alliedGuard != null)
+            {
+                alliedGuard.Behaviour.ScheduleManager.EnableSchedule();
+                alliedGuard.Behaviour.ScheduleManager.ActionList[0].gameObject.SetActive(true); // set stayinside enable
+                alliedGuard.Movement.SpeedController.RemoveSpeedControl("combat");
+                alliedGuard.Despawn();
+                alliedGuard = null;
+            }
+
+            // if Manor, gate is enterable
+            if (location.ID == "SUPPLY_MANOR")
+            {
+                for (int i = 0; i < Property.Properties.Count; i++)
+                {
+                    if (Property.Properties[i].propertyCode == "manor")
+                    {
+                        ManorGate gate1 = Property.Properties[i].gameObject.GetComponentInChildren<ManorGate>();
+                        if (gate1 == null)
+                        {
+                            // try again with transform child direct
+                            Transform manorGateTr = Property.Properties[i].transform.Find("Manor Gate");
+                            if (manorGateTr != null)
+                            {
+                                ManorGate gate2 = manorGateTr.gameObject.GetComponent<ManorGate>();
+                                if (gate2 != null)
+                                    gate2.SetEnterable(false);
+                            }
+                        }
+                        else
+                        {
+                            gate1.SetEnterable(false);
+                        }
+                    }
+                }
+
+            }
+
+            if (!(SaveManager.Instance.IsSaving || isSaving))
+                alliedQuests.hoursUntilNextSupplies = alliedConfig.SupplyQuestCooldownHours;
+            else
+            {
+                yield return new WaitUntil((Il2CppSystem.Func<bool>) !(SaveManager.Instance.IsSaving || isSaving));
+                alliedQuests.hoursUntilNextSupplies = alliedConfig.SupplyQuestCooldownHours;
+            }
+            alliedSuppliesActive = false;
+            Log("Cleanup of Supply Quest Completed");
+            yield return null;
+        }
+
+        #endregion
+
+        // Shared UI related code
+        #region Quest UI prefabs
+        public static void UpdateQuestMapLogo(QuestEntry entry)
+        {
+            coros.Add(MelonCoroutines.Start(WaitQuestUI(entry)));
+        }
+
+        public static IEnumerator WaitQuestUI(QuestEntry entry)
+        {
+            // Wait the UI to init to avoid null ref errors and get rid of bug where shade doesnt remove on 1st entry
+            bool EntryPoIExists() { return entry.PoI != null && entry.PoI.IconContainer != null && entry.PoI.UISetup; }
+            yield return new WaitUntil((Il2CppSystem.Func<bool>)(EntryPoIExists));
+            // instantiate icon prefab on quest entry begin since it shows in UnityExplorer getting destroyed
+            if (entry.PoIIcon == null)
+            {
+                entry.PoIIcon = UnityEngine.Object.Instantiate(entry.ParentQuest.IconPrefab.gameObject, entry.PoI.IconContainer).GetComponent<RectTransform>();
+                entry.PoIIcon.sizeDelta = new Vector2(20f, 20f);
+            }
+            // Remove the background shade for icon background
+            if (entry.PoI != null && entry.PoI.IconContainer != null)
+            {
+                Transform shadeTr = entry.PoI.IconContainer.Find("Shade");
+                if (shadeTr)
+                    shadeTr.gameObject.SetActive(false);
+            }
+
+        }
+        public static RectTransform MakeIcon(Transform parent)
+        {
+            
+            NPCManager manager = NetworkSingleton<NPCManager>.Instance;
+            NPCPoI prefab = manager.PotentialCustomerPoIPrefab;
+            GameObject parentObj = prefab.UIPrefab;
+            Log($"UIPrefab is null {parentObj == null}");
+            GameObject instantiated = UnityEngine.Object.Instantiate(parentObj);
+            RectTransform uiObjRt = instantiated.GetComponent<RectTransform>();
+            Transform areaExample = uiObjRt.transform.Find("Area");
+            Log($"areaExample is null {areaExample == null}");
+            GameObject logo = new("BenziesLogoQuest");
+            RectTransform rt = logo.AddComponent<RectTransform>();
+            GameObject areaObj = UnityEngine.Object.Instantiate(areaExample.gameObject);
+            RectTransform rtArea = areaObj.GetComponent<RectTransform>();
+            rtArea.SetParent(logo.transform);
+            rtArea.localScale = Vector3.one;
+            rtArea.localPosition = Vector3.one;
+            rtArea.rotation = Quaternion.identity;
+            rtArea.sizeDelta = new Vector2(25f, 25f);
+            UnityEngine.Object.Destroy(instantiated);
+            Image areaImage = areaObj.GetComponent<Image>();
+            areaImage.color = new Color(0.15f, 0.7f, 0.15f, 0.5f);
+
+            GameObject imgObj = new GameObject("Image");
+            imgObj.transform.SetParent(logo.transform);
+            imgObj.transform.localScale = Vector3.one;
+            imgObj.transform.localPosition = Vector3.one;
+            imgObj.transform.rotation = Quaternion.identity;
+            Image imgComp = imgObj.AddComponent<Image>();
+            imgComp.sprite = benziesLogo;
+            RectTransform rtImg = imgObj.GetComponent<RectTransform>();
+            rtImg.sizeDelta = new Vector2(20f, 20f);
+            logo.transform.SetParent(parent, worldPositionStays: false);
+            return rt;
+        }
+
+        public static GameObject MakePOI()
+        {
+            return Quest.Quests[0].PoIPrefab;
+        }
+
+        #endregion
+
+    }
+
+}

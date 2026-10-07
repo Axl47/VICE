@@ -1,0 +1,614 @@
+using VICE.Syndicate.Compatibility;
+using System.Collections;
+using MelonLoader;
+using UnityEngine;
+using UnityEngine.UI;
+
+using static VICE.Syndicate.SyndicateMod;
+using static VICE.Syndicate.CartelInventory;
+using static VICE.Syndicate.DebugModule;
+using static VICE.Syndicate.InfluenceOverrides;
+using static VICE.Syndicate.FrequencyOverrides;
+using static VICE.Syndicate.DealerActivity;
+
+using Il2CppScheduleOne.Cartel;
+using Il2CppScheduleOne.DevUtilities;
+using Il2CppScheduleOne.Economy;
+using Il2CppScheduleOne.GameTime;
+using Il2CppScheduleOne.ItemFramework;
+using Il2CppScheduleOne.Map;
+using Il2CppScheduleOne.Messaging;
+using Il2CppScheduleOne.PlayerScripts;
+using Il2CppScheduleOne.Quests;
+using Il2CppScheduleOne.Levelling;
+using Il2CppScheduleOne.NPCs.CharacterClasses;
+
+namespace VICE.Syndicate
+{
+    public static class InterceptEvent
+    {
+
+        // UI Elements to save Sprites and Colors for changing Quest icon when intercepted
+        public static Color questIconBack;
+        public static Sprite handshake;
+        public static Sprite benziesLogo;
+
+        private static CartelDealer[] allCartelDealers;
+
+        public class InterceptContractState
+        {
+            public bool CompletedByPlayer { get; set; }
+            public bool CompletedByCartel { get; set; }
+            public InterceptContractState()
+            {
+                CompletedByPlayer = false;
+                CompletedByCartel = false;
+            }
+        }
+        // Track current intercepted contract GUID, T1: Player Completed handover, T2: Dealer Completed Handover
+        public static Dictionary<string, InterceptContractState> contractGuids = new();
+
+
+        public static bool interceptingDeal = false;
+        public static CartelDealer interceptor = null;
+
+        public static int hoursUntilInterceptEvent = 4;
+
+        public static void HourPassInterceptCooldown()
+        {
+            if (!registered || !currentConfig.interceptDeals || isSaving) return;
+            hoursUntilInterceptEvent = Mathf.Clamp(hoursUntilInterceptEvent - 1, 0, int.MaxValue);
+        }
+
+        public static IEnumerator EvaluateCartelIntercepts()
+        {
+            yield return Wait5;
+            InterceptEvent.allCartelDealers = UnityEngine.Object.FindObjectsOfType<CartelDealer>(true);
+
+            while (registered)
+            {
+                yield return Wait60;
+
+                if (!registered) yield break;
+                if (!currentConfig.interceptDeals) continue;
+                if (hoursUntilInterceptEvent > 0) continue;
+
+                // from 4pm to 4am only
+                if (!(TimeManager.Instance.CurrentTime >= 1620 || TimeManager.Instance.CurrentTime <= 420))
+                    continue;
+
+
+                if (NetworkSingleton<Il2CppScheduleOne.Cartel.Cartel>.Instance.Status != Il2Cpp.ECartelStatus.Hostile)
+                    continue;
+
+                if (!interceptingDeal)
+                {
+                    int hours = GetActivityHours("InterceptDeals");
+                    if (hours != 0)
+                    {
+                        hoursUntilInterceptEvent = hours;
+                    }
+                    else
+                    {
+                        // User wants to use default value for cooldown
+                        hoursUntilInterceptEvent = UnityEngine.Random.Range(2, 8);
+                    }
+                    coros.Add(MelonCoroutines.Start(StartInterceptDeal()));
+                }
+
+            }
+        }
+
+        public static IEnumerator StartInterceptDeal()
+        {
+            Log("Started Checking Intercept Deal Validity");
+            List<string> occupied = new();
+            int occupiedDealersCount = 0;
+            float influenceRequirement = GetByID("InterceptDeals").InfluenceRequirement;
+
+            foreach (CartelDealer d in InterceptEvent.allCartelDealers)
+            {
+                bool hasActive = false;
+                foreach (Contract c in d.ActiveContracts)
+                {
+                    hasActive = true;
+                    if (!occupied.Contains(c.GUID.ToString()))
+                        occupied.Add(c.GUID.ToString());
+                }
+
+                if (hasActive) 
+                    occupiedDealersCount++;
+            }
+
+            // Since the prerequirement here is that the chosen dealer out of all dealers has no active contract, if the occupied dealer count is the all cartel dealer count then we can just skip running the function totally to avoid unnecessary computation
+            if (InterceptEvent.allCartelDealers.Length == occupiedDealersCount)
+                yield break;
+
+            List<Contract> validContracts = new(); 
+            for (int i = Contract.Contracts.Count - 1; i >= 0; i--)
+            {
+                Contract contract = Contract.Contracts[i];
+                if (contract != null)
+                {
+                    if (contract.Dealer != null) continue; // Not player
+                    if (contract.Customer == null) continue; // broken??
+                    if (contract.State != EQuestState.Active) continue;
+                    if (!contract.hudUIExists) continue; // if not UI exists not valid should simplify the process
+                    if (contract.hudUI == null) continue; // Check hud ui state
+                    if (contract.hudUI.gameObject == null) continue;
+                    if (contract.hudUI.gameObject.activeSelf == false) continue;
+                    if (occupied.Contains(contract.GUID.ToString())) continue; // Not cartel dealer
+                    if (contract.GetMinsUntilExpiry() > 300) continue; // Only take contracts with less than 5h left
+                    if (contract.GetMinsUntilExpiry() < 90) continue; // Only take contracts with More than 1h 30min left (30min) reserved for max wait sleep
+                    if (contractGuids.Keys.Contains(contract.GUID.ToString())) continue; // Only take contracts currently not intercepted
+
+                    if (!validContracts.Contains(contract))
+                        validContracts.Add(contract);
+                }
+            }
+
+            if (validContracts.Count == 0)
+            {
+                Log("No Valid Contracts Amount");
+                yield break; // No Valid Contracts this time
+            }
+
+            Customer customer = null;
+            Contract randomContract = null;
+            Log("Take contract");
+            do
+            {
+                yield return Wait01;
+                if (!registered) yield break;
+                if (validContracts.Count == 0) break;
+                int randomIndex = UnityEngine.Random.Range(0, validContracts.Count);
+
+                randomContract = validContracts[randomIndex];
+
+                if (randomContract == null || (randomContract != null && randomContract.State == EQuestState.Completed))
+                {
+                    Log("Contract got completed before intercept initialized");
+                    validContracts.RemoveAt(randomIndex);
+                    randomContract = null;
+                    continue;
+                }
+
+                customer = randomContract.Customer.GetComponent<Customer>();
+                if (customer.NPC.Health.IsDead || customer.NPC.Health.IsKnockedOut)
+                {
+                    Log("Contract NPC is dead or knocked out");
+                    validContracts.RemoveAt(randomIndex);
+                    randomContract = null;
+                    continue;
+                }
+
+                if (PlayerManager.GetClosestPlayer(customer.NPC.CenterPoint, out float distance) != null && distance < 40f)
+                {
+                    Log("Contract NPC is too close to player");
+                    validContracts.RemoveAt(randomIndex);
+                    randomContract = null;
+                    continue;
+                }
+
+                // Else current iteration picked contract is valid and associated customer is alive
+                Log("Contract Selected succesfully");
+                break;
+
+            } while (registered && validContracts.Count != 0);
+
+            if (customer == null || randomContract == null)
+            {
+                Log("Something went wrong in intercept");
+                yield break;
+            }
+
+            CartelDealer selected = null;
+
+            // Todo: fix this logic for dealer selection
+            // Originally the idea was to select region based dealer
+            // now with dealer roaming it is entirely possible to have another regions dealer standing in the deal spot or near it
+            // it would make sense to select the nearest first -> then region based -> then incase all those fail proceed with checking all other nearby in 80 units
+            // But on the other hand free time walking can be disabled then the implemented code would be mostly redundant in that scenario
+            // is there a good compromise for this 
+
+            EMapRegion region = Singleton<Map>.Instance.GetRegionFromPosition(customer.NPC.CenterPoint);
+
+            // if influence req. is used, check if its met
+            if (influenceRequirement >= 0f)
+            {
+                if (NetworkSingleton<Il2CppScheduleOne.Cartel.Cartel>.Instance.Influence.GetRegionData(region).Influence < influenceRequirement)
+                {
+                    Log("Influence requirement not met for intercept deals event");
+                    yield break;
+                }
+            }
+
+            if (region == EMapRegion.Northtown)
+            {
+                selected = NetworkSingleton<Il2CppScheduleOne.Cartel.Cartel>.Instance.Activities.GetRegionalActivities(EMapRegion.Westville).CartelDealer;
+            }
+            else
+            {
+                selected = NetworkSingleton<Il2CppScheduleOne.Cartel.Cartel>.Instance.Activities.GetRegionalActivities(region).CartelDealer;
+            }
+
+            // Ensure Cartel Dealer has no active contract and is not dead or knocked out OR they are occupied by base game CartelCustomerDeals region activity
+            if ((selected.ActiveContracts != null && selected.ActiveContracts.Count >= 1) || (selected.Health.IsDead || selected.Health.IsKnockedOut))
+            {
+                // How to manage the state between cartel dealer intercepting player dealer contracts, player pending and also intercepting active? This causes the more frequent kind to be always preferred leading to the intercept deals rarely happening. Config for dealer.json needs to be tweaked
+                Log("Dealer has active contracts or is dead or is occupied, check if any nearby.");
+                bool foundReplacement = false;
+                // Alternatively we check if any of the dealers would be nearby (80 units max), this way even higher values for the dealer config chance will still allow the intercept event to work
+                foreach (CartelDealer otherDealer in allCartelDealers)
+                {
+                    yield return Wait01;
+                    if (!registered) yield break;
+                    if (otherDealer == selected) continue; // skip the one who is not elgible
+                    if (otherDealer.Health.IsDead || otherDealer.Health.IsKnockedOut) continue; // Dead or knocked out not elgible
+                    if (otherDealer.ActiveContracts != null && otherDealer.ActiveContracts.Count >= 1) continue;
+
+                    if (Vector3.Distance(otherDealer.CenterPoint, customer.NPC.CenterPoint) < 80f)
+                    {
+                        Log("Dealer replacement found nearby.");
+                        foundReplacement = true;
+                        selected = otherDealer;
+                        break;
+                    }
+                }
+                if (!foundReplacement)
+                {
+                    Log("No replacement dealer found for intercept event");
+                    yield break;
+                }
+            }
+
+            string cGuid = randomContract.GUID.ToString();
+            if (!contractGuids.Keys.Contains(cGuid))
+                contractGuids.Add(cGuid, new InterceptContractState());
+
+            string text = "";
+            switch (UnityEngine.Random.Range(0, 7))
+            {
+                case 0:
+                    text = "What's taking so long? I will just find another dealer...";
+                    break;
+                case 1:
+                    text = "Nevermind! I made a deal with someone else.";
+                    break;
+                case 2:
+                    text = "Are you coming or not? I might just buy from someone else.";
+                    break;
+                case 3:
+                    text = "Yo where are you?! I've been waiting at our spot. I'll message another dealer then...";
+                    break;
+                case 4:
+                    text = "This isn't working out. I'm taking my business elsewhere.";
+                    break;
+                case 5:
+                    text = "I'm not waiting around all day. Don't bother texting me back.";
+                    break;
+                case 6:
+                    text = "You snooze, you lose. Found another dealer to sell me my shit.";
+                    break;
+                case 7:
+                    text = "I'll hustle with someone else if you ghost me like this...";
+                    break;
+            }
+            customer.NPC.RelationData.ChangeRelationship(-0.15f, true);
+            customer.NPC.MSGConversation.SendMessage(new Message(text, Message.ESenderType.Other, true, -1), true, true);
+            interceptingDeal = true;
+            interceptor = selected;
+            coros.Add(MelonCoroutines.Start(QuestUIEffect(randomContract)));
+            coros.Add(MelonCoroutines.Start(BeginIntercept(selected, randomContract, customer, region, cGuid)));
+            yield return null;
+        }
+
+        public static IEnumerator BeginIntercept(CartelDealer dealer, Contract contract, Customer customer, EMapRegion region, string cGuid)
+        {
+            yield return Wait30; // Cartel dealer is kinda fast so have to wait a bit
+            if (!registered) yield break;
+            Log("Begin intercept traverse");
+            bool changeInfluence = ShouldChangeInfluence(region);
+
+            // If player managed to complete it within that timeframe
+            if (customer.CurrentContract == null && contract != null && contract.State == EQuestState.Completed) 
+            {
+                if (changeInfluence)
+                    NetworkSingleton<Il2CppScheduleOne.Cartel.Cartel>.Instance.Influence.ChangeInfluence(region, influenceConfig.interceptSuccess);
+                if (contractGuids.Keys.Contains(cGuid))
+                    contractGuids.Remove(cGuid);
+                interceptingDeal = false;
+                interceptor = null;
+                yield break;
+            }
+
+            int originalXP = contract.CompletionXP;
+
+            contract.CompletionXP = 0;
+            contract.BopHUDUI();
+
+            Log($"Product list is null {contract.ProductList == null} ");
+            Log($"Product list entries is null {contract.ProductList.entries == null} ");
+            Log($"Product list entries count? {contract.ProductList?.entries?.Count} ");
+            FulfillContractItems(contract, dealer);
+
+            // if space left insert stolen items?
+            for (int i = 0; i < dealer.Inventory.ItemSlots.Count; i++)
+            {
+                if (dealer.Inventory.ItemSlots[i].ItemInstance == null)
+                {
+
+                    List<ItemInstance> stolen = GetFromPool(1);
+                    if (stolen != null && stolen.Count > 0)
+                    {
+                        ItemInstance stolenItem = stolen[0];
+                        dealer.Inventory.ItemSlots[i].SetStoredItem(stolenItem);
+                    }
+                    break;
+                }
+            }
+
+            // Store the events states to reset
+            int currentStayInsideStart = dealer.HomeEvent.StartTime;
+            int currentStayInsideEnd = dealer.HomeEvent.EndTime;
+            int currentStayInsideDur = dealer.HomeEvent.Duration;
+
+            bool runOnce = false;
+            Action<EQuestState> cb = null;
+            cb = new Action<EQuestState>(OnQuestEndEvaluateResult);
+
+            void OnQuestEndEvaluateResult(EQuestState state) 
+            {
+                Log("On intercept end");
+                if (runOnce) return;
+                runOnce = true;
+                if (!contractGuids.ContainsKey(cGuid)) 
+                {
+                    Log("Contract ID is not tracked, return");
+                    return;
+                }
+                if (cb != null)
+                {
+                    contract.onQuestEnd.RemoveListener(cb);
+                }
+                else
+                {
+                    Log("Callback is null cant remove listener");
+                }
+                Log("Check contract state");
+                // Check first for failed contract if true return
+                if (state == EQuestState.Failed && (dealer.Health.IsDead || dealer.Health.IsKnockedOut))
+                {
+                    coros.Add(MelonCoroutines.Start(AssignContractSoon(customer, contract, originalXP)));
+                    if (contractGuids.Keys.Contains(cGuid))
+                        contractGuids.Remove(cGuid);
+
+                    Log("Re-enable event");
+                    dealer.HomeEvent.enabled = true;
+                    dealer.HomeEvent.StartTime = currentStayInsideStart;
+                    dealer.HomeEvent.EndTime = currentStayInsideEnd;
+                    dealer.HomeEvent.Duration = currentStayInsideDur;
+                    dealer.HomeEvent.HasStarted = true;
+                    dealer.HomeEvent.Resume();
+                    interceptingDeal = false;
+                    interceptor = null;
+                }
+                // Else if contract completed
+                else if (state == EQuestState.Completed)
+                {
+                    coros.Add(MelonCoroutines.Start(WaitForContractState(dealer, contract, customer, region, cGuid, changeInfluence, originalXP)));
+                }
+                // Else any other contract state
+                else
+                {
+                    Log("Encountered unexpected state");
+                    if (contractGuids.Keys.Contains(cGuid))
+                        contractGuids.Remove(cGuid);
+
+                    Log("Re-enable event");
+                    dealer.HomeEvent.enabled = true;
+                    dealer.HomeEvent.StartTime = currentStayInsideStart;
+                    dealer.HomeEvent.EndTime = currentStayInsideEnd;
+                    dealer.HomeEvent.Duration = currentStayInsideDur;
+                    dealer.HomeEvent.HasStarted = true;
+                    dealer.HomeEvent.Resume();
+                    interceptingDeal = false;
+                    interceptor = null;
+                }
+            }
+
+            contract.onQuestEnd.AddListener(cb);
+            if (!dealer.IsAcceptingDeals)
+                dealer.SetIsAcceptingDeals(true);
+            dealer.AddContract(contract);
+            dealer.SetIsAcceptingDeals(false);
+
+            dealer.HomeEvent.StartTime = 420;
+            dealer.HomeEvent.EndTime = 1620;
+            dealer.HomeEvent.Duration = 720;
+            dealer.HomeEvent.End();
+            dealer.HomeEvent.HasStarted = false;
+            dealer.HomeEvent.enabled = false;
+            Log("Dealer Check attend start");
+            dealer.CheckAttendStart();
+
+            // Set the dealer to null because player wont be able to complete the deal otherwise, locked because its reserved for "Rival Dealer"
+            // The dealer will have the contract too and try to complete it, but this way player can do it too
+            if (customer.CurrentContract != null)
+            {
+                if (customer.CurrentContract.Dealer != null)
+                    customer.CurrentContract.Dealer = null;
+            }
+            yield return null;
+        }
+
+        public static IEnumerator WaitForContractState(CartelDealer dealer, Contract contract, Customer customer, EMapRegion region, string cGuid, bool changeInfluence, int originalXP)
+        {
+            // This never returned yes it never returns why
+            Log("Wait for complete...");
+            yield return new WaitUntil((Il2CppSystem.Func<bool>)(() => contractGuids[cGuid].CompletedByPlayer || contractGuids[cGuid].CompletedByCartel || !registered));
+            if (!registered) yield break;
+
+            if (contractGuids[cGuid].CompletedByPlayer)
+            {
+                Log("Player Stopped Cartel Intercept");
+                NetworkSingleton<LevelManager>.Instance.AddXP(originalXP);
+                if (changeInfluence)
+                    NetworkSingleton<Il2CppScheduleOne.Cartel.Cartel>.Instance.Influence.ChangeInfluence(region, influenceConfig.interceptSuccess);
+                customer.NPC.RelationData.ChangeRelationship(0.15f, true);
+            }
+            else if (contractGuids[cGuid].CompletedByCartel)
+            {
+                Log("Cartel Intercepted");
+                if (changeInfluence)
+                    NetworkSingleton<Il2CppScheduleOne.Cartel.Cartel>.Instance.Influence.ChangeInfluence(region, influenceConfig.interceptFail);
+                customer.NPC.RelationData.ChangeRelationship(-0.6f, true);
+            }
+
+            contractGuids.Remove(cGuid);
+
+            Log("Re-enable event");
+            dealer.HomeEvent.enabled = true;
+            dealer.HomeEvent.StartTime = currentStayInsideStart;
+            dealer.HomeEvent.EndTime = currentStayInsideEnd;
+            dealer.HomeEvent.Duration = currentStayInsideDur;
+            dealer.HomeEvent.HasStarted = true;
+            dealer.HomeEvent.Resume();
+            interceptingDeal = false;
+            interceptor = null;
+        }
+
+        
+        public static IEnumerator AssignContractSoon(Customer customer, Contract contract, int XP) 
+        {
+            yield return Wait01;
+            if (!registered) yield break;
+
+            if (contract.State != EQuestState.Active)
+                contract.SetQuestState(EQuestState.Active);
+            customer.AssignContract(contract);
+            customer.CurrentContract.CompletionXP = XP;
+
+            customer.CurrentContract.DeliveryWindow.WindowStartTime = NetworkSingleton<TimeManager>.Instance.CurrentTime;
+
+            customer._attendDealBehaviour.SetContract(contract);
+            customer._attendDealBehaviour.Activate();
+            customer.UpdateDealAttendance();
+            customer.SetIsAwaitingDelivery(true);
+            contract.SetIsTracked(true);
+
+            if (customer.CurrentContract.hudUI == null || customer.CurrentContract.hudUI?.gameObject == null)
+            {
+                customer.CurrentContract.SetupHUDUI();
+            }
+
+            if (!Contract.Contracts.Contains(contract))
+                Contract.Contracts.Add(contract);
+            if (contract.DeliveryLocation != null && !contract.DeliveryLocation.ScheduledContracts.Contains(contract))
+                contract.DeliveryLocation.ScheduledContracts.Add(contract);
+            yield return Wait05;
+            yield return Wait01;
+            if (!registered) yield break;
+
+            if (!customer.CurrentContract.hudUI.gameObject.activeSelf)
+                customer.CurrentContract.hudUI.gameObject.SetActive(true);
+
+            customer.HasChanged = true;
+            contract.HasChanged = true;
+            customer.CurrentContract.hudUI.FadeIn();
+
+            // Reset the entry ui since it gets removed after the reassingment
+            if (contract.Entries.Count == 0)
+                Log("Contract missing entries for reassignment");
+            else
+                contract.Entries[0].CreateEntryUI();
+
+            // for some reason, sometimes it doesnt keep tracking the hrs until expiry sometimes does, try reprod
+
+            var action = contract.OnMinPass;
+
+            NetworkSingleton<TimeManager>.Instance.onMinutePass += (Il2CppSystem.Action)action;
+            yield return null;
+        }
+
+        public static IEnumerator FetchUIElementsInit()
+        {
+            yield return Wait5;
+            if (!registered) yield break;
+            Thomas thomas = UnityEngine.Object.FindObjectOfType<Thomas>(true);
+            benziesLogo = thomas.MessagingIcon;
+            yield return null;
+        }
+
+        public static IEnumerator QuestUIEffect(Contract contract)
+        {
+            // Ugly code here but we need to actually check each transform for null
+            if (contract.hudUI == null || contract.hudUI.MainLabel == null || contract.hudUI.MainLabel.transform == null)
+            {
+                yield break;
+            }
+
+            Transform iconContainer = contract.hudUI.MainLabel.transform.Find("IconContainer");
+            if (iconContainer == null)
+            {
+                yield break;
+            }
+            Transform contractIcon = iconContainer.Find("ContractIcon(Clone)");
+            if (contractIcon == null)
+            {
+                yield break;
+            }
+
+            Transform backgroundTr = contractIcon.Find("Background");
+            if (backgroundTr == null)
+            {
+                yield break;
+            }
+            Image background = backgroundTr.GetComponent<Image>();
+            questIconBack = background.color;
+
+            coros.Add(MelonCoroutines.Start(LerpQuestColor(background)));
+
+            Transform fillImgTr = contractIcon.Find("Fill");
+            if (fillImgTr == null)
+            {
+                yield break;
+            }
+            Image fillImg = fillImgTr.GetComponent<Image>();
+            handshake = fillImg.sprite;
+
+            contract.hudUI.BopIcon();
+            fillImg.overrideSprite = benziesLogo;
+
+            coros.Add(MelonCoroutines.Start(ResetQuestUIEffect(fillImg, background)));
+            yield return null;
+        }
+
+        public static IEnumerator ResetQuestUIEffect(Image fillImg, Image background)
+        {
+            while (interceptingDeal && registered) { yield return Wait5; }
+            if (background != null)
+                background.color = questIconBack;
+            if (fillImg)
+                fillImg.overrideSprite = handshake;
+            yield return null;
+        }
+        public static IEnumerator LerpQuestColor(Image background)
+        {
+            Color startColor = background.color;
+            Color endColor = Color.white;
+            float duration = 2.0f;
+            float timer = 0f;
+
+            while (timer < duration && registered)
+            {
+                float t = timer / duration;
+                background.color = Color.Lerp(startColor, endColor, t);
+                timer += Time.deltaTime;
+                yield return Wait01;
+                if (!registered) yield break;
+            }
+            yield return null;
+        }
+    }
+}

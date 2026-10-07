@@ -1,0 +1,856 @@
+using VICE.Syndicate.Compatibility;
+
+using System.Collections;
+using UnityEngine;
+using MelonLoader;
+
+using static VICE.Syndicate.DebugModule;
+using static VICE.Syndicate.SyndicateMod;
+using static VICE.Syndicate.FrequencyOverrides;
+
+using Il2CppScheduleOne.Audio;
+using Il2CppScheduleOne.Interaction;
+using Il2CppScheduleOne.ItemFramework;
+using Il2CppScheduleOne.Property;
+using Il2CppScheduleOne.Storage;
+using Il2CppScheduleOne.PlayerScripts;
+using Il2CppScheduleOne.UI;
+using Il2CppScheduleOne.DevUtilities;
+using Il2CppScheduleOne.Lighting;
+using Il2CppScheduleOne.Cartel;
+using Il2CppScheduleOne.Money;
+using Il2CppScheduleOne.Map;
+using Il2CppScheduleOne.NPCs;
+using Il2CppScheduleOne.Combat;
+using Il2CppScheduleOne.NPCs.Behaviour;
+using Il2CppScheduleOne.VoiceOver;
+using Il2CppScheduleOne.Persistence;
+using Il2CppFishNet;
+using Il2CppInterop.Runtime.Injection;
+
+namespace VICE.Syndicate
+{
+    public static class SabotageEvent
+    {
+
+        public static GameObject intBomb = null;
+        public static InteractableObject bombInteractable = null;
+        public static CartelGoon sabotager = null;
+
+        public static Light bombLight = null;
+        public static Material bombCubeMat = null;
+        public static AudioSource bombSound = null;
+        
+        public static GameObject reactiveFire = null;
+        public static FlickeringLight fireLight = null;
+        public static FireCollisionHandler fireHandler = null;
+
+        public static List<SabotageEventLocation> locations = new();
+
+        public static List<Player> burningPlayers = new();
+        public static int interactionsUntilDefuse = 6;
+        public static bool bombDefused = false;
+
+        public static bool sabotageEventActive = false;
+
+        static readonly float maxExplosionDistance = 7f;
+        static readonly float maxConcussionDistance = 12f;
+        static readonly float maxExplosionDmg = 500f;
+
+        static readonly float impactForce = 1450f;
+
+        static readonly float maxFireTickDamage = 8f;
+        static readonly float minFireTickDamage = 2f;
+
+        static readonly int fireTicks = 2;
+
+        public static void PopulateBombLocations()
+        {
+            foreach (Business business in Business.Businesses)
+            {
+                if (business.PropertyName == "Laundromat")
+                {
+                    locations.Add(new SabotageEventLocation(
+                        business,
+                        new Tuple<Vector3, Vector3>(
+                            new Vector3(-27.75f, 0.59f, 22.8f), new Vector3(0f, 0f, 0f)
+                        ),
+                        new Tuple<Vector3, Vector3>(
+                            new Vector3(-26.9f, -0.4f, 25.09f), new Vector3(0f, 65f, 0f)
+                        ),
+                        new List<Vector3>()
+                        {
+                            new Vector3(-43.82f, 1.46f, 49.71f), 
+                            new Vector3(-7.46f, 1.36f, 10.72f), 
+                            new Vector3(-11.14f, 1.46f, 67.10f)
+                        }
+                    ));
+                }
+                else if (business.PropertyName == "Post Office")
+                {
+                    locations.Add(new SabotageEventLocation(
+                        business,
+                        new Tuple<Vector3, Vector3>(
+                            new Vector3(47.94f, 0.15f, -0.45f), new Vector3(0f, 0f, 0f)
+                        ),
+                        new Tuple<Vector3, Vector3>(
+                            new Vector3(47.8f, 0f, -1.15f), new Vector3(0f, 90f, 0f)
+                        ),
+                        new List<Vector3>()
+                        {
+                            new Vector3(56.62f, 1.36f, -25.80f), 
+                            new Vector3(7.77f, 1.36f, 19.38f), 
+                            new Vector3(65.30f, 1.45f, 33.30f),
+                        }
+                    ));
+                }
+                else if (business.PropertyName == "Taco Ticklers")
+                {
+                    locations.Add(new SabotageEventLocation(
+                        business,
+                        new Tuple<Vector3, Vector3>(
+                            new Vector3(-34f, 0.24f, 78.38f), new Vector3(90f, 270f, 0f)
+                        ),
+                        new Tuple<Vector3, Vector3>(
+                            new Vector3(-34f, -0.3f, 80f), new Vector3(0f, 15f, 0f)
+                        ),
+                        new List<Vector3>()
+                        {
+                            new Vector3(-30.13f, 1.45f, 97.50f), 
+                            new Vector3(-43.82f, 1.46f, 49.71f), 
+                            new Vector3(-11.14f, 1.46f, 67.10f)
+                        }
+                    ));
+                }
+                else
+                {
+                    continue;
+                }
+            }
+
+            Log("Finished populating business bomb locations");
+            return;
+        }
+
+        public static void PrepareBombFXObjects()
+        {
+            Log("Prepare bomb fx");
+            RV rv = UnityEngine.Object.FindObjectOfType<RV>();
+            // THIS ONE FOR THE FX FIRE + get bomb obj
+            // FX gameobject, instatiate new and disabled version which can be moved around with coordinates and on enabled it plays animation...
+            GameObject targetFireExplosionFX = rv.transform.Find("Destroyed RV/FX")?.gameObject;
+
+            reactiveFire = UnityEngine.Object.Instantiate(targetFireExplosionFX);
+            if (reactiveFire.gameObject.activeSelf)
+                reactiveFire.SetActive(false);
+            reactiveFire.name = "SyndicateMod_ReactiveFire";
+
+            fireLight = reactiveFire.GetComponentInChildren<FlickeringLight>();
+
+            // add to fire fx box collider with size and set is trigger = true, check for player - collider interaction for dealing damage overtime
+            BoxCollider fireBc = reactiveFire.AddComponent<BoxCollider>();
+            fireBc.size = new Vector3(2.7f, 3f, 8.3f);
+            fireBc.center = new Vector3(0.4f, 0f, 0f);
+            fireBc.isTrigger = true;
+
+            Rigidbody fireRb = reactiveFire.AddComponent<Rigidbody>(); // needed for trigger with player
+            fireRb.isKinematic = true;
+
+            fireHandler = reactiveFire.AddComponent<FireCollisionHandler>();
+
+            // Then the bomb, it can be instantiated based on definition, when exploding bomb it just disables it and moves to next location
+            GameObject bombGo = null;
+            Func<string, ItemDefinition> GetItem;
+
+            GetItem = Il2CppScheduleOne.Registry.GetItem;
+            ItemInstance bombInstance = null;
+            ItemDefinition def = GetItem("bomb");
+            bombInstance = def.GetDefaultInstance();
+
+
+            StorableItemInstance storable = null;
+            storable = bombInstance.TryCast<StorableItemInstance>();
+            if (storable != null && storable.StoredItemPrefab != null)
+            {
+                bombGo = storable.StoredItemPrefab.gameObject;
+            }
+            Log($" bombGo is null {bombGo == null}");
+            // Instantiate new Bomb object, preparing for int object
+            intBomb = UnityEngine.Object.Instantiate(bombGo);
+            intBomb.SetActive(false);
+            intBomb.name = "SyndicateMod_InteractableBomb";
+
+            // Then that is Bomb_Stored(Clone) basically
+            GameObject bombMeshObj = intBomb.transform.Find("Bomb/bomb").gameObject;
+            bombMeshObj.AddComponent<BoxCollider>();
+            bombInteractable = intBomb.AddComponent<InteractableObject>();
+            bombInteractable.message = "x 6 - Defuse bomb";
+
+            void OnBombInteract()
+            {
+                bombInteractable.message = $"x {interactionsUntilDefuse} - Defuse bomb";
+                if (interactionsUntilDefuse > 0)
+                {
+                    interactionsUntilDefuse--;
+                }
+                else
+                {
+                    bombLight.intensity = 1.8f;
+                    bombLight.color = Color.green;
+                    bombCubeMat.color = Color.green;
+                    bombDefused = true;
+                    coros.Add(MelonCoroutines.Start(DespawnBombSoon()));
+                }
+            }
+            bombInteractable.onInteractStart.AddListener((UnityEngine.Events.UnityAction)OnBombInteract);
+            // Add the red light component
+            Transform lightTransform = new GameObject("BombLight").transform;
+            lightTransform.parent = intBomb.transform;
+            lightTransform.localPosition = new Vector3(0f, 0.23f, 0f);
+            bombLight = lightTransform.gameObject.AddComponent<Light>();
+            bombLight.color = Color.red;
+            bombLight.intensity = 1.8f;
+            bombLight.range = 0.4f;
+            bombLight.type = LightType.Point;
+
+            // Primitive cube as unlit material that blinks red/grey
+            Shader standardShader = Shader.Find("Universal Render Pipeline/Lit");
+
+
+            bombCubeMat = new Material(standardShader);
+            bombCubeMat.color = Color.grey;
+
+            GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            cube.transform.parent = intBomb.transform;
+
+            MeshRenderer mr = cube.GetComponent<MeshRenderer>();
+            mr.material = bombCubeMat;
+
+            cube.transform.localScale = new Vector3(0.023f, 0.01f, 0.01f);
+            cube.transform.position = new Vector3(0f, 0.052f, -0.016f);
+            Log("Shader and renderer done");
+            
+            // Audio source for bomb beeping
+            bombSound = intBomb.AddComponent<AudioSource>();
+            bombSound.maxDistance = 7f;
+            bombSound.minDistance = 1f;
+            bombSound.pitch = 0.8f;
+            bombSound.spatialize = true;
+            bombSound.spatialBlend = 1f;
+            bombSound.spread = 0.7f;
+            bombSound.rolloffMode = AudioRolloffMode.Linear;
+            bombSound.velocityUpdateMode = AudioVelocityUpdateMode.Dynamic;
+            bombSound.volume = 0.12f;
+            // Fetch the PoliceVO beeping sound for the audio clip
+            PoliceChatterVO voObj = UnityEngine.Object.FindObjectOfType<PoliceChatterVO>(true);
+            if (voObj == null)
+                Log("Could not find police chatter vo");
+            else
+            {
+                AudioSourceController controller = voObj.StartEndBeep;
+                if (controller != null)
+                {
+                    AudioSource source = controller._audioSource;
+                    if (source != null && source.clip != null)
+                    {
+                        bombSound.clip = source.clip;
+                    }
+                    else { Log("Audio source is null"); }
+                }
+                else { Log("Audio controller"); }
+            }
+
+            Log("Instantiated gameobjects for event");
+
+            return;
+        }
+
+        public static IEnumerator EvaluateBombEvent()
+        {
+            float influenceRequirement = GetByID("Sabotage").InfluenceRequirement;
+            while (true)
+            {
+                yield return Wait60;
+                if (!registered) yield break;
+                if (!currentConfig.businessSabotage) continue;
+
+                if (!InstanceFinder.IsServer)
+                    yield break;
+                if (NetworkSingleton<Il2CppScheduleOne.Cartel.Cartel>.Instance.Status != Il2Cpp.ECartelStatus.Hostile)
+                    continue;
+                if (SaveManager.Instance.IsSaving || isSaving) continue;
+
+                if (sabotageEventActive) continue;
+
+                if (NetworkSingleton<Il2CppScheduleOne.Cartel.Cartel>.Instance.GoonPool.UnspawnedGoonCount == 0) continue;
+
+                // Check each location and meet either condition
+                // active laundering operation or player is inside business
+                SabotageEventLocation selected = null;
+                foreach (SabotageEventLocation location in locations)
+                {
+                    if (location.hoursUntilEnabled != 0) continue;
+
+                    if (influenceRequirement >= 0f)
+                    {
+                        EMapRegion reg = Map.Instance.GetRegionFromPosition(location.business.transform.position);
+                        if (reg == EMapRegion.Northtown)
+                            reg = EMapRegion.Downtown; // because taco ticklers is closer to it and northtown doesnt have infl
+
+                        if (NetworkSingleton<Il2CppScheduleOne.Cartel.Cartel>.Instance.Influence.GetRegionData(reg).Influence < influenceRequirement)
+                        {
+                            continue; // not enough influence in region to sabotage the business
+                        }
+                    }
+
+                    if (location.business.LaunderingOperations.Count != 0 && location.business.currentLaunderTotal > location.business.appliedLaunderLimit * 0.5f)
+                    {
+                        Log("Selected by active launder operation and launder threshold met");
+                        selected = location;
+                        break;
+                    }
+
+                    Player nearbyPlayer = PlayerManager.GetClosestPlayer(location.bombLocation.Item1, out float distance);
+                    if (distance < 20f && nearbyPlayer.CurrentBusiness != null && nearbyPlayer.CurrentBusiness == location.business && location.business.IsOwned)
+                    {
+                        Log("Selected by player inside business");
+                        selected = location;
+                        break;
+                    }
+
+                }
+                if (selected == null) 
+                {
+                    Log("No valid locations for sabotage");
+                    continue;
+                }
+
+                int hours = GetActivityHours("Sabotage");
+                if (hours == 0)
+                {
+                    // Reset cooldown based on influence as mod default
+                    float allInfluence = 0f;
+                    foreach (CartelInfluence.RegionInfluenceData data in NetworkSingleton<Il2CppScheduleOne.Cartel.Cartel>.Instance.Influence.regionInfluence)
+                    {
+                        allInfluence += data.Influence;
+                    }
+                    
+                    float allInfluenceNormalized = allInfluence / NetworkSingleton<Il2CppScheduleOne.Cartel.Cartel>.Instance.Influence.regionInfluence.Count;
+                    int minHrs = Mathf.RoundToInt(Mathf.Lerp(16f, 37f, allInfluenceNormalized));
+                    int maxHrs = Mathf.RoundToInt(Mathf.Lerp(38f, 64f, allInfluenceNormalized));
+                    selected.hoursUntilEnabled = UnityEngine.Random.Range(minHrs, maxHrs);
+                }
+                else
+                {
+                    // Reset cooldown based on what the user wants
+                    selected.hoursUntilEnabled = hours;
+                }
+
+                // pass
+                sabotageEventActive = true;
+                coros.Add(MelonCoroutines.Start(GoonPlantBomb(selected)));
+            }
+        }
+
+        public static IEnumerator GoonPlantBomb(SabotageEventLocation location)
+        {
+            // Decide goon spawn pos
+            Vector3 randomPoint = location.sabotagerSpawns[UnityEngine.Random.Range(0, location.sabotagerSpawns.Count)];
+            CartelGoon goon = NetworkSingleton<Il2CppScheduleOne.Cartel.Cartel>.Instance.GoonPool.SpawnGoon(randomPoint);
+            sabotager = goon;
+            goon.Movement.WarpToNearestValidLocation();
+            Log($"Sabotager spawned at {goon.CenterPointTransform.position}");
+            goon.Behaviour.ScheduleManager.ActionList[0].gameObject.SetActive(false);
+            goon.Behaviour.ScheduleManager.DisableSchedule();
+            goon.Movement.SetDestination(location.bombLocation.Item1);
+
+            goon.Movement.SpeedController.SetSpeedMultiplier(1.3f);
+
+            float distanceToBombLoc = 50f;
+            int n = 0;
+            // While not in range and traverse lasted less than 30 sec, continue
+            while (distanceToBombLoc > 2f && n < 120)
+            {
+                n++;
+                yield return Wait025; // wait traverse
+                if (!registered) yield break;
+                if (goon.Health.IsDead || !goon.IsConscious || goon.Health.IsKnockedOut)
+                {
+                    Log("Goon killed while traverse");
+                    EventEnded(location, influenceConfig.sabotageGoonKilled);
+                    sabotageEventActive = false;
+                    coros.Add(MelonCoroutines.Start(DespawnGoonSoon(goon)));
+                    yield break;
+                }
+
+                distanceToBombLoc = Vector3.Distance(goon.CenterPoint, location.bombLocation.Item1);
+            }
+
+            if (n >= 120 && distanceToBombLoc > 2f)
+            {
+                Log("Failed traverse timeout");
+                sabotageEventActive = false;
+                coros.Add(MelonCoroutines.Start(DespawnGoonSoon(goon)));
+                yield break;
+            }
+
+            goon.Movement.Stop();
+
+            goon.Movement.FacePoint(location.bombLocation.Item1, lerpTime: 0.4f);
+
+            yield return Wait05;
+            if (!registered) yield break;
+            if (goon.Health.IsDead || !goon.IsConscious || goon.Health.IsKnockedOut)
+            {
+                Log("Goon killed while planting");
+                EventEnded(location, influenceConfig.sabotageGoonKilled);
+                sabotageEventActive = false;
+                coros.Add(MelonCoroutines.Start(DespawnGoonSoon(goon)));
+                yield break;
+            }
+
+            goon.Avatar.Animation.SetCrouched(true);
+
+            yield return Wait05;
+            if (!registered) yield break;
+            if (goon.Health.IsDead || !goon.IsConscious || goon.Health.IsKnockedOut)
+            {
+                Log("Goon killed while planting");
+                EventEnded(location, influenceConfig.sabotageGoonKilled);
+                sabotageEventActive = false;
+                coros.Add(MelonCoroutines.Start(DespawnGoonSoon(goon)));
+                yield break;
+            }
+
+            goon.SetAnimationTrigger("GrabItem");
+            SpawnBomb(location);
+
+            Singleton<NotificationsManager>.Instance.SendNotification(
+                location.business.PropertyName,
+                $"<color=#FF1E12>Sabotage alert!</color>",
+                NetworkSingleton<MoneyManager>.Instance.LaunderingNotificationIcon,
+                10f,
+                true
+            );
+
+            yield return Wait05;
+            if (!registered) yield break;
+
+            goon.Avatar.Animation.SetCrouched(false);
+            // should walk back inside on its own, but doesnt on long render distances
+            goon.Behaviour.ScheduleManager.ActionList[0].gameObject.SetActive(true);
+            goon.Behaviour.ScheduleManager.EnableSchedule();
+            Log($"Goon planted bomb now at pos: {goon.CenterPoint}");
+
+            goon.Movement.SpeedController.SetSpeedMultiplier(1.6f);
+
+            coros.Add(MelonCoroutines.Start(DespawnGoonSoon(goon)));
+
+            yield return null;
+        }
+
+        public static void SpawnBomb(SabotageEventLocation location)
+        {
+            bombDefused = false;
+            interactionsUntilDefuse = UnityEngine.Random.Range(26, 68);
+            bombCubeMat.color = Color.grey;
+            bombLight.intensity = 0f;
+
+            intBomb.transform.SetPositionAndRotation(location.bombLocation.Item1, Quaternion.Euler(location.bombLocation.Item2));
+            intBomb.SetActive(true);
+            bombInteractable.message = $"x {interactionsUntilDefuse} - Defuse bomb";
+
+            coros.Add(MelonCoroutines.Start(BombActivated(location)));
+            return;
+        }
+
+        public static IEnumerator DespawnBombSoon()
+        {
+            yield return Wait10;
+            intBomb.SetActive(false);
+            bombCubeMat.color = Color.grey;
+            bombLight.intensity = 0f;
+            bombSound.volume = 0.1f;
+            yield return null;
+        }
+
+        public static IEnumerator BombActivated(SabotageEventLocation location)
+        {
+            int maxWaitSecs = 120;
+            int timeWaited = 0;
+
+            float distanceToBomb = 50f;
+
+            bool proximityInitiated = false;
+            int ticksInProximity = 0;
+            int maxTicksInProximity = 7; // e.g. 14sec after first tick toggle
+
+            bool timeInitiated = false;
+
+            while (!timeInitiated && !bombDefused)
+            {
+                // While not proximity initiated update the timeout initiation
+                // when proximity is triggered tick up until explosion
+
+                PlayerManager.GetClosestPlayer(location.bombLocation.Item1, out distanceToBomb);
+                if (!proximityInitiated)
+                {
+                    proximityInitiated = (distanceToBomb < 6f);
+                    timeInitiated = (timeWaited >= maxWaitSecs);
+                }
+                if (proximityInitiated)
+                {
+                    Log($"Bomb exploding after {maxTicksInProximity-ticksInProximity} ticks");
+                    
+                    if (ticksInProximity % 2 == 0)
+                    {
+                        bombCubeMat.color = Color.grey;
+                        bombLight.intensity = 0f;
+                    }
+                    else
+                    {
+                        bombCubeMat.color = Color.red;
+                        bombLight.intensity = 1.8f;
+                        bombLight.color = Color.red;
+                    }
+                        
+                    bombSound.Play();
+                    ticksInProximity++;
+                    if (ticksInProximity >= maxTicksInProximity) break;
+                }
+
+                yield return Wait2;
+                if (!registered) yield break;
+                timeWaited += 2;
+            }
+
+            
+            yield return Wait05;
+            if (bombDefused)
+            {
+                EventEnded(location, influenceConfig.sabotageBombDefused);
+                Log("Bomb succesfully defused");
+                sabotageEventActive = false;
+                yield break;
+            }
+
+            coros.Add(MelonCoroutines.Start(ExplosionEvent(location)));
+
+            yield return null;
+        }
+
+        public static IEnumerator ExplosionEvent(SabotageEventLocation location)
+        {
+            Log("Trigger Explosion");
+
+            intBomb.SetActive(false);
+            bombCubeMat.color = Color.grey;
+            bombLight.intensity = 0f;
+            bombSound.volume = 0.1f;
+
+            reactiveFire.transform.SetPositionAndRotation(location.fireLocation.Item1, Quaternion.Euler(location.fireLocation.Item2));
+            reactiveFire.SetActive(true);
+
+            // maybe in the future do something similiar like the drive by shooting raycasting but use radial then max penetration of layers by 3 or something similiar??
+            // this way it doesnt always go through multiple walls??
+            bool playerConcussed = false;
+            Player player = PlayerManager.GetClosestPlayer(location.bombLocation.Item1, out float distance);
+            IDamageable damageablePlayer = player.GetComponent<IDamageable>();
+            if (distance <= maxExplosionDistance && damageablePlayer != null)
+            {
+                ProcessExplosionImpact(player.CenterPointTransform.position, damageablePlayer);
+            }
+            if (distance <= maxConcussionDistance)
+            {
+                playerConcussed = true;
+                player.Seizure = true;
+                player.Disoriented = true;
+                // PlayerSingleton PlayerCamera Instance StartCameraShake intensity dur fade out overtime true
+            }
+
+            List<NPC> npcsFleeing = new();
+            foreach (NPC npc in NPCManager.NPCRegistry) 
+            {
+                if (!npc.IsSpawned || npc.isInBuilding || npc.IsInVehicle)
+                    continue;
+
+                distance = Vector3.Distance(intBomb.transform.position, npc.CenterPoint);
+                if (distance <= maxExplosionDistance)
+                {
+                    // Can have benzies goon on it, at long ranged render distance the goon that plants bomb dies here?
+                    // during same time they bug out the fire for some reason what happens there? couldnt reprod but try again later...
+                    Log("NPC Explosion effect: " + npc.ID);
+                    IDamageable damageableNpc = npc.GetComponent<IDamageable>();
+                    if (damageableNpc == null)
+                    {
+                        Log("Explosion recipient does not have IDamageable interface");
+                    }
+                    else
+                    {
+                        ProcessExplosionImpact(npc.CenterPoint, damageableNpc);
+                        if (!npc.Health.IsDead && !npc.Health.IsKnockedOut)
+                        {
+                            npc.Behaviour.FleeBehaviour.FleeMode = FleeBehaviour.EFleeMode.Point;
+                            npc.Behaviour.FleeBehaviour.SetPointToFlee(intBomb.transform.position);
+                            npc.Behaviour.FleeBehaviour.Enable_Networked();
+                            npcsFleeing.Add(npc);
+                        }
+                    }
+                    
+                    
+                }
+                else if (distance <= maxConcussionDistance)
+                {
+                    npc.SetPanicked_Server();
+                }
+            }
+
+
+            Log("Cancel business launder");
+            foreach (LaunderingOperation operation in location.business.LaunderingOperations)
+            {
+                operation.amount = 0f;
+                operation.completionTime_Minutes = 1;
+            }
+
+            yield return Wait5;
+            if (!registered) yield break;
+            if (playerConcussed)
+            {
+                player.Seizure = false;
+                player.Disoriented = false;
+            }
+
+            EventEnded(location, influenceConfig.sabotageBombExploded);
+            Log("End Event");
+
+            yield return Wait10;
+            if (!registered) yield break;
+
+            foreach (NPC npc in npcsFleeing)
+            {
+                if (npc.Behaviour.FleeBehaviour.Active)
+                    npc.Behaviour.FleeBehaviour.Disable_Networked(null);
+
+                if (UnityEngine.Random.Range(0f, 1f) > 0.33f)
+                    npc.SetPanicked_Server();
+            }
+            npcsFleeing.Clear();
+
+            yield return Wait10;
+            if (!registered) yield break;
+            // scale down fire and setactive false
+            float currentScale = 1f;
+            float targetScale = 0.05f;
+            float scaleDownStep = 0.025f;
+
+            float maxIntensity = 14f;
+            float minIntensity = 10f;
+
+            while (currentScale >= targetScale)
+            {
+                yield return Wait025;
+                if (!registered) yield break;
+                currentScale -= scaleDownStep;
+                reactiveFire.transform.localScale = new Vector3(currentScale, currentScale, currentScale);
+
+                fireLight.maxIntensity = Mathf.Clamp(Mathf.SmoothStep(maxIntensity, -2f, 1f - currentScale), 0f, maxIntensity);
+                fireLight.minIntensity = Mathf.Clamp(Mathf.SmoothStep(minIntensity, -2f, 1f - currentScale), 0f, minIntensity);
+            }
+            reactiveFire.SetActive(false);
+            reactiveFire.transform.localScale = new Vector3(1f, 1f, 1f);
+
+            fireLight.maxIntensity = 14f;
+            fireLight.minIntensity = 10f;
+
+            sabotageEventActive = false;
+            bombDefused = false;
+            Log("End sabotage event");
+
+            yield return null;
+        }
+
+        public static void ProcessExplosionImpact(Vector3 receivePosition, IDamageable recipient) // recipient as type NPC or Player, this function contains problematic code??
+        {
+            float ratio = 1 / (intBomb.transform.position - receivePosition).sqrMagnitude;
+            float force = Mathf.Clamp(impactForce * ratio, 0f, 350f);
+            float dmg = Mathf.Clamp(maxExplosionDmg * ratio, 0f, 200f);
+            Vector3 impactDirection = (receivePosition - intBomb.transform.position).normalized;
+            Impact newImpact = new Impact(
+                        receivePosition,
+                        impactDirection,
+                        force,
+                        dmg,
+                        EImpactType.PhysicsProp,
+                        impactSource: null
+                    );
+            Log($"Direct explosion damage: {maxExplosionDmg * ratio}\n  force: {impactForce * ratio}\n  ratio: {ratio}");
+            recipient.SendImpact(newImpact);
+            Log("Direct explosion impact processed");
+            return;
+        }
+
+        public static IEnumerator SetPlayerBurning(Player player, Collider coll)
+        {
+            if (burningPlayers.Contains(player))
+                yield break;
+
+            burningPlayers.Add(player);
+
+            // idk fix this it doesnt stop ticking until player dies lmao
+            // maybe the collider exit has problems?
+            int successiveBurns = 0;
+            for (; ; )
+            {
+                successiveBurns++;
+                int currentTicks = fireTicks * successiveBurns;
+
+                for (int i = 0; i < currentTicks; i++)
+                {
+                    yield return Wait05;
+                    if (!registered) yield break;
+                    if (!player.Health.IsAlive) break;
+
+                    float dmg = UnityEngine.Random.Range(minFireTickDamage, maxFireTickDamage);
+                    dmg *= successiveBurns;
+                    Log($"Fire damage: {dmg}, tick {i}");
+
+                    player.Health.TakeDamage(dmg, true, true);
+                }
+                if (!fireHandler.inCollision.Contains(player)) break;
+            }
+
+            if (burningPlayers.Contains(player))
+                burningPlayers.Remove(player);
+
+            yield return null;
+        }
+
+        public static IEnumerator DespawnGoonSoon(CartelGoon goon)
+        {
+            yield return Wait30;
+            if (!registered) yield break;
+            Log($"Goon despawned now at pos: {goon.CenterPoint}");
+
+            goon.Behaviour.ScheduleManager.ActionList[0].gameObject.SetActive(true);
+            goon.Behaviour.ScheduleManager.EnableSchedule();
+
+            goon.Despawn();
+
+            goon.Movement.SpeedController.SetSpeedMultiplier(1f);
+            sabotager = null;
+            yield return null;
+        }
+
+        public static void EventEnded(SabotageEventLocation location, float influenceChange)
+        {
+            EMapRegion reg = Map.Instance.GetRegionFromPosition(location.business.transform.position);
+            if (InstanceFinder.IsServer)
+            {
+                if (reg == EMapRegion.Northtown)
+                    reg = EMapRegion.Downtown; // because taco ticklers is closer to that than westville
+                
+                NetworkSingleton<Il2CppScheduleOne.Cartel.Cartel>.Instance.Influence.ChangeInfluence(reg, influenceChange);
+            }
+
+        }
+
+        public static void ReduceSabotageHours()
+        {
+            if (locations == null || locations.Count == 0) return;
+            if (SaveManager.Instance.IsSaving || isSaving) return;
+            if (!currentConfig.businessSabotage) return;
+
+            foreach (SabotageEventLocation loc in locations)
+            {
+                loc.HourPass();
+            }
+        }
+
+        public class SabotageEventLocation
+        {
+            public Business business { get; private set; }
+            public int hoursUntilEnabled { get; set; }
+            public Tuple<Vector3, Vector3> bombLocation { get; private set; }
+            public Tuple<Vector3, Vector3> fireLocation { get; private set; }
+
+            public List<Vector3> sabotagerSpawns { get; private set; }
+
+            public SabotageEventLocation(Business business, Tuple<Vector3, Vector3> bombLocation, Tuple<Vector3, Vector3> fireLocation, List<Vector3> sabotagerSpawns)
+            {
+                this.business = business;
+                this.bombLocation = bombLocation;
+                this.fireLocation = fireLocation;
+                this.sabotagerSpawns = sabotagerSpawns;
+                /* MAYBE IF NEEDED?
+                float allInfluence = 0f;
+                foreach (CartelInfluence.RegionInfluenceData data in NetworkSingleton<Il2CppScheduleOne.Cartel.Cartel>.Instance.Influence.regionInfluence)
+                {
+                    allInfluence += data.Influence;
+                }
+                float allInfluenceNormalized = allInfluence / NetworkSingleton<Il2CppScheduleOne.Cartel.Cartel>.Instance.Influence.regionInfluence.Count;
+                int minHrs = Mathf.RoundToInt(Mathf.Lerp(16f, 38f, allInfluenceNormalized));
+                int maxHrs = Mathf.RoundToInt(Mathf.Lerp(38f, 64f, allInfluenceNormalized));
+                */
+                this.hoursUntilEnabled = eventCooldowns.SabotageCooldowns.First(x => x.Key == business.PropertyName).Value;
+            }
+
+            public void HourPass()
+            {
+                if (!InstanceFinder.IsServer)
+                    return;
+
+                if (!this.business.IsOwned)
+                    return;
+                if (NetworkSingleton<Il2CppScheduleOne.Cartel.Cartel>.Instance.Status != Il2Cpp.ECartelStatus.Hostile)
+                    return;
+                this.hoursUntilEnabled = Mathf.Clamp(this.hoursUntilEnabled - 1, 0, int.MaxValue);
+            }
+        }
+    }
+
+    [RegisterTypeInIl2Cpp]
+    public class FireCollisionHandler : MonoBehaviour
+    {
+        public FireCollisionHandler(IntPtr ptr) : base(ptr) { }
+
+        public FireCollisionHandler() : base(ClassInjector.DerivedConstructorPointer<FireCollisionHandler>())
+            => ClassInjector.DerivedConstructorBody(this);
+        public List<Player> inCollision = new();
+
+        private void OnTriggerEnter(Collider other)
+        {
+            if (other.gameObject.layer != 6) return;
+            Player playerComp = other.gameObject.GetComponentInParent<Player>();
+            if (playerComp == null)
+            {
+                Log("No player component found");
+                return;
+            }
+            if (!inCollision.Contains(playerComp))
+                inCollision.Add(playerComp);
+            coros.Add(MelonCoroutines.Start(SabotageEvent.SetPlayerBurning(playerComp, other)));
+        }
+
+        private void OnTriggerExit(Collider other)
+        {
+            if (other.gameObject.layer != 6) return;
+            Player playerComp = other.gameObject.GetComponentInParent<Player>();
+            if (playerComp == null)
+            {
+                Log("No player component found");
+                return;
+            }
+            if (inCollision.Contains(playerComp))
+                inCollision.Remove(playerComp);
+        }
+
+        private void OnDisable()
+        {
+            inCollision.Clear();
+        }
+
+    }
+
+
+}
