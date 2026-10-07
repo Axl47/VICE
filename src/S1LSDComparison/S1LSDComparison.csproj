@@ -2,12 +2,13 @@
   <PropertyGroup>
     <IsGameMod>true</IsGameMod>
     <AssemblyName>Personal.S1LSDComparison</AssemblyName>
-    <Version>0.1.1</Version>
+    <Version>0.2.0</Version>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="$(LoaderDir)/Newtonsoft.Json.dll"><Private>false</Private></Reference>
     <EmbeddedResource Include="Assets/s1lsd_shaders.bundle" LogicalName="Comparison.Shaders.bundle" />
     <EmbeddedResource Include="Assets/lsd.default.json" LogicalName="Comparison.Defaults.json" />
+    <EmbeddedResource Include="Assets/comparison-audio.bundle" LogicalName="Comparison.Audio.bundle" />
   </ItemGroup>
 </Project>

@@ -20,3 +20,9 @@ assets/LSDStudio/Blender/
 src/LSDGameplay/Assets/studio.bundle.manifest
 src/LSDGameplay/Assets/Assets
 src/LSDGameplay/Assets/Assets.manifest
+assets/S1LSDComparisonAudio/Library/
+assets/S1LSDComparisonAudio/Temp/
+assets/S1LSDComparisonAudio/Logs/
+assets/S1LSDComparisonAudio/UserSettings/
+src/S1LSDComparison/Assets/*.manifest
+src/S1LSDComparison/Assets/Assets

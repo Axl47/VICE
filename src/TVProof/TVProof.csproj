@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsGameMod>true</IsGameMod>
+    <AssemblyName>Personal.TVProof</AssemblyName>
+    <Version>0.1.1</Version>
+  </PropertyGroup>
+</Project>

@@ -13,12 +13,12 @@ internal sealed class ComparisonPanel : IDisposable
 {
     private GameObject? Root;
     private readonly TextMeshProUGUI Status;
-    private readonly Image Classic, Subtle, Peak, Timeline;
+    private readonly Image Classic, Subtle, Peak, Timeline, AudioOn, AudioOff;
     private string LastStatus = "";
     private static readonly Color Selected = new(0.12f, 0.46f, 0.42f, 1);
     private static readonly Color Unselected = new(0.12f, 0.18f, 0.24f, 1);
 
-    internal ComparisonPanel(Action<bool> style, Action<bool> timing, Action<int> dose, Action stop, Action close)
+    internal ComparisonPanel(Action<bool> style, Action<bool> timing, Action<bool> audio, Action<int> dose, Action stop, Action close)
     {
         try {
             Root = new GameObject("S1LSD comparison controls", new[] { Il2CppType.Of<RectTransform>() });
@@ -33,11 +33,11 @@ internal sealed class ComparisonPanel : IDisposable
             backdrop.anchorMin = Vector2.zero; backdrop.anchorMax = Vector2.one;
             backdrop.offsetMin = backdrop.offsetMax = Vector2.zero;
             backdrop.gameObject.AddComponent<Image>().color = new Color(0, 0, 0, 0.6f);
-            var panel = Rect(Root.transform, "Panel", 0, 0, 760, 540);
+            var panel = Rect(Root.transform, "Panel", 0, 0, 760, 600);
             panel.anchorMin = panel.anchorMax = panel.pivot = new Vector2(0.5f, 0.5f);
             panel.anchoredPosition = Vector2.zero;
             panel.gameObject.AddComponent<Image>().color = new Color(0.035f, 0.055f, 0.08f, 0.99f);
-            Label(panel, "S1LSD · VISUAL COMPARISON", 28, 24, 704, 40, 27);
+            Label(panel, "S1LSD · EXPERIENCE COMPARISON", 28, 24, 704, 40, 27);
             Label(panel, "Choose a style and timing, then click a dose to start.", 28, 70, 704, 30, 19);
             Classic = Button(panel, "CLASSIC · C", 28, 116, 340, 48, () => style(true));
             Subtle = Button(panel, "SUBTLE · S", 392, 116, 340, 48, () => style(false));
@@ -48,23 +48,26 @@ internal sealed class ComparisonPanel : IDisposable
                 var value = doses[i];
                 Button(panel, $"{value} µg · {i + 1}", 28 + i * 180, 250, 164, 58, () => dose(value));
             }
-            Label(panel, "Full timeline: 3.5 / 5.5 / 8.5 / 11 minutes. Visuals only; audio stays dry.", 28, 324, 704, 44, 17);
-            Status = Label(panel, "", 28, 379, 704, 62, 18);
-            Button(panel, "STOP COMPARISON · F10", 28, 454, 340, 48, stop);
-            Button(panel, "CLOSE PANEL · F6 / Esc", 392, 454, 340, 48, close);
+            AudioOn = Button(panel, "AUDIO ON · A", 28, 324, 340, 48, () => audio(true));
+            AudioOff = Button(panel, "AUDIO OFF · D", 392, 324, 340, 48, () => audio(false));
+            Label(panel, "Full timeline: 3.5 / 5.5 / 8.5 / 11 minutes. Audio switches live.", 28, 389, 704, 44, 17);
+            Status = Label(panel, "", 28, 439, 704, 62, 18);
+            Button(panel, "STOP COMPARISON · F10", 28, 514, 340, 48, stop);
+            Button(panel, "CLOSE PANEL · F6 / Esc", 392, 514, 340, 48, close);
         } catch { Dispose(); throw; }
     }
 
-    internal void Show(bool classic, bool peak, string status)
+    internal void Show(bool classic, bool peak, bool audio, string status)
     {
-        Refresh(classic, peak, status);
+        Refresh(classic, peak, audio, status);
         Root!.SetActive(true);
     }
 
-    internal void Refresh(bool classic, bool peak, string status)
+    internal void Refresh(bool classic, bool peak, bool audio, string status)
     {
         Classic.color = classic ? Selected : Unselected; Subtle.color = classic ? Unselected : Selected;
         Peak.color = peak ? Selected : Unselected; Timeline.color = peak ? Unselected : Selected;
+        AudioOn.color = audio ? Selected : Unselected; AudioOff.color = audio ? Unselected : Selected;
         if (status != LastStatus) { LastStatus = status; Status.text = status; }
     }
 

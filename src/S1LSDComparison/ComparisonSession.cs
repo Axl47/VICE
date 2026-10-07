@@ -13,6 +13,7 @@ internal sealed class ComparisonSession
     internal readonly LsdConfig Config;
     internal EffectController Effect { get; private set; }
     private VisualMixer Mixer = new(469);
+    private readonly S1LSD.Core.AudioMixer SoundMixer;
     internal bool Classic { get; set; } = true;
     internal bool HoldPeak { get; set; } = true;
     internal float VisualTime { get; private set; }
@@ -21,6 +22,7 @@ internal sealed class ComparisonSession
     internal ComparisonSession(LsdConfig config)
     {
         Config = config;
+        SoundMixer = new S1LSD.Core.AudioMixer(Config.Audio);
         // Neutral, repeatable comparison. No world anxiety/tolerance/economy.
         Config.BadTrip.Enabled = false;
         Config.BadTrip.UseSetting = false;
@@ -76,5 +78,12 @@ internal sealed class ComparisonSession
 
     internal ShaderTargets Shader(in VisualInputs input) => Mixer.MixShader(input);
     internal VisualTargets Grade(in VisualInputs input) => Mixer.Mix(input);
+    internal AudioTargets Audio(float dilation = 0) => SoundMixer.Mix(new AudioInputs {
+        Channels = Effect.Channels, Breath = Effect.Breath, Phase = Effect.Phase,
+        PhaseProgress = Effect.PhaseProgress(Effect.Phase), BadTripBlend = Effect.BadTripBlend,
+        ClosedEyes = 0, TimeDilation = Math.Clamp(dilation, 0, 1),
+        Unease = Active ? Effect.Mind.Unease : 0, HeartBpm = Effect.Mind.HeartBpm,
+        Gentle = Config.Quality.GentleMode, Active = Active
+    });
     internal void Stop() { Effect.Stop(); VisualTime = 0; }
 }

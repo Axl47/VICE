@@ -3,6 +3,7 @@
   <ItemGroup>
     <Compile Include="../../src/S1LSDComparison/Vendor/**/*.cs" Link="Vendor/%(RecursiveDir)%(Filename)%(Extension)" />
     <Compile Include="../../src/S1LSDComparison/ComparisonSession.cs" Link="ComparisonSession.cs" />
+    <Compile Include="../../src/S1LSDComparison/ComparisonAudioState.cs" Link="ComparisonAudioState.cs" />
     <Reference Include="$(LoaderDir)/Newtonsoft.Json.dll" />
     <EmbeddedResource Include="../../src/S1LSDComparison/Assets/lsd.default.json" LogicalName="Comparison.Defaults.json" />
   </ItemGroup>

@@ -1,7 +1,8 @@
 param(
     [string]$GameDir = 'C:\Program Files (x86)\Steam\steamapps\common\Schedule I',
     [string]$DotnetPath = 'dotnet',
-    [switch]$Install
+    [switch]$Install,
+    [switch]$RebuildAudio
 )
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path $PSScriptRoot -Parent
@@ -9,11 +10,14 @@ $portableSdk = Join-Path $repoRoot '.tools/dotnet-sdk-8.0.425/dotnet.exe'
 if ($DotnetPath -eq 'dotnet' -and (Test-Path -LiteralPath $portableSdk)) { $DotnetPath = $portableSdk }
 $env:DOTNET_CLI_HOME = Join-Path $repoRoot '.tools/cli-home'
 $env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'
+if ($RebuildAudio) { & (Join-Path $PSScriptRoot 'Build-S1LSDComparisonAudio.ps1') }
 $provenance = Get-Content -LiteralPath (Join-Path $repoRoot 'src/S1LSDComparison/Assets/provenance.json') -Raw | ConvertFrom-Json
+$audioManifest = Get-Content -LiteralPath (Join-Path $repoRoot 'src/S1LSDComparison/Assets/audio.json') -Raw | ConvertFrom-Json
 foreach ($asset in @(
     @{ Name = 's1lsd_shaders.bundle'; Hash = $provenance.shaderBundleSha256 },
     @{ Name = 's1lsd_shaders.original.bundle'; Hash = $provenance.originalShaderBundleSha256 },
-    @{ Name = 'lsd.default.json'; Hash = $provenance.defaultConfigSha256 }
+    @{ Name = 'lsd.default.json'; Hash = $provenance.defaultConfigSha256 },
+    @{ Name = 'comparison-audio.bundle'; Hash = $audioManifest.bundleSha256 }
 )) {
     $path = Join-Path $repoRoot "src/S1LSDComparison/Assets/$($asset.Name)"
     if ((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() -ne $asset.Hash) { throw "Original asset changed: $path" }
@@ -38,7 +42,8 @@ try {
     }
     foreach ($resourceCheck in @(
         @{ Name = 'Comparison.Shaders.bundle'; Hash = $provenance.shaderBundleSha256 },
-        @{ Name = 'Comparison.Defaults.json'; Hash = $provenance.defaultConfigSha256 }
+        @{ Name = 'Comparison.Defaults.json'; Hash = $provenance.defaultConfigSha256 },
+        @{ Name = 'Comparison.Audio.bundle'; Hash = $audioManifest.bundleSha256 }
     )) {
         $resource = $definition.MainModule.Resources | Where-Object { $_.Name -eq $resourceCheck.Name }
         if (-not $resource) { throw "Missing embedded asset: $($resourceCheck.Name)" }
@@ -58,10 +63,11 @@ try {
     if ($leaseCalls | Where-Object { $_.DeclaringType.FullName -match 'MelonPreferences|System\.IO\.' }) { throw 'Baseline isolation must not change preferences or files.' }
     Write-Output 'PASS: original embedded assets verified; no original gameplay/persistence runtime, audio filter, camera callbacks, or baseline preference/file writes.'
 } finally { $definition.Dispose() }
-$packageRoot = Join-Path $repoRoot 'artifacts/S1LSDComparison-0.1.1'
+$packageRoot = Join-Path $repoRoot 'artifacts/S1LSDComparison-0.2.0'
 $null = New-Item -ItemType Directory -Force -Path (Join-Path $packageRoot 'Mods'), (Join-Path $packageRoot 'licenses/S1LSD')
 Copy-Item -LiteralPath $builtDll -Destination (Join-Path $packageRoot 'Mods/Personal.S1LSDComparison.dll')
 Copy-Item -LiteralPath (Join-Path $repoRoot 'docs/s1lsd-comparison.md') -Destination (Join-Path $packageRoot 'README.md')
+Copy-Item -LiteralPath (Join-Path $repoRoot 'docs/comparison-menu-design.md'), (Join-Path $repoRoot 'docs/future-closed-eye-patterns.md') -Destination $packageRoot
 Copy-Item -LiteralPath (Join-Path $repoRoot 'licenses/S1LSD/LICENSE.txt'), (Join-Path $repoRoot 'licenses/S1LSD/THIRD_PARTY_NOTICES.txt') -Destination (Join-Path $packageRoot 'licenses/S1LSD')
 Compress-Archive -Path (Join-Path $packageRoot '*') -DestinationPath "$packageRoot.zip" -Force
 Write-Output "Packaged: $packageRoot.zip"

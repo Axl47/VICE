@@ -8,7 +8,7 @@ using S1LSD.Core;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(PersonalMods.S1LSDComparison.S1LSDComparisonMod), "Disposable S1LSD Visual Comparison", "0.1.1", "Axl47; S1LSD Contributors (MIT effects)")]
+[assembly: MelonInfo(typeof(PersonalMods.S1LSDComparison.S1LSDComparisonMod), "Disposable S1LSD Visual Comparison", "0.2.0", "Axl47; S1LSD Contributors (MIT effects)")]
 [assembly: MelonGame("TVGS", "Schedule I")]
 
 namespace PersonalMods.S1LSDComparison;
@@ -23,6 +23,9 @@ public sealed class S1LSDComparisonMod : MelonMod
     private Camera? Camera;
     private PlayerCamera? PanelCamera;
     private ComparisonPanel? Panel;
+    private ComparisonAudio? Audio;
+    private bool AudioEnabled = true;
+    private float Dilation;
     private object? FrameLoop;
     private ShaderTargets Targets;
     private bool PanelOpen, PreviousLook, PreviousTyping, Tracked;
@@ -35,13 +38,16 @@ public sealed class S1LSDComparisonMod : MelonMod
     private bool Checked;
     private ComparisonCheck? Diagnostic;
     private readonly bool RequestedPanelCheck = Environment.GetCommandLineArgs().Contains("--s1lsd-panel-check");
+    private readonly bool RequestedAudioCheck = Environment.GetCommandLineArgs().Contains("--s1lsd-audio-check");
+    private bool AudioChecked;
+    private ComparisonAudioCheck? AudioDiagnostic;
 
     public override void OnInitializeMelon()
     {
         using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Comparison.Defaults.json")!;
         using var reader = new StreamReader(stream);
         Session = ComparisonSession.FromJson(reader.ReadToEnd());
-        LoggerInstance.Msg("Disposable S1LSD comparison ready: F6 menu; F10 stops. Visuals only. No recipes, items, saves, startup shaders or audio patches.");
+        LoggerInstance.Msg("Disposable S1LSD comparison ready: F6 menu; F10 stops. Original visual/audio targets with owned bus DSP and procedural ambience. No recipes, items, saves, startup DSP or audio patches.");
     }
 
     public override void OnUpdate()
@@ -49,6 +55,14 @@ public sealed class S1LSDComparisonMod : MelonMod
         try {
             var keyboard = Keyboard.current;
             if (keyboard?.f10Key.wasPressedThisFrame == true) { Stop(); return; }
+            if (RequestedAudioCheck && !AudioChecked && Time.realtimeSinceStartup > 5
+                && UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == "Menu") {
+                AudioChecked = true; Baseline = new BaselineLease(); AudioDiagnostic = new ComparisonAudioCheck(Session);
+            }
+            if (AudioDiagnostic is not null) {
+                if (AudioDiagnostic.Tick()) { AudioDiagnostic.Dispose(); AudioDiagnostic = null; Baseline?.Dispose(); Baseline = null; }
+                return;
+            }
             if (RequestedCheck && !Checked && Time.realtimeSinceStartup > 5
                 && UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == "Menu") {
                 Checked = true;
@@ -79,6 +93,8 @@ public sealed class S1LSDComparisonMod : MelonMod
                 if (keyboard.sKey.wasPressedThisFrame) SelectStyle(false);
                 if (keyboard.pKey.wasPressedThisFrame) SelectTiming(true);
                 if (keyboard.tKey.wasPressedThisFrame) SelectTiming(false);
+                if (keyboard.aKey.wasPressedThisFrame) SelectAudio(true);
+                if (keyboard.dKey.wasPressedThisFrame) SelectAudio(false);
                 if (keyboard.digit1Key.wasPressedThisFrame) RequestDose(70);
                 if (keyboard.digit2Key.wasPressedThisFrame) RequestDose(140);
                 if (keyboard.digit3Key.wasPressedThisFrame) RequestDose(280);
@@ -101,6 +117,7 @@ public sealed class S1LSDComparisonMod : MelonMod
             var speed = Tracked && dt > 0 ? Quaternion.Angle(rotation, LastRotation) / dt : 0;
             LastRotation = rotation; Tracked = true;
             Dwell = speed < 5 ? Dwell + dt : 0;
+            Dilation = Mathf.MoveTowards(Dilation, Session.Effect.Dose >= 140 ? Mathf.Clamp01((Dwell - 3) / 3) : 0, dt * 0.4f);
             Gaze = Mathf.MoveTowards(Gaze, Dwell >= 2 ? 1.25f : 1, dt * 0.2f);
             Saccade = Mathf.MoveTowards(Saccade, speed > 120 ? 1 : 0, dt * 3);
             Session.Tick(dt);
@@ -108,6 +125,7 @@ public sealed class S1LSDComparisonMod : MelonMod
             var input = Session.Inputs(Gaze, Saccade);
             Targets = Session.Shader(input); var grade = Session.Grade(input);
             Volume?.Tick(grade);
+            if (AudioEnabled) { Audio ??= new ComparisonAudio(); Audio.Tick(Session.Audio(Dilation), dt, Session.Config.Audio.TransitionSeconds); }
             if (Renderer is not null && FrameLoop is null) FrameLoop = MelonCoroutines.Start(RenderFrames());
         } catch (Exception error) { Failed(error); }
     }
@@ -118,11 +136,11 @@ public sealed class S1LSDComparisonMod : MelonMod
         try {
             Baseline = new BaselineLease();
             Renderer = new ComparisonRenderer(); Volume = new ComparisonVolume(camera);
-            Camera = camera; Tracked = false; Gaze = 1; Dwell = Saccade = 0;
+            Camera = camera; Tracked = false; Gaze = 1; Dwell = Saccade = Dilation = 0;
             Session.Classic = SelectedClassic; Session.HoldPeak = SelectedPeak;
             Session.Start(dose);
             Status = $"{dose} tier / {(Session.Classic ? "Classic" : "Subtle")} / {(Session.HoldPeak ? "held peak" : "full timeline")}";
-            LoggerInstance.Msg($"S1LSD comparison started: {Status}. Original shader, neutral setting, no tolerance; original audio omitted.");
+            LoggerInstance.Msg($"S1LSD comparison started: {Status}. Audio {(AudioEnabled ? "on" : "off")}; original targets and procedural synth, owned native DSP.");
         } catch { Stop(); throw; }
     }
 
@@ -159,7 +177,7 @@ public sealed class S1LSDComparisonMod : MelonMod
 
     private void OpenPanel(PlayerCamera? camera)
     {
-        Panel ??= new ComparisonPanel(SelectStyle, SelectTiming, RequestDose, () => PendingDose = -1, ClosePanel);
+        Panel ??= new ComparisonPanel(SelectStyle, SelectTiming, SelectAudio, RequestDose, () => PendingDose = -1, ClosePanel);
         PanelCamera = camera; PreviousTyping = GameInput.IsTyping;
         if (camera) {
             PreviousLook = camera!.CanLook;
@@ -170,7 +188,7 @@ public sealed class S1LSDComparisonMod : MelonMod
         }
         GameInput.IsTyping = true; PanelOpen = true;
         Cursor.lockState = CursorLockMode.None; Cursor.visible = true;
-        Panel.Show(SelectedClassic, SelectedPeak, Status);
+        Panel.Show(SelectedClassic, SelectedPeak, AudioEnabled, Status);
         LoggerInstance.Msg("S1LSD comparison native panel opened: clickable style/timing/dose controls, keyboard 1–4 backup.");
     }
 
@@ -193,13 +211,13 @@ public sealed class S1LSDComparisonMod : MelonMod
 
     private void SelectStyle(bool classic)
     {
-        SelectedClassic = classic; Panel?.Refresh(SelectedClassic, SelectedPeak, Status);
+        SelectedClassic = classic; Panel?.Refresh(SelectedClassic, SelectedPeak, AudioEnabled, Status);
         LoggerInstance.Msg($"S1LSD comparison selected {(classic ? "Classic" : "Subtle")}; click a dose to apply.");
     }
 
     private void SelectTiming(bool peak)
     {
-        SelectedPeak = peak; Panel?.Refresh(SelectedClassic, SelectedPeak, Status);
+        SelectedPeak = peak; Panel?.Refresh(SelectedClassic, SelectedPeak, AudioEnabled, Status);
         LoggerInstance.Msg($"S1LSD comparison selected {(peak ? "Hold peak" : "Full timeline")}; click a dose to apply.");
     }
 
@@ -209,10 +227,20 @@ public sealed class S1LSDComparisonMod : MelonMod
         LoggerInstance.Msg($"S1LSD comparison requested tier {dose} from panel input.");
     }
 
+    private void SelectAudio(bool enabled)
+    {
+        AudioEnabled = enabled;
+        if (!enabled) { var audio = Audio; Audio = null; audio?.Dispose(); }
+        Panel?.Refresh(SelectedClassic, SelectedPeak, AudioEnabled, Status);
+        LoggerInstance.Msg($"S1LSD comparison audio {(enabled ? "enabled" : "disabled; original bus routes restored")}. Live comparison timeline preserved.");
+    }
+
     private void Stop()
     {
+        AudioDiagnostic?.Dispose(); AudioDiagnostic = null;
         Diagnostic?.Dispose(); Diagnostic = null;
         ClosePanel(); PendingDose = 0; Session?.Stop();
+        var audio = Audio; Audio = null; audio?.Dispose();
         var renderer = Renderer; Renderer = null; renderer?.Dispose();
         var volume = Volume; Volume = null; volume?.Dispose();
         var baseline = Baseline; Baseline = null; baseline?.Dispose(); Camera = null;
@@ -227,7 +255,7 @@ public sealed class S1LSDComparisonMod : MelonMod
 
     public override void OnSceneWasUnloaded(int buildIndex, string sceneName)
     {
-        if (Panel is not null || Renderer is not null) Stop();
+        if (Panel is not null || Renderer is not null || AudioDiagnostic is not null) Stop();
         Panel?.Dispose(); Panel = null;
     }
     public override void OnApplicationQuit() => Stop();

@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><IsGameMod>true</IsGameMod><AssemblyName>Personal.TV</AssemblyName><Version>0.1.2</Version></PropertyGroup>
+  <ItemGroup><Reference Include="$(GameDir)\Mods\S1API.Il2Cpp.MelonLoader.dll"><Private>false</Private></Reference></ItemGroup>
+</Project>

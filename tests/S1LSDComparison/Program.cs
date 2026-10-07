@@ -59,3 +59,32 @@ var invalid = ComparisonSession.FromJson(json);
 try { invalid.Start(999); throw new Exception("Unsupported dose accepted."); }
 catch (ArgumentOutOfRangeException) { }
 Console.WriteLine("PASS: all four original dose/style shader fixtures, durations, breathing while holding peak, finite targets, timeline completion, stop and unsupported-dose handling.");
+
+foreach (var dose in doses) {
+    var session = ComparisonSession.FromJson(json); session.Start(dose);
+    var sound = session.Audio();
+    Check(sound.EchoWet >= 0 && sound.EchoWet <= 0.4f && sound.ChorusWet > 0 && sound.ChorusWet <= 0.2f, "Original peak must produce bounded filter targets.");
+    Check(dose == 70 ? sound.EchoWet == 0 : sound.EchoWet > 0, "Original lowest tier has no echo; higher tiers do.");
+    var echo = Math.Clamp(session.Effect.Channels.Echo / 0.55f, 0, 1);
+    Near(sound.EchoWet, session.Config.Audio.EchoMaxWet * echo, "Original peak echo mapping");
+    Near(sound.EchoDelayMs, 180 + 170 * echo, "Original delay mapping");
+    Near(sound.EchoDry, 1 - 0.35f * sound.EchoWet, "Original dry balance");
+    var dilation = session.Audio(1); Check(dilation.EchoDelayMs > sound.EchoDelayMs, "Dwell dilation lengthens echo.");
+    session.Classic = false; Near(session.Audio().EchoWet, sound.EchoWet, "Visual style does not change original audio intensity.");
+    var smoothing = new ComparisonAudioState(); var first = smoothing.Step(sound, 0, 3);
+    Near(first.EchoWet, 0, "New audio route must start dry"); Near(first.LowPassHz, 22000, "New route begins unfiltered");
+    for (var frame = 0; frame < 200; frame++) first = smoothing.Step(sound, 0.1f, 3);
+    Near(first.EchoWet, sound.EchoWet, "Original transition converges");
+    Check(first.Drone > 0 && first.Shimmer > 0 && first.BadDrone == 0 && first.Whisper == 0, "Neutral comparison has drone/shimmer, no bad-trip ambience.");
+    session.Stop(); var off = session.Audio();
+    Check(!off.EchoOn && !off.ReverbOn && !off.ChorusOn && off.Drone == 0, "Stop clears all audio targets.");
+    Near(off.EchoDry, 1, "Stopped audio is dry");
+}
+Func<float[]>[] synths = { () => ProceduralSynth.Drone(0.5f), () => ProceduralSynth.Shimmer(0.5f), () => ProceduralSynth.ComeUpPulse(2),
+    () => ProceduralSynth.BadDrone(0.5f), () => ProceduralSynth.Heartbeat(1), () => ProceduralSynth.Whisper(0.5f), () => ProceduralSynth.PaperTick() };
+foreach (var synth in synths) {
+    var samples = synth(); Check(samples.Length > 8000 && samples.All(float.IsFinite), "Procedural audio contains finite PCM.");
+    Check(samples.Max(Math.Abs) <= 0.500001f && samples.Sum(v => (double)v * v) / samples.Length > 0.00001, "Synthesizer has bounded, non-silent output.");
+    Check(samples.SequenceEqual(synth()), "Original synthesizer output is deterministic.");
+}
+Console.WriteLine("PASS: four original audio dose fixtures, dry start, transition convergence, neutral ambience, stop and deterministic bounded procedural PCM.");

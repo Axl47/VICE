@@ -1,0 +1,218 @@
+{
+  "_note": "Sanitized public examples only. Token and media grants are nonfunctional placeholders.",
+  "capabilities": {
+    "protocolVersion": 1,
+    "profiles": [
+      "mp4-h264-aac"
+    ],
+    "subtitleModes": [
+      "burned",
+      "none"
+    ]
+  },
+  "search": {
+    "items": [
+      {
+        "id": "tmdb:tv:123",
+        "title": "Sample",
+        "year": 2026,
+        "mediaType": "tv"
+      }
+    ]
+  },
+  "title": {
+    "id": "tmdb:tv:123",
+    "title": "Sample",
+    "seasons": [
+      {
+        "number": 1,
+        "title": "Season 1"
+      }
+    ]
+  },
+  "episodes": {
+    "items": [
+      {
+        "id": "tmdb:tv:123:1:2",
+        "title": "Episode 2",
+        "seasonNumber": 1,
+        "number": 2
+      }
+    ]
+  },
+  "movieEpisodes": {
+    "items": [
+      {
+        "id": "tmdb:movie:456:movie",
+        "title": "Sample Movie",
+        "seasonNumber": 0,
+        "number": 1
+      }
+    ]
+  },
+  "sources": {
+    "items": [
+      {
+        "id": "example",
+        "name": "Example source",
+        "playable": true,
+        "reason": null,
+        "versions": [
+          {
+            "id": "sub-1080p",
+            "label": "Sub \u00b7 1080p",
+            "playable": true,
+            "reason": null
+          }
+        ]
+      },
+      {
+        "id": "iframe-example",
+        "name": "Iframe source",
+        "playable": false,
+        "reason": "Requires the provider player",
+        "versions": []
+      }
+    ]
+  },
+  "createPlayback": {
+    "requestId": "a1b24567-89ab-4cde-8fab-123456789abc",
+    "episodeId": "tmdb:tv:123:1:2",
+    "sourceId": "example",
+    "versionId": "sub-1080p",
+    "profile": "mp4-h264-aac",
+    "subtitleMode": "burned"
+  },
+  "preparing": {
+    "id": "a1b24567-89ab-4cde-8fab-123456789abc",
+    "status": "preparing",
+    "title": "Sample \u2014 Episode 2",
+    "episodeId": "tmdb:tv:123:1:2",
+    "sourceId": "example",
+    "versionId": "sub-1080p",
+    "profile": "mp4-h264-aac",
+    "subtitleMode": "burned",
+    "mediaUrl": null,
+    "mimeType": null,
+    "durationSeconds": null,
+    "width": null,
+    "height": null,
+    "seekable": false,
+    "expiresAt": null,
+    "progress": 0.25,
+    "message": "Preparing a compatible video",
+    "errorCode": null
+  },
+  "ready": {
+    "id": "a1b24567-89ab-4cde-8fab-123456789abc",
+    "status": "ready",
+    "title": "Sample \u2014 Episode 2",
+    "episodeId": "tmdb:tv:123:1:2",
+    "sourceId": "example",
+    "versionId": "sub-1080p",
+    "profile": "mp4-h264-aac",
+    "subtitleMode": "burned",
+    "mediaUrl": "https://relay.example.invalid/integrations/game/v1/media/a1b24567-89ab-4cde-8fab-123456789abc/REDACTED_MEDIA_GRANT",
+    "mimeType": "video/mp4",
+    "durationSeconds": 1440,
+    "width": 1920,
+    "height": 1080,
+    "seekable": true,
+    "expiresAt": "2026-10-07T13:00:00.000Z",
+    "progress": 1,
+    "message": null,
+    "errorCode": null
+  },
+  "unsupported": {
+    "id": "a1b24567-89ab-4cde-8fab-123456789abc",
+    "status": "unsupported",
+    "title": "Sample \u2014 Episode 2",
+    "episodeId": "tmdb:tv:123:1:2",
+    "sourceId": "example",
+    "versionId": "sub-1080p",
+    "profile": "mp4-h264-aac",
+    "subtitleMode": "burned",
+    "mediaUrl": null,
+    "mimeType": null,
+    "durationSeconds": null,
+    "width": null,
+    "height": null,
+    "seekable": false,
+    "expiresAt": null,
+    "progress": null,
+    "message": "The selected source or subtitle mode is not supported",
+    "errorCode": "subtitle_unsupported"
+  },
+  "failed": {
+    "id": "a1b24567-89ab-4cde-8fab-123456789abc",
+    "status": "failed",
+    "title": "Sample \u2014 Episode 2",
+    "episodeId": "tmdb:tv:123:1:2",
+    "sourceId": "example",
+    "versionId": "sub-1080p",
+    "profile": "mp4-h264-aac",
+    "subtitleMode": "burned",
+    "mediaUrl": null,
+    "mimeType": null,
+    "durationSeconds": null,
+    "width": null,
+    "height": null,
+    "seekable": false,
+    "expiresAt": null,
+    "progress": null,
+    "message": "Relay could not prepare this video",
+    "errorCode": "preparation_timeout"
+  },
+  "expired": {
+    "id": "a1b24567-89ab-4cde-8fab-123456789abc",
+    "status": "expired",
+    "title": "Sample \u2014 Episode 2",
+    "episodeId": "tmdb:tv:123:1:2",
+    "sourceId": "example",
+    "versionId": "sub-1080p",
+    "profile": "mp4-h264-aac",
+    "subtitleMode": "burned",
+    "mediaUrl": null,
+    "mimeType": null,
+    "durationSeconds": null,
+    "width": null,
+    "height": null,
+    "seekable": false,
+    "expiresAt": null,
+    "progress": null,
+    "message": "Playback access has expired",
+    "errorCode": null
+  },
+  "refresh": {
+    "positionSeconds": 312.5
+  },
+  "createToken": {
+    "label": "Living room mod"
+  },
+  "tokens": {
+    "configured": true,
+    "items": [
+      {
+        "id": "a1b24567-89ab-4cde-8fab-123456789abc",
+        "label": "Living room mod",
+        "createdAt": "2026-10-07T12:00:00.000Z",
+        "expiresAt": "2026-11-06T12:00:00.000Z",
+        "revokedAt": null
+      }
+    ]
+  },
+  "createdToken": {
+    "id": "a1b24567-89ab-4cde-8fab-123456789abc",
+    "label": "Living room mod",
+    "createdAt": "2026-10-07T12:00:00.000Z",
+    "expiresAt": "2026-11-06T12:00:00.000Z",
+    "revokedAt": null,
+    "token": "REDACTED_TOKEN_VALUE_FOR_DOCUMENTATION_ONLY"
+  },
+  "error": {
+    "error": {
+      "code": "request_conflict",
+      "message": "This requestId was already used for a different playback"
+    }
+  }
+}

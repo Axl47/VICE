@@ -1,6 +1,6 @@
-# Disposable S1LSD visual comparison 0.1.1
+# Disposable S1LSD experience comparison 0.2.0
 
-This is a separate removable preview based on the user-supplied **S1LSD 0.11.0** archive. Its MIT license allows adaptation with attribution. The original perception shader tree/programs and dose defaults are preserved byte for byte, and selected pure configuration/visual calculations were recovered from the supplied DLL. The shader's container was repaired for loading, as described below. This is a comparison of its visual direction, not a complete port of the original mod.
+This is a separate removable preview based on the user-supplied **S1LSD 0.11.0** archive. Its MIT license allows adaptation with attribution. The original perception shader tree/programs and dose defaults are preserved byte for byte, and selected pure configuration/visual calculations were recovered from the supplied DLL. The shader's container was repaired for loading, as described below. This compares its visual and audio direction, using a disposable wrapper rather than a complete port of the original mod.
 
 ## Try it
 
@@ -8,7 +8,7 @@ With `Personal.S1LSDComparison.dll` in the game's `Mods` directory, load your ga
 
 1. Close other menus and press **F6** to open the comparison panel.
 2. Choose **Classic** or **Subtle**, then **Hold peak** or **Full timeline**.
-3. Click a tier: **70**, **140**, **280** or **360**. The original UI labels these tiers in µg.
+3. Leave **Audio on** selected to hear the comparison, or choose **Audio off** for a visual-only pass. Audio switches live during a running comparison; **A/D** are the panel shortcuts. Click a tier: **70**, **140**, **280** or **360**. The original UI labels these tiers in µg.
 4. Look at textured walls, road surfaces, shadows and moving bright objects. Stand still for a few seconds to see gaze amplification; turn to compare trails. The completed-frame shader also includes the phone and HUD.
 5. Press **F10** to clear the comparison immediately. F6 reopens the panel while testing. After stopping, **F8** starts our personal preview again with its existing settings.
 
@@ -33,9 +33,25 @@ The supplied `s1lsd_shaders.bundle` resource is actually a raw serialized shader
 
 The original camera callback and native render passes are replaced with our completed-frame GPU capture/draw/presentation path. This avoids depending on the camera-event approach that previously produced missing movement in our tests. The shader is unchanged. The draw includes UI; camera reprojection is approximate during translation and menu/overlay changes. Three screen-sized textures hold source, output and history, without CPU readback during normal previews. History invalidates on resize, large turns or position jumps. An owned Volume supplies world-camera grading; native profiles and materials are never edited.
 
-The original's audio filters/procedural soundscape, closed-eye display, bad-trip setting mechanics, tolerance saving, recipes, items, NPC consumption, sales, movement modifiers and console commands are omitted. **Audio remains dry during comparison** so it does not inherit our own audio effect. Porting its audio can be a separate experiment: its listener-filter implementation includes `AudioEchoFilter`, which is stripped from this game build. Our working native mixer echo remains available in our personal preview.
+## Audio comparison in 0.2.0
 
-Our personal preview's existing update callback is temporarily suspended while a comparison runs and restored when it stops. Its active effect is cleared rather than stacked. Its DLL and preferences are unchanged; no preference values are set or saved by this comparison. The personal preview timer does not resume automatically. The new mod creates no products and writes no save data or configuration files. Exiting/loading another scene releases the comparison and its panel/input lease.
+Audio is on by default and can be disabled independently while the visual timeline continues. The original MIT `AudioMixer`, `AudioInputs`, `AudioTargets`, `Ramp` and `ProceduralSynth` calculations are included. Audio intensity follows the four original dose envelopes and phases. Classic/Subtle is a visual style choice; it does not change the original audio strengths. Neutral setting and no bad-trip episodes remain in effect.
+
+The original combines reverb, echo, chorus and a breathing-dependent low-pass cutoff with six generated 22,050 Hz mono loops: drone, shimmer, come-up pulse, bad drone, heartbeat and whisper. The neutral comparison normally uses drone/shimmer at peak and pulse during come-up; bad-drone/whisper targets stay zero. Heartbeat follows the original neutral mind state when its target becomes nonzero. Samples are generated on a worker task after activation, with one native clip upload per Update. Nothing is synthesized or routed on an ordinary startup.
+
+Original default filter intensity is 1, ambience volume 0.6 and transition time 3 seconds. Echo moves between 180–350 ms (up to 385 ms with gaze dilation), decay 0.25–0.4, maximum wet 0.35 and dry `1 - 0.35 * wet`. Chorus uses at most 0.15 wet, a second tap at 60% of the first, no third tap, 22 ms delay and slow depth/rate modulation. Low-pass moves logarithmically from 22,000 toward 9,000 Hz, with breathing controlling the dip. Reverb ranges toward -900 mB room gain and about 3.2 seconds decay. These are the source defaults, not extra intensity boosts.
+
+For a quick listening comparison, use **280 or 360 / Hold peak** near music, then reopen F6 and alternate Audio on/off. The 70 tier has an echo channel peak of zero by design; its other audio changes are mild. Toggling audio preserves the running visual timeline. Enabling it fades the filters and ambience in over the original transition rather than restarting the dose.
+
+The original listener-filter processor is **adapted**, not loaded. `AudioEchoFilter` is stripped from this game build. Three authored native AudioMixer assets contain SFX Reverb → Echo → Chorus → Lowpass, with 29 exposed parameters each. The wrapper leases terminal main/music/menu mixer outputs into these owned effects, preserving and restoring their previous destinations. Nested native buses are processed once. This changes the actual game mix, including shop music and pooled sounds, without discovering or duplicating AudioSources. Synthesized ambience enters the game's main bus and follows its ambient volume setting. Turning audio off stops owned sources, restores original routes and unloads the owned bank.
+
+The curves, synth samples and specified filter settings come from the original. Filter-chain order and bus-based scope are adaptations: sources bypassing all of the game's main/music/menu buses do not inherit this processing, unlike a listener-wide filter. No game distorted snapshot, native profile or audio setting is changed. No source replay, sound hooks or save writes are used. Audio failure is logged and cleans up its owned route; visuals can continue.
+
+The owned Unity audio authoring project is `assets/S1LSDComparisonAudio`. Its mixer data is exported by `Build-S1LSDComparisonAudio.ps1`, then wrapped by `Build-S1LSDComparisonAudioContainer.py` in the same working runtime container format used by our preview. The local editor's export lacks an AssetBundle object and carries a non-player version suffix; the adapter verifies that every authored mixer/group/snapshot tree stays unchanged. `Assets/audio.json` records the final bank and both generator hashes. No game clips or mixer values are copied into these authored effects.
+
+The original closed-eye display, bad-trip setting mechanics, tolerance saving, recipes, items, NPC consumption, sales, movement modifiers, consumption sound and console commands remain omitted. The idea of closing your eyes to see patterns is deferred for our own mod in [the future feature note](future-closed-eye-patterns.md).
+
+Our personal preview's existing update callback is temporarily suspended while a comparison runs and restored when it stops. Its active effect is cleared rather than stacked. Its DLL and preferences are unchanged; no preference values are set or saved by this comparison. The personal preview timer does not resume automatically. The new mod creates no products and writes no save data or configuration files. See [the menu design and construction guide](comparison-menu-design.md) for reusable UI ideas. Exiting/loading another scene releases the comparison and its panel/input lease.
 
 ## Remove it
 
@@ -49,7 +65,13 @@ Close the game, then remove or rename only `Mods/Personal.S1LSDComparison.dll`. 
 ./scripts/Build-S1LSDComparison.ps1 -Install
 ```
 
-The package is `artifacts/S1LSDComparison-0.1.1.zip`. It contains one mod DLL, this guide and the original MIT license/notices. No game or loader DLLs are distributed. The build verifies both source and embedded asset hashes, rejects dependencies on the original gameplay/persistence runtime and checks the completed-frame rendering calls. Standalone checks cover all four dose/style fixtures, original durations, peak holding without freezing breathing, finite targets, timeline completion and cleanup.
+The package is `artifacts/S1LSDComparison-0.2.0.zip`. It contains one mod DLL, this guide, the reusable menu design guide, the future feature note and the original MIT license/notices. No game or loader DLLs are distributed. The build verifies both source and embedded asset hashes, rejects dependencies on the original gameplay/persistence runtime and checks the completed-frame rendering calls. Standalone checks cover all four dose/style fixtures, original durations, peak holding without freezing breathing, finite targets, timeline completion and cleanup.
+
+Standalone audio checks also cover all four original target mappings, the zero-echo lowest tier, dry startup, transition convergence, neutral ambience, stopped targets and deterministic bounded PCM. Rebuilding the audio assets requires the local Unity 2022.3.62f2 editor, Python and UnityPy; normal builds use the checked-in bank. Use `-RebuildAudio` on the comparison build script to regenerate it.
+
+The explicit **`--s1lsd-audio-check`** flag runs a main-menu diagnostic through the game's real music bus and measures final listener PCM. Isolated dry/echo/reverb and dry/low-pass probes test audible processing; the full peak then exercises smoothing, chorus parameter readback and procedural loops. It verifies that the previous native mixer destinations return on disposal. The diagnostic requires a 40 kHz or higher output sample rate and an unmuted game, creates only owned test clips, loads no save and never runs on an ordinary launch. Chorus modulation is verified by native parameter binding, not a separate perceptual listening test. The original spectrum-driven visual reactivity is not ported.
+
+The October 7, 2026 **07:15** main-menu audio check passed. At the original 360 peak targets, the 325 ms delayed tone measured 0.036205 versus 0.000357 in the dry tail; the isolated reverb tail measured 0.004397. The 18 kHz probe fell from 0.109956 to 0.016310 with the original breathing-dependent low-pass cutoff (about 15,028 Hz at that snapshot). All three native terminal buses were processed, two original procedural loops played, and all previous route destinations restored. Chorus wet 0.128 passed parameter readback. No save was loaded and no comparison audio errors or native bundle warnings remained. Evidence: `artifacts/comparison-audio-check/final-menu.log` and `final-player.log`. This establishes native processing and cleanup; city music and the subjective sound remain a player listening comparison.
 
 An explicit **`--s1lsd-comparison-check`** launch flag runs a menu-only shader diagnostic: controlled texture identity, time-varying movement, final-screen identity/orientation and visible final-screen displacement. It loads no save and is never run during an ordinary launch. Native rendering and gameplay observations are recorded below after checks run.
 

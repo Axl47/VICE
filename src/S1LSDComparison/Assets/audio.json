@@ -1,0 +1,16 @@
+{
+  "unityVersion": "2022.3.62f2",
+  "bundleSha256": "050df6da729420bf6a84948be49eb05b606a0d7379af0461826e7da0b4d1db3e",
+  "generatorSha256": "9bedf984879da9aa71f3005bc9b05631e11495bd27c5875a0c763127ad28a316",
+  "containerGeneratorSha256": "022289829afff0dfa5978578aa53976271acd1d388f9159c055b5a36a0f923db",
+  "mixers": 3,
+  "effects": [
+    "SFX Reverb",
+    "Echo",
+    "Chorus",
+    "Lowpass"
+  ],
+  "exposedParametersPerMixer": 29,
+  "containsAudioClips": false,
+  "origin": "Authored comparison mixers; no game audio assets"
+}
