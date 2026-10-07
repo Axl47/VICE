@@ -38,7 +38,7 @@ foreach ($project in @('src\LSDGameplay\LSDGameplay.csproj','tests\LSDGameplay\L
 if ($LASTEXITCODE -ne 0) { throw 'Workshop persistence/rule checks failed.' }
 & (Join-Path $PSScriptRoot 'Build-LSDPreview.ps1') -GameDir $GameDir -DotnetPath $DotnetPath
 if (-not $?) { throw 'Integrated visual treatment checks failed.' }
-$package = Join-Path $repoRoot 'artifacts\LSDGameplay-0.2.2'
+$package = Join-Path $repoRoot 'artifacts\LSDGameplay-0.2.3'
 $mods = Join-Path $package 'Mods'
 New-Item -ItemType Directory -Path $mods -Force | Out-Null
 foreach ($project in @('LSDGameplay','LSDPreview')) {
@@ -48,6 +48,6 @@ Copy-Item -LiteralPath (Join-Path $repoRoot 'docs\lsd-workshop.md') -Destination
 $hashes = Get-ChildItem -LiteralPath $mods -File | ForEach-Object { (Get-FileHash -LiteralPath $_.FullName).Hash.ToLowerInvariant()+'  Mods/'+$_.Name }
 $hashes += (Get-FileHash -LiteralPath (Join-Path $package 'README.md')).Hash.ToLowerInvariant()+'  README.md'
 Set-Content -LiteralPath (Join-Path $package 'SHA256SUMS.txt') -Value $hashes -Encoding utf8
-$zip = Join-Path $repoRoot 'artifacts\LSDGameplay-0.2.2.zip'
+$zip = Join-Path $repoRoot 'artifacts\LSDGameplay-0.2.3.zip'
 Compress-Archive -LiteralPath $mods,(Join-Path $package 'README.md'),(Join-Path $package 'SHA256SUMS.txt') -DestinationPath $zip -Force
 Write-Output "Built workshop and checked visual treatment: $zip"

@@ -20,7 +20,6 @@ palette = {
     "Paper": (0.91, 0.88, 0.77, 1), "Ink": (0.07, 0.085, 0.10, 1),
     "Accent": (0.11, 0.72, 0.65, 1), "Lightbox": (0.61, 0.83, 0.75, 1),
     "Glass": (0.13, 0.24, 0.26, 1), "Artwork": (1, 1, 1, 1),
-    "Prism": (0.59,0.24,0.85,1),
 }
 
 def material(name):
@@ -111,9 +110,9 @@ box("CabinetHandle",(0.32,-0.31,0.66),(0.023,0.06,0.22),"Ink")
 export("Cabinet")
 
 start()
-box("PrismBrick", (0,0,0.022),(0.096,0.064,0.038),"Prism",0.002)
-for x in [-0.032,0,0.032]:
-    for y in [-0.016,0.016]: cylinder("BrickStud",(x,y,0.045),0.011,0.008,(0,0,0),"Prism")
+box("WrappedParcel", (0,0,0.085),(0.23,0.16,0.17),"Paper")
+box("ParcelBand", (0,0,0.173),(0.055,0.164,0.006),"Accent",0)
+art_surface((0.055,0,0.177),0.06,0.065)
 export("Parcel")
 
 for name,w,d in [("Sheet",0.44,0.32),("Tab",0.065,0.055),("Packet",0.15,0.11)]:

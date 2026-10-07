@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup><IsGameMod>true</IsGameMod><AssemblyName>Personal.LSDGameplay</AssemblyName><Version>0.2.2</Version></PropertyGroup>
+  <PropertyGroup><IsGameMod>true</IsGameMod><AssemblyName>Personal.LSDGameplay</AssemblyName><Version>0.2.3</Version></PropertyGroup>
   <ItemGroup>
     <Reference Include="$(GameDir)\Mods\S1API.Il2Cpp.MelonLoader.dll"><Private>false</Private></Reference>
     <EmbeddedResource Include="Assets/studio.bundle" LogicalName="Personal.LSDGameplay.Studio.bundle" />

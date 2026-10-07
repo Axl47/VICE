@@ -20,6 +20,7 @@ internal sealed class SliceDiagnostic
     private readonly bool Exercise,Reload;
     private readonly bool SheetCheck;
     private readonly bool PackagingCheck;
+    private readonly bool PrismCheck;
     private Il2CppScheduleOne.ObjectScripts.PackagingStation? PhysicsStation;
     private Il2CppScheduleOne.PlayerTasks.PackageProductTask? PhysicsTask;
     private int PhysicsCase,PhysicsTab;
@@ -39,6 +40,7 @@ internal sealed class SliceDiagnostic
         Reload=args.Contains("--lsd-slice-reload") && Output.Length>0;
         SheetCheck=args.Contains("--lsd-sheet-check") && Output.Length>0;
         PackagingCheck=args.Contains("--lsd-packaging-check") && Output.Length>0;
+        PrismCheck=args.Contains("--lsd-prism-check") && Output.Length>0;
         if (Output.Length>0) Directory.CreateDirectory(Output);
     }
     internal static void TryLoadFifthSlot()
@@ -57,7 +59,7 @@ internal sealed class SliceDiagnostic
         {
             Completed=true;MelonLogger.Error("LSD_SLICE_CHECK_FAILED phase="+Phase+" "+error);
             if (Output.Length>0) File.WriteAllText(Path.Combine(Output,"failure.txt"),error.ToString());
-            if (Exercise || Reload || SheetCheck || PackagingCheck) Application.Quit();
+            if (Exercise || Reload || SheetCheck || PackagingCheck || PrismCheck) Application.Quit();
         }
     }
     private void Run()
@@ -67,6 +69,8 @@ internal sealed class SliceDiagnostic
         if (Phase==0)
         {
             Mod.State.Validate();Check(Mod.World?.Office?.IsOwned==true,"Test requires normally owned Sewer Office.");
+            VerifyPrism();
+            if(PrismCheck){File.WriteAllText(Path.Combine(Output,"prism-check-passed.txt"),"Wrapped parcel restored and native Prism Base definition is Illegal; paper and cartridges stay Legal.");MelonLogger.Msg("LSD_PRISM_CHECK_PASSED restored wrapped parcel, native contraband flag, legal ordinary supplies.");Completed=true;Application.Quit();return;}
             Check(Il2CppScheduleOne.UI.Shop.ShopInterface.AllShops.ToArray().Any(s=>s.GetListing(WorkshopRules.Sleeve) is {} listing && listing.Item.ID==WorkshopRules.Sleeve && listing.Price==1),"Warehouse does not sell the native edition sleeve.");
             for (var slot=0;slot<WorkshopRules.ArtSlots;slot++) foreach (var packaging in new[] { "","baggie","jar","brick",WorkshopRules.Sleeve })
             {
@@ -288,7 +292,14 @@ internal sealed class SliceDiagnostic
         Check(Il2CppScheduleOne.Registry.GetItem(WorkshopRules.Sheet(false,0,40)).Icon.Pointer==wet.Pointer && Il2CppScheduleOne.Registry.GetItem(WorkshopRules.Sheet(true,0,40)).Icon.Pointer==dry.Pointer,"Native sheet definitions do not use the stage-specific icons.");
         File.WriteAllBytes(Path.Combine(Output,"wet-sheet-icon.png"),ImageConversion.EncodeToPNG(wet.texture).ToArray());
         File.WriteAllBytes(Path.Combine(Output,"dry-sheet-icon.png"),ImageConversion.EncodeToPNG(dry.texture).ToArray());
-        Check(StudioAssets.Visual("Parcel").GetComponentsInChildren<Transform>(true).Count(p=>p.name.StartsWith("BrickStud",StringComparison.Ordinal))==6,"Prism toy brick is missing its studs.");
+        VerifyPrism();
+    }
+    private static void VerifyPrism()
+    {
+        Check(S1API.Items.ItemManager.GetDefinition(WorkshopRules.Prism)!.LegalStatus==S1API.Items.LegalStatus.Illegal,"Prism Base lacks the native illegal/contraband flag.");
+        foreach(var id in new[]{WorkshopRules.Paper,WorkshopRules.Ink})Check(S1API.Items.ItemManager.GetDefinition(id)!.LegalStatus==S1API.Items.LegalStatus.Legal,"An ordinary studio supply was marked contraband.");
+        var parts=StudioAssets.Visual("Parcel").GetComponentsInChildren<Transform>(true);
+        Check(parts.Any(p=>p.name=="WrappedParcel") && parts.Any(p=>p.name=="ParcelBand") && !parts.Any(p=>p.name.StartsWith("BrickStud",StringComparison.Ordinal)),"Prism Base's wrapped parcel model was not restored.");
     }
     private void BeginPhysicsCase()
     {

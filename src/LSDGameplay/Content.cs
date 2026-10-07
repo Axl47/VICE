@@ -28,11 +28,12 @@ internal static class Content
             new ProductKindMetadataBuilder(Kind).WithDisplayName("LSD").WithColor(new(0.25f,0.78f,0.69f))
                 .WithIcon(StudioAssets.Symbol).WithProductManagerVisibility().WithSearchAliases("tabs", "blotter").Build();
             foreach (var spec in new[] {
-                (WorkshopRules.Prism,"Prism Base brick", "Off Register's purple toy-brick precursor. One brick supports one forty-tab sheet.",30f),
+                (WorkshopRules.Prism,"Prism Base parcel", "Off Register's contraband precursor. One parcel supports one forty-tab sheet.",30f),
                 (WorkshopRules.Paper,"Blank blotter stock", "One sheet of paper for the Blotter Bench.",4f),
                 (WorkshopRules.Ink,"Print cartridge", "A shared colour cartridge for one starter batch.",6f)
             })
                 ItemCreator.CreateBuilder().WithBasicInfo(spec.Item1,spec.Item2,spec.Item3,ItemCategory.Ingredient)
+                    .WithLegalStatus(spec.Item1==WorkshopRules.Prism ? LegalStatus.Illegal:LegalStatus.Legal)
                     .WithStackLimit(20).WithPricing(spec.Item4).WithIcon(StudioAssets.PropIcon(spec.Item1==WorkshopRules.Prism ? "Prism" : spec.Item1==WorkshopRules.Paper ? "Paper" : spec.Item1==WorkshopRules.Ink ? "Ink" : "Sleeve"))
                     .WithStoredItem(spec.Item1==WorkshopRules.Prism ? StudioAssets.Stored("Parcel"):StudioAssets.StoredSupply(spec.Item1==WorkshopRules.Ink)).WithoutStationItem().Build();
             var parcelHeld=new GameObject("Prism Base viewmodel");parcelHeld.SetActive(false);UnityEngine.Object.DontDestroyOnLoad(parcelHeld);
