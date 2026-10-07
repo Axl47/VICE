@@ -31,7 +31,7 @@ internal sealed class FrameCheck : IDisposable
             MelonLoader.MelonLogger.Msg($"LSD frame camera selection: '{camera!.name}', active {camera.gameObject.activeInHierarchy}, enabled {camera.enabled}, focus {Application.isFocused}, background {Application.runInBackground}, pipeline '{UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline?.name}'.");
             Flow = new SurfaceRipples(camera!, true);
         }
-        Flow.Tick(2.4f, Phase == 0 ? 0 : 0.6f, 0.3f, 0.5f, 1);
+        Flow.Tick(2.4f, Phase == 0 ? 0 : 0.6f, RippleRange.DefaultStrength, 0.5f, 1);
         return false;
     }
 

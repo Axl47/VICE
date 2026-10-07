@@ -54,8 +54,9 @@ internal static class ShaderCheck
                 + Math.Abs(c.g - expected[i].g) + Math.Abs(c.b - expected[i].b) > 3).Count();
             if (identityErrors > baseline.Length / 100)
                 throw new InvalidOperationException($"The normal shader draw changed {identityErrors} pixels at zero strength.");
-            var first = Render(5.4f, 0);
-            var second = Render(5.4f, 2.4f);
+            var defaultPixels = RippleRange.Pixels(MathF.PI / (2 * 0.23f), 0.6f, RippleRange.DefaultStrength, 0.5f, 1);
+            var first = Render(defaultPixels, 0);
+            var second = Render(defaultPixels, 2.4f);
             var changed = 0; var moving = 0; var outerMoving = 0;
             for (var i = 0; i < baseline.Length; i++)
             {

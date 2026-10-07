@@ -9,7 +9,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering.Universal;
 
-[assembly: MelonInfo(typeof(PersonalMods.LSDPreview.LSDPreviewMod), "Personal LSD Visual Preview", "0.10.1", "Axl47")]
+[assembly: MelonInfo(typeof(PersonalMods.LSDPreview.LSDPreviewMod), "Personal LSD Visual Preview", "0.11.0", "Axl47")]
 [assembly: MelonGame("TVGS", "Schedule I")]
 
 namespace PersonalMods.LSDPreview;
@@ -22,7 +22,8 @@ public sealed class LSDPreviewMod : MelonMod
     internal static MelonPreferences_Entry<string> GhostModelNPC = null!;
     internal static MelonPreferences_Entry<float> Intensity = null!, MotionStrength = null!, DurationSeconds = null!,
         RippleStrength = null!, AfterimageStrength = null!, OutlineStrength = null!, TextBlurStrength = null!,
-        MaterialColorStrength = null!, HallucinationStrength = null!, AudioStrength = null!, CenterClarityDegrees = null!;
+        MaterialColorStrength = null!, HallucinationStrength = null!, AudioStrength = null!, CenterClarityDegrees = null!,
+        TextFocusStrength = null!;
     private readonly TripTimeline Timeline = new();
     private readonly bool RequestedShaderCheck = Environment.GetCommandLineArgs().Contains("--lsd-render-check"),
         RequestedAudioCheck = Environment.GetCommandLineArgs().Contains("--lsd-audio-check");
@@ -43,14 +44,15 @@ public sealed class LSDPreviewMod : MelonMod
         Intensity = ModSupport.Entry(config, "Intensity", DefaultIntensity, "Overall artistic effect strength from 0 to 1.");
         MotionStrength = ModSupport.Entry(config, "MotionStrength", DefaultMotion, "Breathing, flowing ripples, color separation and afterimages from 0 to 1; 0 disables them.");
         DurationSeconds = ModSupport.Entry(config, "DurationSeconds", TripTimeline.DefaultDuration, "Compressed preview length in seconds, from 20 to 600.");
-        RippleStrength = ModSupport.Entry(config, "RippleStrength", DefaultRipple, "Completed-frame flow and breathing from 0 to 1; default 0.30, default pixel bound 5.4, absolute bound 18. Also follows MotionStrength.");
+        RippleStrength = ModSupport.Entry(config, "RippleStrength", DefaultRipple, "Completed-frame flow and breathing from 0 to 1; default 0.375, default pixel bound 6.75, absolute bound 18. Also follows MotionStrength. Approved 0.10.1 baseline: 0.30.");
         CenterClarityDegrees = ModSupport.Entry(config, "CenterClarityDegrees", RippleRange.DefaultCenterDegrees, "Reserved for the disabled peripheral experiment. The default completed-frame path has no gaze mask.");
         AfterimageStrength = ModSupport.Entry(config, "AfterimageStrength", DefaultAfterimage, "Brief delayed image trails from 0 to 1; also follows MotionStrength.");
         MaterialColorStrength = ModSupport.Entry(config, "MaterialColorStrength", 0.45f, "Continuous slow RGB color breathing across the scene and phone, from 0 to 1. No material discovery or texture copies.");
         HallucinationStrength = ModSupport.Entry(config, "HallucinationStrength", 0.55f, "Opacity of faded character hallucinations, from 0 to 1; 0 hides them.");
-        AudioStrength = ModSupport.Entry(config, "AudioStrength", 0.35f, "Direct 220ms echo on original native music, ambience and effects buses, from 0 to 1. Zero restores the original routing.");
+        AudioStrength = ModSupport.Entry(config, "AudioStrength", PreviewTuning.DefaultAudio, "Direct 220ms echo on original native music, ambience and effects buses, from 0 to 1. Default 0.4375; approved 0.10.1 baseline 0.35. Zero restores the original routing.");
         OutlineStrength = ModSupport.Entry(config, "OutlineStrength", 0.7f, "Defined cartoon-like edges and sharpening from 0 to 1.");
         TextBlurStrength = ModSupport.Entry(config, "TextBlurStrength", DefaultTextBlur, "Soft/indistinct HUD and dialogue text from 0 to 1; also colors phone text fringes when PhoneEffects is enabled.");
+        TextFocusStrength = ModSupport.Entry(config, "TextFocusStrength", PreviewTuning.DefaultTextFocus, "Slow drifting letter shadows and brief stroke softening on HUD, dialogue and phone text, from 0 to 1. Wording/choices/layout remain intact; 0 restores the approved baseline treatment.");
         GhostModelNPC = ModSupport.Entry(config, "GhostModelNPC", "", "NPC ID or full name used for hallucination meshes. Empty selects a nearby loaded character.");
         UpgradeDefaults(config);
         LoggerInstance.Msg("LSD visual experiment ready: F8 starts/fades out; F9 clears immediately. No product is registered.");
@@ -60,7 +62,7 @@ public sealed class LSDPreviewMod : MelonMod
     private void UpgradeDefaults(MelonPreferences_Category config)
     {
         var revision = config.CreateEntry("DefaultsRevision", 0, description: "Internal marker for one-time preview default upgrades.", is_hidden: true);
-        if (revision.Value >= 4) return;
+        if (revision.Value >= 5) return;
         // A one-time upgrade of untouched defaults, leaving custom values intact.
         // The marker also lets a later edit deliberately restore the old strength.
         var changed = 0;
@@ -71,7 +73,9 @@ public sealed class LSDPreviewMod : MelonMod
             changed += Upgrade(AfterimageStrength, 0.50f) + Upgrade(TextBlurStrength, 0.25f) + Upgrade(DurationSeconds, 90f);
         if (revision.Value < 3) changed += Upgrade(RippleStrength, 0.50f);
         if (revision.Value < 4) changed += Upgrade(CenterClarityDegrees, 12f);
-        revision.Value = 4;
+        if (revision.Value < 5) changed += Upgrade(RippleStrength, PreviewTuning.BaselineRipple)
+            + Upgrade(AudioStrength, PreviewTuning.BaselineAudio);
+        revision.Value = 5;
         config.SaveToFile(false);
         if (changed > 0) LoggerInstance.Msg("Applied updated LSD preview defaults; custom settings were preserved.");
     }

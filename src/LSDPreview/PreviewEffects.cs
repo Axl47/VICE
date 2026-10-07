@@ -111,14 +111,14 @@ internal sealed class PreviewEffects : IDisposable
                 TryLayer(ref Audio, ref AttemptedAudio, () => new PreviewAudio(), "audio");
             if (Strength(LSDPreviewMod.AfterimageStrength) * motion > 0)
                 TryLayer(ref Trails, ref AttemptedTrails, () => new Afterimages(Camera), "afterimages");
-            if (Strength(LSDPreviewMod.TextBlurStrength) > 0)
+            if (Strength(LSDPreviewMod.TextBlurStrength) > 0 || Strength(LSDPreviewMod.TextFocusStrength) > 0)
                 TryLayer(ref Text, ref AttemptedText, () => new HudTextBlur(), "text");
         }
         Ripples?.Tick(elapsed, amount, Strength(LSDPreviewMod.RippleStrength), motion, movement);
         PhoneColors?.Tick(elapsed, LSDPreviewMod.PhoneEffects.Value ? amount * Strength(LSDPreviewMod.MaterialColorStrength) : 0);
         Audio?.Tick(elapsed, amount * Strength(LSDPreviewMod.AudioStrength));
         Trails?.Tick(amount * Strength(LSDPreviewMod.AfterimageStrength) * motion);
-        Text?.Tick(elapsed, amount * Strength(LSDPreviewMod.TextBlurStrength));
+        Text?.Tick(elapsed, amount * Strength(LSDPreviewMod.TextBlurStrength), amount * Strength(LSDPreviewMod.TextFocusStrength));
         var hallucination = Strength(LSDPreviewMod.HallucinationStrength);
         if (worldVisuals && amount > 0 && hallucination > 0)
         {

@@ -2,7 +2,7 @@ namespace PersonalMods.LSDPreview;
 
 internal static class RippleRange
 {
-    internal const float DefaultStrength = 0.30f, DefaultCenterDegrees = 5, MaximumPixels = 18;
+    internal const float DefaultStrength = PreviewTuning.DefaultRipple, DefaultCenterDegrees = 5, MaximumPixels = 18;
     private const float ReferencePixels = 60;
 
     // Actual screen displacement is bounded in pixels, independently of noise
@@ -39,7 +39,7 @@ internal static class RippleRange
     // applies overall intensity; scaling here includes motion/ripple/comfort.
     internal static float LensBreathing(float elapsed, float strength, float motion, float movement)
         => float.IsFinite(elapsed)
-            ? Math.Min(0.11f, 0.11f * Safe(strength) / DefaultStrength * Safe(motion))
+            ? Math.Min(0.11f, 0.11f * Safe(strength) / PreviewTuning.BaselineRipple * Safe(motion))
                 * Safe(movement) * MathF.Sin(elapsed * 0.65f)
             : 0;
 

@@ -147,8 +147,9 @@ for (var step = 0; step <= 1200; step++)
     var maximum = RippleRange.Pixels(time, 1, 1, 1, 1);
     var normal = RippleRange.Pixels(time, 0.6f, RippleRange.DefaultStrength, 0.5f, 1);
     Check(maximum is >= 12.5999f and <= 18.0001f, "The absolute maximum must remain within eighteen pixels, with gentle continuous breathing.");
-    Check(normal is >= 3.7799f and <= 5.4001f, "The default needs a few pixels of visible motion before the focus mask, without returning to broad bends.");
-    Near(normal, RippleRange.Pixels(time, 0.6f, 1, 0.5f, 1) * 0.3f, "The usual default must retain 30% of the usual full ripple range.");
+    Check(normal is >= 4.7249f and <= 6.7501f, "The stronger default must remain within 4.725-6.75 pixels rather than returning to broad bends.");
+    Near(normal, RippleRange.Pixels(time, 0.6f, PreviewTuning.BaselineRipple, 0.5f, 1) * 1.25f,
+        "Every stationary default ripple sample must be exactly 25% stronger than the approved baseline.");
     Near(RippleRange.Pixels(time, 0.6f, 0, 0.5f, 1), 0, "Zero ripple strength must disable displacement.");
     Near(RippleRange.Pixels(time, 0.6f, 1, 0, 1), 0, "Zero motion strength must disable displacement.");
     Near(RippleRange.Pixels(time, 0, 1, 1, 1), 0, "A pause or reset must disable displacement.");
@@ -182,6 +183,9 @@ for (var step = 0; step <= 120; step++)
     Check(Math.Abs(RippleRange.LensBreathing(time, 1, 1, 1)) <= 0.1101f, "Native breathing must retain the earlier restrained cap.");
     Near(RippleRange.LensBreathing(time, 0, 0.5f, 1), 0, "Zero ripple strength also disables lens breathing.");
     Near(RippleRange.LensBreathing(time, 0.3f, 0, 1), 0, "Zero motion disables breathing.");
+    Near(RippleRange.LensBreathing(time, RippleRange.DefaultStrength, 0.5f, 1),
+        RippleRange.LensBreathing(time, PreviewTuning.BaselineRipple, 0.5f, 1) * 1.25f,
+        "A new ripple default must increase native breathing by 25%, rather than recalibrating its reference.");
 }
 Check(Math.Abs(RippleRange.LensBreathing(2.4f, 0.3f, 0.5f, 1)) > 0.054f,
     "Default native breathing must restore the previously visible lens pulse.");
@@ -254,8 +258,10 @@ for (var step = 0; step <= 1200; step++)
     var wet = AudioBlend.Sample(time, 1);
     Check(float.IsFinite(wet) && wet is >= 0.7199f and <= 0.9001f, "Direct echo wet gain must remain bounded throughout its slow swells.");
     Near(AudioBlend.Sample(time, 0), 0, "Zero audio strength must mute the owned return.");
-    var normal = AudioBlend.Sample(time, 0.6f * 0.35f);
-    Check(normal is >= 0.2351f and <= 0.2941f, "Default native DSP wet gain must remain 23.5-29.4% before the unchanged dry mix.");
+    var normal = AudioBlend.Sample(time, 0.6f * PreviewTuning.DefaultAudio);
+    Check(normal is >= 0.2939f and <= 0.3676f, "Default native DSP wet gain must remain 29.4-36.75% before the unchanged dry mix.");
+    Near(normal, AudioBlend.Sample(time, 0.6f * PreviewTuning.BaselineAudio) * 1.25f,
+        "Each default echo sample must increase the approved wet return by exactly 25%.");
     if (wet < 0.73f) low++;
     if (wet > 0.85f) stronger++;
 }

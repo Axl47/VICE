@@ -115,21 +115,43 @@ try {
     if ($embeddedEchoHash -ne $echoManifest.bundleSha256) { throw 'The embedded Echo mixer does not match the validated bundle.' }
     Write-Output 'Checked compiled audio: direct native mixer buses and owned Echo parameters; no startup audio initialization, source scans/replays, playback detours, listener capture, PCM history writes or stripped filter; embedded assets verified.'
     Write-Output 'Checked completed-frame flow: end-of-frame coroutine, GPU capture, explicit material binding and screen draw; no render-event dependency.'
+    $textType = $definition.MainModule.Types | Where-Object { $_.FullName -eq 'PersonalMods.LSDPreview.HudTextBlur' }
+    $textCalls = @($textType.Methods | Where-Object { $_.HasBody } | ForEach-Object { $_.Body.Instructions } |
+        ForEach-Object { $_.Operand } | Where-Object { $_ -is [Mono.Cecil.MethodReference] })
+    if ($textCalls | Where-Object { $_.Name -in @('set_text', 'SetText', 'set_fontSize', 'set_characterSpacing', 'set_wordSpacing', 'set_localPosition', 'set_anchoredPosition') }) {
+        throw 'Reading-focus effects must retain native wording, spacing, layout and input targets.'
+    }
+    if (-not ($textCalls | Where-Object { $_.DeclaringType.FullName -eq 'PersonalMods.LSDPreview.TextFocus' -and $_.Name -eq 'Sample' })) {
+        throw 'The owned, independently timed reading-focus layer is missing.'
+    }
+    Write-Output 'Checked reading focus: owned glyph treatment; no text rewriting or layout/spacing changes.'
 } finally { $definition.Dispose() }
 
-$packageRoot = Join-Path $repoRoot 'artifacts\LSDPreview-0.10.1'
+$packageRoot = Join-Path $repoRoot 'artifacts\LSDPreview-0.11.0'
 $modsDirectory = Join-Path $packageRoot 'Mods'
 New-Item -ItemType Directory -Path $modsDirectory -Force | Out-Null
 $dll = Join-Path $modsDirectory 'Personal.LSDPreview.dll'
 Copy-Item -LiteralPath $builtDll -Destination $dll -Force
 $guide = Join-Path $packageRoot 'README.md'
 Copy-Item -LiteralPath (Join-Path $repoRoot 'docs\lsd-preview.md') -Destination $guide -Force
+$baselineGuide = Join-Path $packageRoot 'lsd-baseline-0.10.1.md'
+Copy-Item -LiteralPath (Join-Path $repoRoot 'docs\lsd-baseline-0.10.1.md') -Destination $baselineGuide -Force
+$alcoholGuide = Join-Path $packageRoot 'future-alcohol-preview.md'
+Copy-Item -LiteralPath (Join-Path $repoRoot 'docs\future-alcohol-preview.md') -Destination $alcoholGuide -Force
+$baselinesDirectory = Join-Path $packageRoot 'baselines'
+New-Item -ItemType Directory -Path $baselinesDirectory -Force | Out-Null
+$baselinePreferences = Join-Path $baselinesDirectory 'lsd-0.10.1.cfg'
+$baselineHashes = Join-Path $baselinesDirectory 'lsd-0.10.1.sha256'
+Copy-Item -LiteralPath (Join-Path $repoRoot 'docs\baselines\lsd-0.10.1.cfg') -Destination $baselinePreferences -Force
+Copy-Item -LiteralPath (Join-Path $repoRoot 'docs\baselines\lsd-0.10.1.sha256') -Destination $baselineHashes -Force
 $hashFile = Join-Path $packageRoot 'SHA256SUMS.txt'
 $hashLines = @()
-foreach ($entry in @(@{ Path = $dll; Name = 'Mods/Personal.LSDPreview.dll' }, @{ Path = $guide; Name = 'README.md' })) {
+foreach ($entry in @(@{ Path = $dll; Name = 'Mods/Personal.LSDPreview.dll' }, @{ Path = $guide; Name = 'README.md' },
+    @{ Path = $baselineGuide; Name = 'lsd-baseline-0.10.1.md' }, @{ Path = $alcoholGuide; Name = 'future-alcohol-preview.md' },
+    @{ Path = $baselinePreferences; Name = 'baselines/lsd-0.10.1.cfg' }, @{ Path = $baselineHashes; Name = 'baselines/lsd-0.10.1.sha256' })) {
     $hashLines += (Get-FileHash -LiteralPath $entry.Path -Algorithm SHA256).Hash.ToLowerInvariant() + '  ' + $entry.Name
 }
 Set-Content -LiteralPath $hashFile -Value $hashLines -Encoding utf8
-$zip = Join-Path $repoRoot 'artifacts\LSDPreview-0.10.1.zip'
-Compress-Archive -LiteralPath $modsDirectory, $guide, $hashFile -DestinationPath $zip -Force
+$zip = Join-Path $repoRoot 'artifacts\LSDPreview-0.11.0.zip'
+Compress-Archive -LiteralPath $modsDirectory, $guide, $hashFile, $baselineGuide, $alcoholGuide, $baselinesDirectory -DestinationPath $zip -Force
 Write-Output "Built and checked the separate LSD preview: $zip"

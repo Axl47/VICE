@@ -30,7 +30,7 @@ internal sealed class AudioCheck : IDisposable
         {
             var now = AudioSettings.dspTime;
             if (Source is null) Initialize(now);
-            var wet = Phase == 1 ? 0.60f * 0.35f : 0;
+            var wet = Phase == 1 ? 0.60f * PreviewTuning.DefaultAudio : 0;
             Audio.Tick(30, wet);
             if (now >= Cue && now <= Cue + 0.46)
             {
@@ -51,7 +51,7 @@ internal sealed class AudioCheck : IDisposable
             if (Phase == 0 && now - Began >= 1.3)
             {
                 Phase = 1;
-                Audio.Tick(30, 0.60f * 0.35f);
+                Audio.Tick(30, 0.60f * PreviewTuning.DefaultAudio);
                 Cue = now + 0.2;
                 Source!.PlayScheduled(Cue);
             }
