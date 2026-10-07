@@ -1,0 +1,242 @@
+{
+  "_comment": "S1LSD default tuning, embedded in the DLL. Put only the values you want to change in UserData/S1LSD/lsd.json. Per-style visual limits live in Core/VisualMixer.cs. See docs/CONFIG.md.",
+
+  "schemaVersion": 2,
+
+  "quality": {
+    "_comment": "visualStyle: 'classic' (strong, default) or 'subtle' (straight lines stay straight). gentleMode lowers everything heavy. maxFlickerHz caps how fast brightness/colour may change (max 3). customShaders: S1LSD's perception shader (texture-aware crawl, trails, patterns in the dark); false = post-processing only.",
+    "visualStyle": "classic",
+    "visualIntensityScale": 1.0,
+    "gentleMode": false,
+    "maxFlickerHz": 3.0,
+    "customShaders": true,
+    "firstLaunchWarningShown": false
+  },
+
+  "patches": {
+    "_comment": "One switch per game patch. Turn one off if it conflicts with another mod; the rest of S1LSD keeps working. See docs/CONFIG.md.",
+    "stationRecipeGuard": true,
+    "productManagerGuard": true,
+    "discoveryHooks": true,
+    "packagingIcons": true,
+    "npcConsume": true,
+    "customerAffinity": true,
+    "itemModels": true
+  },
+
+  "audio": {
+    "_comment": "Listener filters and procedural ambience. Transitions take transitionSeconds. Echo/chorus are kept subtle on purpose; see docs/CONFIG.md.",
+    "filterIntensity": 1.0,
+    "ambienceVolume": 0.6,
+    "transitionSeconds": 3.0,
+    "reverbMaxRoomMb": -900.0,
+    "echoDelayMs": [180.0, 350.0],
+    "echoDecay": [0.25, 0.40],
+    "echoMaxWet": 0.35,
+    "chorusMaxWet": 0.15,
+    "lowPassMinHz": 9000.0,
+    "closedEyesLowPassHz": 6000.0,
+    "badTripLowPassHz": 3500.0,
+    "useGameDistortedSnapshot": false
+  },
+
+  "breath": {
+    "_comment": "Irregular oscillator shared by the visual breathing (lens, FOV, crawl) and the audio dips.",
+    "baseHz": 0.22,
+    "perlinOctaves": 3,
+    "perlinFrequency": 0.55,
+    "depth": 0.35
+  },
+
+  "tolerance": {
+    "_comment": "T in [0,1]. See docs/CONFIG.md for formulas.",
+    "enabled": true,
+    "baseGain": 0.35,
+    "referenceDose": 140.0,
+    "gainExponent": 0.5,
+    "maxReduction": 0.8,
+    "durationReductionMax": 0.2,
+    "halfLifeGameDays": 2.0
+  },
+
+  "badTrip": {
+    "_comment": "chanceByDose is rolled at consumption and plants a wave of anxiety (not an instant bad trip); the setting (useSetting) and mindful breathing decide whether it tips into an episode. durationMinutes is the longest an episode lasts, minDurationMinutes the shortest without breathing.",
+    "enabled": true,
+    "chanceByDose": {
+      "70": 0.02,
+      "140": 0.04,
+      "280": 0.07,
+      "360": 0.12
+    },
+    "durationMinutes": 6.0,
+    "minDurationMinutes": 2.0,
+    "endOnSleep": true,
+    "tunnelPeak": 0.85,
+    "blendSeconds": 20.0,
+    "warpMultiplier": 1.6,
+    "haloMultiplier": 1.4,
+    "colorDriftMultiplier": 1.8,
+    "moveSpeedScale": 0.72,
+    "useSetting": true,
+    "cooldownMinutes": 3.0
+  },
+
+  "gameplay": {
+    "_comment": "Penalties only apply at 280 and 360, per spec.",
+    "controlPenaltyDoses": [280, 360],
+    "controlPenaltyMoveSpeed": 0.86,
+    "closedEyesKey": "B",
+    "mindfulBreathingKey": "V",
+    "proceduralIcons": true,
+    "consumeFeedback": true,
+    "customModel": true,
+    "useEatAnimation": true
+  },
+
+  "economy": {
+    "_comment": "Production, trading and sale through the game's own systems. Ingredients are abstract in-game items only.",
+    "recipeEnabled": true,
+    "recipeId": "s1lsd:lsd-synthesis",
+    "recipeTitle": "LSD Crystals",
+    "cookTimeMinutes": 240,
+    "temperatureC": 190,
+    "temperatureTolerance": 20,
+    "finalLiquidColor": "#3F5FA8",
+    "ingredients": [
+      { "itemId": "megabean", "quantity": 1 },
+      { "itemId": "acid", "quantity": 1 }
+    ],
+    "yieldDose": 70,
+    "yieldQuantity": 4,
+    "discoverOnFirstCraft": true,
+    "listForSaleOnDiscover": false,
+    "shopsEnabled": true,
+    "_shopNamesComment": "Display names of existing supplier shops. The mod logs the real shop names present in the world on every launch, so this list can be corrected from the log rather than guessed.",
+    "shopNames": [],
+    "shopStock": { "70": 2, "140": 2, "280": 1, "360": 1 }
+  },
+
+  "doses": {
+    "_comment": "Peak channel values at zero tolerance. Duration is in REAL minutes. Multiply by (1 - tolerance.durationReductionMax * T).",
+    "70": {
+      "displayName": "Acid 70",
+      "price": 52,
+      "durationMinutes": 3.5,
+      "psyBlend": 0.030,
+      "psyAmplitude": 0.15,
+      "psyNoiseScale": 40.0,
+      "classicBlend": 0.030,
+      "classicAmplitude": 0.15,
+      "classicNoiseScale": 40.0,
+      "subtleBlend": 0.002,
+      "subtleAmplitude": 0.05,
+      "subtleNoiseScale": 55.0,
+      "peaks": {
+        "warp": 0.10, "trails": 0.08, "halo": 0.12, "chroma": 0.05,
+        "colorDrift": 0.20, "localContrast": 0.25, "afterimage": 0.00,
+        "patterns": 0.00, "reverbWet": 0.05, "echo": 0.00,
+        "pitchDrift": 0.05, "lfPulse": 0.05,
+        "textureCrawl": 0.10, "pupil": 0.15, "synesthesia": 0.05, "closedEyes": 0.00
+      }
+    },
+    "140": {
+      "displayName": "Acid 140",
+      "price": 78,
+      "durationMinutes": 5.5,
+      "psyBlend": 0.070,
+      "psyAmplitude": 0.22,
+      "psyNoiseScale": 34.0,
+      "classicBlend": 0.070,
+      "classicAmplitude": 0.22,
+      "classicNoiseScale": 34.0,
+      "subtleBlend": 0.008,
+      "subtleAmplitude": 0.12,
+      "subtleNoiseScale": 65.0,
+      "peaks": {
+        "warp": 0.30, "trails": 0.25, "halo": 0.30, "chroma": 0.15,
+        "colorDrift": 0.40, "localContrast": 0.40, "afterimage": 0.10,
+        "patterns": 0.35, "reverbWet": 0.20, "echo": 0.10,
+        "pitchDrift": 0.15, "lfPulse": 0.15,
+        "textureCrawl": 0.30, "pupil": 0.30, "synesthesia": 0.20, "closedEyes": 0.00
+      }
+    },
+    "280": {
+      "displayName": "Acid 280",
+      "price": 124,
+      "durationMinutes": 8.5,
+      "psyBlend": 0.130,
+      "psyAmplitude": 0.30,
+      "psyNoiseScale": 28.0,
+      "classicBlend": 0.130,
+      "classicAmplitude": 0.30,
+      "classicNoiseScale": 28.0,
+      "subtleBlend": 0.013,
+      "subtleAmplitude": 0.16,
+      "subtleNoiseScale": 85.0,
+      "peaks": {
+        "warp": 0.60, "trails": 0.55, "halo": 0.55, "chroma": 0.35,
+        "colorDrift": 0.65, "localContrast": 0.55, "afterimage": 0.35,
+        "patterns": 0.45, "reverbWet": 0.35, "echo": 0.35,
+        "pitchDrift": 0.35, "lfPulse": 0.35,
+        "textureCrawl": 0.60, "pupil": 0.55, "synesthesia": 0.45, "closedEyes": 0.00
+      }
+    },
+    "360": {
+      "displayName": "Acid 360",
+      "price": 168,
+      "durationMinutes": 11.0,
+      "psyBlend": 0.200,
+      "psyAmplitude": 0.36,
+      "psyNoiseScale": 24.0,
+      "classicBlend": 0.200,
+      "classicAmplitude": 0.36,
+      "classicNoiseScale": 24.0,
+      "subtleBlend": 0.018,
+      "subtleAmplitude": 0.20,
+      "subtleNoiseScale": 95.0,
+      "peaks": {
+        "warp": 0.85, "trails": 0.80, "halo": 0.75, "chroma": 0.50,
+        "colorDrift": 0.80, "localContrast": 0.60, "afterimage": 0.55,
+        "patterns": 0.65, "reverbWet": 0.55, "echo": 0.55,
+        "pitchDrift": 0.50, "lfPulse": 0.50,
+        "textureCrawl": 0.85, "pupil": 0.75, "synesthesia": 0.65, "closedEyes": 0.00
+      }
+    }
+  },
+
+  "phases": {
+    "_comment": "Shares must sum to 1.0. Curves are smoothstep unless noted. Onset carries zero amplitude by design so the first frame of the effect shows nothing.",
+    "order": ["onset", "comeUp", "peak", "plateau", "comeDown", "afterglow"],
+    "weights": {
+      "onset": 0.10,
+      "comeUp": 0.15,
+      "peak": 0.20,
+      "plateau": 0.30,
+      "comeDown": 0.20,
+      "afterglow": 0.05
+    },
+    "amplitude": {
+      "onset": 0.0,
+      "comeUp": 0.55,
+      "peak": 1.0,
+      "plateau": 0.88,
+      "comeDown": 0.42,
+      "afterglow": 0.12
+    },
+    "channelBias": {
+      "_comment": "Per-phase multiplier per channel. 1.0 means 'follows the global amplitude'. Keeps trails/echo tailing into comedown without inventing periodicity.",
+      "onset":     { "trails": 0.0, "afterimage": 0.0, "reverbWet": 0.2, "echo": 0.0 },
+      "comeUp":    { "trails": 0.4, "afterimage": 0.3, "reverbWet": 0.6, "echo": 0.3 },
+      "peak":      { "trails": 1.0, "afterimage": 1.0, "reverbWet": 1.0, "echo": 1.0 },
+      "plateau":   { "trails": 0.9, "afterimage": 0.95, "reverbWet": 0.9, "echo": 0.85 },
+      "comeDown":  { "trails": 0.7, "afterimage": 0.8, "reverbWet": 1.0, "echo": 0.7 },
+      "afterglow": { "trails": 0.5, "afterimage": 0.6, "reverbWet": 0.8, "echo": 0.5 }
+    },
+    "noise": {
+      "_comment": "Low-amplitude Perlin noise added to every phase curve, to remove any periodic feel.",
+      "amplitude": 0.06,
+      "frequency": 0.9
+    },
+    "tripVariation": 0.12
+  }
+}

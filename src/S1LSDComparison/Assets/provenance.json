@@ -1,0 +1,14 @@
+{
+  "source": "User-provided S1LSD 0.11.0 release archive, extracted locally",
+  "assemblyVersion": "0.11.0",
+  "originalAssemblySha256": "f33137bf2427574f30d2134e2858cb8ca5cc0c9363749b08dab34251eed5b9a9",
+  "shaderBundleSha256": "b482c699dfdccf9101c8c57b19923fdb25affcf6c52867b43ea9123032806b99",
+  "defaultConfigSha256": "65a79829eff1917223982e18b86f421be39bb0816aded6885b12ce723186e7e4",
+  "license": "MIT; copyright 2026 S1LSD Contributors",
+  "licenseFile": "licenses/S1LSD/LICENSE.txt",
+  "adaptation": "Selected decompiled pure C# config/core types, original shader bundle and default JSON; new isolated preview runtime. No original mod entry point, patches, S1API content modules or persistence are included.",
+  "originalShaderBundleSha256": "6e72878faf1e9f3ecfc3911dbb37f2d6e94384561f67c8381935940b6f25b502",
+  "perceptionProgramBlobSha256": "c36d5c027bc98384c2827eb090b06b6ef528d6d234824891ecaecb1342ee068c",
+  "unityVersion": "2022.3.62f2",
+  "bundleAdaptation": "Added a UnityFS AssetBundle/container to the raw supplied shader file. The complete perception shader tree, including compiled programs, is unchanged."
+}

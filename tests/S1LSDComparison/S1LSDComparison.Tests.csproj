@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/S1LSDComparison/Vendor/**/*.cs" Link="Vendor/%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="../../src/S1LSDComparison/ComparisonSession.cs" Link="ComparisonSession.cs" />
+    <Reference Include="$(LoaderDir)/Newtonsoft.Json.dll" />
+    <EmbeddedResource Include="../../src/S1LSDComparison/Assets/lsd.default.json" LogicalName="Comparison.Defaults.json" />
+  </ItemGroup>
+</Project>

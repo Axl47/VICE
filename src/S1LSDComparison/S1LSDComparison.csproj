@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsGameMod>true</IsGameMod>
+    <AssemblyName>Personal.S1LSDComparison</AssemblyName>
+    <Version>0.1.0</Version>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="$(LoaderDir)/Newtonsoft.Json.dll"><Private>false</Private></Reference>
+    <EmbeddedResource Include="Assets/s1lsd_shaders.bundle" LogicalName="Comparison.Shaders.bundle" />
+    <EmbeddedResource Include="Assets/lsd.default.json" LogicalName="Comparison.Defaults.json" />
+  </ItemGroup>
+</Project>

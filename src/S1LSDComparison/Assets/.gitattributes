@@ -1,0 +1,3 @@
+# Preserve the supplied configuration bytes for provenance/hash verification.
+lsd.default.json -text whitespace=cr-at-eol
+*.bundle -text
