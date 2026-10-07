@@ -31,6 +31,10 @@ internal sealed class WorkshopPanel : IDisposable
     private string Task="";
     private float Elapsed,Score,Stable,Progress,ControlX=0.28f,ControlY=0.68f,SubmittedAt,NextGuide,CutScore;
     private StudioCommand? Pending;
+    private StudioCommand? PendingRelease;
+    private string ReleaseAfterReply="";
+    private float ReleaseSubmittedAt;
+    private bool CameraOverrideInstalled;
     private long SeenRevision=-1;
     internal bool IsOpen {get;private set;}
     private (Vector2 Point,bool Held,bool Space)? CheckInput;
@@ -62,14 +66,15 @@ internal sealed class WorkshopPanel : IDisposable
         }))??throw new InvalidOperationException("Could not bind workshop exit.");
         GameInput.RegisterExitListener(ExitHandler,10);Root.SetActive(false);
     }
-    internal void ShowIntroduction(){if(IsOpen)return;Equipment=null;MachineId="";Show();Refresh();}
+    internal void ShowIntroduction(){if(IsOpen || Busy || PendingRelease is not null)return;Equipment=null;MachineId="";Show();Refresh();}
     internal void OpenMachine(BuildableItem equipment)
     {
-        if(IsOpen)return;Equipment=equipment;MachineId=equipment.GUID.ToString();
+        if(IsOpen || Busy || PendingRelease is not null)return;Equipment=equipment;MachineId=equipment.GUID.ToString();
         var machine=LSDGameplayMod.Current!.State.Machines.FirstOrDefault(m=>m.Id==MachineId);
         if(machine is not null && machine.Stage!=MachineStage.Empty)SelectedArt=machine.ArtSlot;
         Show();
         try {
+            CameraOverrideInstalled=true;
             if(equipment.ItemInstance.ID==WorkshopRules.Bench)Sheet=new SheetView(equipment,SelectedArt);
             else {
                 var target=equipment.transform.position+Vector3.up*0.75f;
@@ -95,14 +100,20 @@ internal sealed class WorkshopPanel : IDisposable
         var camera=PlayerCamera.Instance;
         if(camera){
             camera.RemoveActiveUIElement("OffRegister");
-            if(Equipment)camera.StopTransformOverride(0.25f,PreviousLook,true);
+            if(CameraOverrideInstalled)camera.StopTransformOverride(0.25f,PreviousLook,true);
             camera.SetCanLook(PreviousLook);if(camera.ActiveUIElementCount==0)camera.LockMouse(true);
         }
         if(PlayerMovement.Instance)PlayerMovement.Instance._canMove=PreviousMove;
         if(PlayerInventory.Instance){PlayerInventory.Instance.SetInventoryEnabled(PreviousHotbar);PlayerInventory.Instance.SetEquippingEnabled(PreviousEquipping);}
-        GameInput.IsTyping=PreviousTyping;Equipment=null;
-        if(MachineId.Length>0 && LSDGameplayMod.Current?.Ready==true && !Busy)
-            WorkshopNetwork.Submit(new StudioCommand{Action="release",Machine=MachineId});
+        CameraOverrideInstalled=false;GameInput.IsTyping=PreviousTyping;Equipment=null;
+        if(MachineId.Length>0 && LSDGameplayMod.Current?.Ready==true){
+            if(Busy)ReleaseAfterReply=MachineId;else ReleaseMachine(MachineId);
+        }
+    }
+    private void ReleaseMachine(string machine)
+    {
+        PendingRelease=new StudioCommand{Action="release",Machine=machine};ReleaseSubmittedAt=Time.realtimeSinceStartup;
+        WorkshopNetwork.Submit(PendingRelease);
     }
     internal void ShowMessage(string message){if(Message)Message.text=message;CollectiveCatalogue.UpdateStatus();}
     private void Send(StudioCommand command)
@@ -111,9 +122,14 @@ internal sealed class WorkshopPanel : IDisposable
     }
     internal void OnReply(StudioReply reply)
     {
+        if(PendingRelease is {} release && reply.Token==release.Token){PendingRelease=null;return;}
         var command=Pending;
         if(command is not null && reply.Token==command.Token){
             Busy=false;Pending=null;
+            if(ReleaseAfterReply.Length>0){
+                var machine=ReleaseAfterReply;ReleaseAfterReply="";ReleaseMachine(machine);
+            }
+            if(!IsOpen)return;
             if(reply.Success && command.Action=="introduce"){Close();CollectiveCatalogue.OpenCatalogue();return;}
             if(reply.Success && command.Action=="draw"){Editing=false;SelectedArt=LSDGameplayMod.Current!.State.Artworks.Last().Slot;}
             if(reply.Success && command.Action=="testfinish")Task="";
@@ -188,9 +204,11 @@ internal sealed class WorkshopPanel : IDisposable
     private void Upload(){DrawingTexture.SetPixels32(new Il2CppStructArray<Color32>(Pixels.Select(p=>StudioAssets.Palette[p]).ToArray()));DrawingTexture.Apply();Sheet?.SetDrawing(DrawingTexture);}
     internal void Tick()
     {
-        if(!IsOpen)return;
-        if(!Player.Local || Player.Local.IsUnconscious || !Player.Local.Health.IsAlive || (Equipment && Vector3.Distance(Player.Local.transform.position,Equipment!.transform.position)>4)){Close();return;}
+        // Reliable requests still need retries after a panel is closed: the host can be saving or rate limiting.
         if(Busy && Time.realtimeSinceStartup-SubmittedAt>8){SubmittedAt=Time.realtimeSinceStartup;if(Pending is not null)WorkshopNetwork.Submit(Pending);}
+        if(PendingRelease is {} release && Time.realtimeSinceStartup-ReleaseSubmittedAt>8){ReleaseSubmittedAt=Time.realtimeSinceStartup;WorkshopNetwork.Submit(release);}
+        if(!IsOpen)return;
+        if(!Player.Local || Player.Local.IsUnconscious || !Player.Local.Health.IsAlive || (MachineId.Length>0 && !Equipment) || (Equipment && Vector3.Distance(Player.Local.transform.position,Equipment!.transform.position)>4)){Close();return;}
         if(Keyboard.current?.f9Key.wasPressedThisFrame==true){if(Editing)SaveDrawing();else Send(new(){Action="testfinish"});return;}
         if(Editing){DrawTick();return;}if(Task.Length>0){TaskTick();return;}
         if(SeenRevision!=LSDGameplayMod.Current!.State.Revision)Refresh();

@@ -112,9 +112,11 @@ internal static class WorkshopNetwork
         try
         {
             var now=UnityEngine.Time.realtimeSinceStartup;
-            if (LastRequest.TryGetValue(connection.ClientId,out var last) && now-last<0.10f) return;
-            LastRequest[connection.ClientId]=now;
             var command=JsonSerializer.Deserialize<StudioCommand>(payload) ?? throw new InvalidDataException("Empty workshop request.");
+            if(command.Action!="release"){
+                if (LastRequest.TryGetValue(connection.ClientId,out var last) && now-last<0.10f) return;
+                LastRequest[connection.ClientId]=now;
+            }
             Send(connection,Execute(player,command));
         }
         catch (Exception error) { MelonLogger.Warning("Rejected studio request: "+error.Message); }

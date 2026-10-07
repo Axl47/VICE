@@ -136,8 +136,14 @@ public sealed class LSDGameplayMod : MelonMod
         var committed=false;
         try
         {
-            if (!Ready || !WorkshopNetwork.Host || !player || !player.PlayerLoaded || player.IsUnconscious || !player.Health.IsAlive)
+            if (!Ready || !WorkshopNetwork.Host || !player || !player.PlayerLoaded)
                 throw new InvalidOperationException("The workshop is unavailable.");
+            // Lease cleanup is idempotent and must also work during saving, death, or equipment removal.
+            if(command.Action=="release"){
+                if(Leases.TryGetValue(command.Machine,out var lease) && lease.Owner==player.PlayerCode)Leases.Remove(command.Machine);
+                reply.Success=true;reply.State=prior;return reply;
+            }
+            if(player.IsUnconscious || !player.Health.IsAlive)throw new InvalidOperationException("The workshop is unavailable.");
             if (SaveManager.Instance.IsSaving) throw new InvalidOperationException("Saving in progress. Try again when it finishes.");
             if (command.Action=="sync") { reply.Success=true;reply.State=prior;return reply; }
             var office=World!.Office;
@@ -170,8 +176,6 @@ public sealed class LSDGameplayMod : MelonMod
                 }
                 State.Revision++;reply.Message="Test skip: current manual stage and cabinet drying completed. Collect output normally.";
             }
-            else if (command.Action=="release")
-            { if (Leases.TryGetValue(command.Machine,out var lease) && lease.Owner==player.PlayerCode) Leases.Remove(command.Machine); }
             else
             {
                 if (!State.Introduced) throw new InvalidOperationException("Introduce yourself through the collective sticker first.");
@@ -287,12 +291,12 @@ public sealed class LSDGameplayMod : MelonMod
         if (state.Revision<State.Revision) return;var introduced=State.Introduced;State=state;
         StudioAssets.UpdateArtwork(State);if (!introduced && State.Introduced) World?.Introduce();World?.RefreshMachines(State);Panel?.Refresh();
     }
-    internal void Reply(StudioReply reply) { Panel?.OnReply(reply);ShowMessage(reply.Message); }
+    internal void Reply(StudioReply reply) { Panel?.OnReply(reply);CollectiveCatalogue.OnReply(reply);ShowMessage(reply.Message); }
     internal void ShowMessage(string message) { if (message.Length>0) Panel?.ShowMessage(message); }
     private void ClearSession()
     {
         Ready=false;Panel?.Dispose();Panel=null;Delivery?.Dispose();Delivery=null;World?.Dispose();World=null;Diagnostic=null;
-        Leases.Clear();WorkshopNetwork.Reset();StudioTutorial.Current=null;State=new();SaveTarget=SaveSnapshot="";
+        Leases.Clear();WorkshopNetwork.Reset();CollectiveCatalogue.Reset();StudioTutorial.Current=null;State=new();SaveTarget=SaveSnapshot="";
     }
     public override void OnSceneWasUnloaded(int buildIndex,string sceneName) { if (sceneName=="Main") ClearSession(); }
     public override void OnApplicationQuit()=>ClearSession();

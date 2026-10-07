@@ -11,13 +11,16 @@ public sealed class CollectiveCatalogue : PhoneApp
     private static CollectiveCatalogue? Instance;
     private float NextRefresh;
     private bool PendingOpen;
+    private static StudioCommand? PendingOrder;
+    private static float SubmittedAt;
+    private static string OrderMessage="";
     protected override string AppName=>"Off Register";
     protected override string AppTitle=>"Off Register";
     protected override string IconLabel=>"Studio";
     protected override EOrientation Orientation=>EOrientation.Vertical;
     protected override string IconFileName=>"OffRegister.png";
     protected override Sprite IconSprite=>StudioAssets.Symbol;
-    protected override void OnDestroyed(){if(Instance==this)Instance=null;base.OnDestroyed();}
+    protected override void OnDestroyed(){if(Instance==this){Instance=null;Reset();}base.OnDestroyed();}
     protected override void OnCreatedUI(GameObject container)
     {
         Instance=this;
@@ -32,10 +35,24 @@ public sealed class CollectiveCatalogue : PhoneApp
         Status=StudioWidgets.Label(container.transform,"",32,404,570,440,23);
         Refresh();
     }
-    private static void Order(int quantity)=>WorkshopNetwork.Submit(new StudioCommand { Action="order",Quantity=quantity });
+    private static void Order(int quantity)
+    {
+        if(PendingOrder is not null)return;
+        PendingOrder=new StudioCommand{Action="order",Quantity=quantity};SubmittedAt=Time.realtimeSinceStartup;
+        OrderMessage="Requesting delivery…";UpdateStatus();WorkshopNetwork.Submit(PendingOrder);
+    }
+    internal static void OnReply(StudioReply reply)
+    {
+        if(PendingOrder is null || reply.Token!=PendingOrder.Token)return;
+        PendingOrder=null;OrderMessage=reply.Message;UpdateStatus();
+    }
+    internal static void Reset(){PendingOrder=null;OrderMessage="";}
     internal static void UpdateStatus()=>Instance?.Refresh();
     internal static void Tick()
     {
+        if(PendingOrder is {} order && LSDGameplayMod.Current?.Ready==true && Time.realtimeSinceStartup-SubmittedAt>8){
+            SubmittedAt=Time.realtimeSinceStartup;WorkshopNetwork.Submit(order);
+        }
         if(Instance?.PendingOpen==true && Il2CppScheduleOne.UI.Phone.Phone.Instance.State.IsActive){
             Instance.PendingOpen=false;Instance.OpenApp();
         }
@@ -59,6 +76,7 @@ public sealed class CollectiveCatalogue : PhoneApp
         if (current?.Ready!=true || !current.State.Introduced) { Status.text="Find our sticker inside the owned Sewer Office before ordering.";return; }
         var lines=current.State.Orders.TakeLast(4).Select(o=>$"{o.Quantity} parcel{(o.Quantity==1 ? "" : "s")} · "+(o.Stage==OrderStage.InTransit
             ? $"arriving in {Math.Max(0,o.DueMinute-LSDGameplayMod.Minute)} min" : o.Stage==OrderStage.WaitingForSpace ? "pallet full" : "delivered"));
-        Status.text=(current.State.Orders.Count==0 ? "No orders yet." : string.Join("\n\n",lines))+"\n\nPick up at Dan's Hardware.\nFollow the purple star.";
+        Status.text=(OrderMessage.Length>0 ? OrderMessage+"\n\n":"")+
+            (current.State.Orders.Count==0 ? "No orders yet." : string.Join("\n\n",lines))+"\n\nPick up at Dan's Hardware.\nFollow the purple star.";
     }
 }

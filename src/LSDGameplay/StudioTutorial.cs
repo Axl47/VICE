@@ -30,7 +30,11 @@ public sealed class StudioTutorial : S1API.Quests.Quest
     internal static bool Observe(WorkshopState state,WorkshopWorld world)
     {
         if(!WorkshopNetwork.Host || !state.Introduced || !Player.Local)return false;
-        var step=Math.Max(1,state.TutorialStep);var items=new InventoryTransaction(Player.Local).Items.ToArray();
+        var step=Math.Max(1,state.TutorialStep);
+        // The host owns tutorial state, but any loaded peer can perform the production run.
+        var items=Player.PlayerList.ToArray().Where(p=>p && p.PlayerLoaded)
+            .SelectMany(p=>p.IsLocalPlayer ? InventoryTransaction.RegularSlots():p._inventory.ToArray())
+            .Select(s=>s.ItemInstance).Where(i=>i is not null && i.Quantity>0).ToArray();
         var built=world.Office?.BuildableItems.ToArray().Where(i=>i && i.ItemInstance is not null).Select(i=>i.ItemInstance.ID).ToArray()??Array.Empty<string>();
         bool Has(string id)=>items.Any(i=>i.ID==id)||built.Contains(id);
         if(new[]{WorkshopRules.Bench,WorkshopRules.Cabinet,WorkshopRules.Paper,WorkshopRules.Ink}.All(Has))step=Math.Max(step,2);

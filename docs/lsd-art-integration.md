@@ -48,6 +48,12 @@ The last two images are diagnostic geometry views. The saved batch is at registr
 
 See [the recorded build and asset hashes](lsd-art-integration.json). Multiplayer and performance profiling were not exercised. The native icon rig still reports its existing custom-sleeve composite-icon fallback; this does not prevent sleeve packaging or its world representation.
 
+## PR review follow-up
+
+The review of `31b7193` identified seven additional gameplay issues. The follow-up tracks actual local consumption events so repeated uses from one stack refresh the effect; retries pending actions after panel close and releases their leases after replies; exempts idempotent releases from action throttling and save/death restrictions; clears owned camera overrides independently of equipment validity; resets print textures, pixels, coverage and direction between batches; displays order replies in the phone catalogue; and observes all loaded player inventories for the shared tutorial.
+
+The follow-up passes warning-free workshop and preview builds, workshop persistence/rule checks, **132,988** preview assertions (including repeated consumption from the same stack), and the compiled rendering/audio guards. The opt-in native sheet diagnostic now also checks multiple consecutive editions and repeated batches in one sheet view. These follow-up fixes have not been exercised in a multiplayer session or a new native game run. The screenshots and JSON hashes above record the original art verification build; the follow-up package is separate and has not replaced the installed mods or test save.
+
 ## Reproduce
 
 Build with `scripts/Build-LSDGameplay.ps1`; use `-RebuildArt` only when regenerating the Blender assets as well. The normal build packages both DLLs as `artifacts/LSDGameplay-0.2.4.zip`.

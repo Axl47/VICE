@@ -307,6 +307,14 @@ internal sealed class SliceDiagnostic
         var visibleY=(int)(sheet.PrintCoordinate(0.25f)*199);var hiddenY=(int)(sheet.PrintCoordinate(0.75f)*199);
         Check(Enumerable.Range(0,320).Any(x=>!source[visibleY*320+x].Equals(StudioAssets.Palette[0])),"Reveal check needs a nonblank artwork row.");
         Check(Enumerable.Range(0,320).All(x=>actual[visibleY*320+x].Equals(source[visibleY*320+x])) && Enumerable.Range(0,320).All(x=>actual[hiddenY*320+x].Equals(StudioAssets.Palette[0])),"Artwork is revealed ahead of the roller instead of behind it.");
+        // Reuse one view for multiple batches, including the same progress and a repeated edition.
+        foreach(var slot in new[]{0,1,0}){
+            sheet.SetArtwork(slot);sheet.BeginPrinting();sheet.Print(slot,1);
+            Check(sheet.CheckPrintTexture.GetPixels32().ToArray().SequenceEqual(StudioAssets.SheetTexture(slot).GetPixels32().ToArray()),"A reused sheet view retained another batch's print pixels.");
+            sheet.SetArtwork(slot);sheet.BeginPrinting();sheet.Print(slot,0);
+            Check(sheet.CheckPrintTexture.GetPixels32().ToArray().All(p=>p.Equals(StudioAssets.Palette[0])),"A new batch retained the previous print coverage.");
+        }
+        sheet.SetArtwork(0);sheet.BeginPrinting();sheet.Print(0,0.5f);
     }
     private static void VerifyArtModels()
     {

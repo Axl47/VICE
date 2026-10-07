@@ -19,6 +19,7 @@ internal sealed class SheetView : IDisposable
     private Texture2D? Printed;
     private Color32[]? PrintSource;
     private int PrintedRows=-1;
+    private int PrintSlot=-1;
     private bool PrintAscending=true,PrintDirectionSet;
     private readonly Vector3 SourcePosition,SourceScale;
     private readonly Quaternion SourceRotation;
@@ -39,8 +40,12 @@ internal sealed class SheetView : IDisposable
         Lines=new GameObject("Studio physical guides");Lines.transform.SetParent(bench.transform,false);
         Frame(false);
     }
-    internal void SetArtwork(int slot)=>Paper.mainTexture=StudioAssets.SheetTexture(slot);
-    internal void SetDrawing(Texture2D drawing)=>Paper.mainTexture=drawing;
+    internal void SetArtwork(int slot){Paper.mainTexture=StudioAssets.SheetTexture(slot);ResetPrinting();}
+    internal void SetDrawing(Texture2D drawing){Paper.mainTexture=drawing;ResetPrinting();}
+    private void ResetPrinting()
+    {
+        if(Printed)Object.Destroy(Printed);Printed=null;PrintSource=null;PrintedRows=PrintSlot=-1;PrintDirectionSet=false;
+    }
     internal void BeginPrinting()
     {
         if(PrintDirectionSet)return;
@@ -51,6 +56,8 @@ internal sealed class SheetView : IDisposable
     internal Texture2D CheckPrintTexture=>Printed!;
     internal void Print(int slot,float progress)
     {
+        if(PrintSlot>=0 && PrintSlot!=slot){ResetPrinting();BeginPrinting();}
+        PrintSlot=slot;
         if(Printed is null){Printed=new Texture2D(320,200,TextureFormat.RGBA32,false);Printed.filterMode=FilterMode.Point;}
         PrintSource??=StudioAssets.SheetTexture(slot).GetPixels32().ToArray();
         var rows=Math.Clamp((int)(progress*200),0,200);if(rows==PrintedRows)return;PrintedRows=rows;
