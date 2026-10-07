@@ -62,6 +62,13 @@ internal sealed class TutorialDiagnostic
                 TutorialProgress.RecordAction(State,"collect",MachineStage.TabOutput);Quest.Tick(State,World);ExpectActive(17);
                 TutorialProgress.RecordAction(State,"pack");Quest.Tick(State,World);ExpectActive();
                 if(Quest.QuestEntries.Any(e=>e.State!=QuestState.Completed))throw new InvalidOperationException("Native tutorial finished with incomplete entries.");
+                // Simulate legacy labels restored after completion, without changing
+                // the objective mask or cached Seen value. The completed quest must stay complete.
+                for(var i=0;i<Quest.QuestEntries.Count;i++)Quest.QuestEntries[i].Title="Legacy grouped task "+i;
+                Quest.Tick(State,World);
+                if(Quest.QuestEntries.Where((entry,index)=>entry.Title!=TutorialProgress.Titles[index] || entry.State!=QuestState.Completed).Any())
+                    throw new InvalidOperationException("Completed native tutorial retained legacy labels or reopened its entries.");
+                File.WriteAllText(Path.Combine(Output,"tutorial-review-regression-passed.txt"),"Completed native quest labels refresh with unchanged progress, and all completed entry states are retained.");
                 File.WriteAllText(Path.Combine(Output,"tutorial-check-passed.txt"),"Native eighteen-entry quest: independent supply checklist, single registration task, legacy drying migration, separated cutter/collection/packaging and final completion passed. Isolated save was not saved.");
                 return true;
         }

@@ -49,14 +49,15 @@ public sealed class StudioTutorial : S1API.Quests.Quest
     }
     internal void Tick(WorkshopState state,WorkshopWorld world)
     {
+        // Native saved quest entries can still carry grouped labels, even after completion.
+        for(var i=0;i<QuestEntries.Count;i++)
+            if(QuestEntries[i].Title!=TutorialProgress.Titles[i])QuestEntries[i].Title=TutorialProgress.Titles[i];
         var completed=TutorialProgress.Completed(state);
         if(!state.Introduced || Seen==completed)return;
         Seen=completed;
         if(QuestState==QuestState.Inactive)Begin();
         if(QuestState==QuestState.Completed)return;
         for(var i=0;i<QuestEntries.Count;i++){
-            // Native saved quest entries can still carry the old grouped labels.
-            if(QuestEntries[i].Title!=TutorialProgress.Titles[i])QuestEntries[i].Title=TutorialProgress.Titles[i];
             var desired=TutorialProgress.Has(state,(TutorialObjective)i) ? QuestState.Completed:TutorialProgress.Active(state,i) ? QuestState.Active:QuestState.Inactive;
             if(QuestEntries[i].State!=desired)QuestEntries[i].SetState(desired);
             if(desired==QuestState.Active && world.Office && (i is 4 or 5 || i>=8))QuestEntries[i].POIPosition=world.Office!.InteriorSpawnPoint.position;

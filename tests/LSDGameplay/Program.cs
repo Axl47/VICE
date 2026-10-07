@@ -73,6 +73,26 @@ Check(TutorialProgress.Finished(tutorial) && tutorial.TutorialStep==10,"Packagin
 Check(!TutorialProgress.Record(tutorial,TutorialObjective.BuyPaper),"A repeated observation changed completed tutorial progress.");
 var earlyPrint=new WorkshopState{Introduced=true};TutorialProgress.RecordAction(earlyPrint,"start");
 Check(TutorialProgress.Has(earlyPrint,TutorialObjective.BuyPaper) && !TutorialProgress.Has(earlyPrint,TutorialObjective.BuyCabinet) && !TutorialProgress.Has(earlyPrint,TutorialObjective.PlaceCabinet),"A consumed batch forgot its supplies or invented cabinet ownership.");
+Check(earlyPrint.TutorialStep==1,"Loading a batch without a cabinet skipped legacy prerequisite tasks.");
+var orderFirst=new WorkshopState{Introduced=true};
+TutorialProgress.RecordAction(orderFirst,"order");TutorialProgress.Record(orderFirst,TutorialObjective.CollectPrism);
+Check(orderFirst.TutorialStep==1,"Collecting Prism before setup advanced the coarse legacy milestone.");
+orderFirst=WorkshopState.Deserialize(orderFirst.Serialize());
+Check(orderFirst.TutorialStep==1 && TutorialProgress.Has(orderFirst,TutorialObjective.CollectPrism),"Order-first progress did not retain its independent completion and safe legacy milestone after reload.");
+foreach(var objective in new[]{TutorialObjective.BuyBench,TutorialObjective.BuyCabinet,TutorialObjective.BuyPaper,TutorialObjective.BuyInk})TutorialProgress.Record(orderFirst,objective);
+Check(orderFirst.TutorialStep==2,"Purchases completed without placement skipped the legacy setup task.");
+TutorialProgress.Record(orderFirst,TutorialObjective.PlaceCabinet);
+Check(orderFirst.TutorialStep==2,"Placing only the cabinet advanced the legacy setup milestone.");
+TutorialProgress.Record(orderFirst,TutorialObjective.PlaceBench);
+Check(orderFirst.TutorialStep==4,"Closing the prerequisite gap lost already completed Prism collection.");
+var inflated=WorkshopState.Deserialize("{\"Version\":1,\"Introduced\":true,\"TutorialStep\":4,\"TutorialObjectives\":192}");
+Check(inflated.TutorialStep==1 && TutorialProgress.Has(inflated,TutorialObjective.CollectPrism),"An inflated prior 0.2.5 milestone was not repaired from its saved objective mask.");
+// Every saved legacy milestone must imply only objectives actually completed,
+// including masks representing arbitrary out-of-order checklist completion.
+for(var mask=0;mask<=TutorialProgress.All;mask++){
+    var implied=TutorialProgress.FromLegacy(TutorialProgress.LegacyStep(mask));
+    Check((mask&implied)==implied,"A coarse milestone invented prerequisite completion.");
+}
 for(var legacy=0;legacy<=10;legacy++){
     var migrated=WorkshopState.Deserialize($"{{\"Version\":1,\"Introduced\":true,\"TutorialStep\":{legacy}}}");
     Check(migrated.TutorialObjectives==TutorialProgress.FromLegacy(legacy),"Legacy tutorial progress migrated incorrectly.");

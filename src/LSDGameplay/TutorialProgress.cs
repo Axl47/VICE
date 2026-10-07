@@ -43,9 +43,10 @@ internal static class TutorialProgress
     internal static bool Record(WorkshopState state,TutorialObjective objective)
     {
         var before=Completed(state);var mask=before|Evidence(objective);
-        if(mask==before)return false;
+        var legacy=LegacyStep(mask);
+        if(mask==before && state.TutorialStep==legacy)return false;
         state.TutorialObjectives=mask;
-        state.TutorialStep=Math.Max(state.TutorialStep,LegacyStep(mask));
+        state.TutorialStep=legacy;
         state.Revision++;return true;
     }
     private static int Evidence(TutorialObjective objective)
@@ -86,17 +87,14 @@ internal static class TutorialProgress
             _=>null};
         return objective is not null && Record(state,objective.Value);
     }
-    private static int LegacyStep(int mask)
+    internal static int LegacyStep(int mask)
     {
-        bool Done(TutorialObjective objective)=>(mask&Bit(objective))!=0;
-        if(Done(TutorialObjective.PackageTabs))return 10;
-        if(Done(TutorialObjective.CollectTabs))return 9;
-        if(Done(TutorialObjective.CutSheet))return 8;
-        if(Done(TutorialObjective.LoadCabinet))return 7;
-        if(Done(TutorialObjective.PrintSheet))return 6;
-        if(Done(TutorialObjective.LoadBatch))return 5;
-        if(Done(TutorialObjective.CollectPrism))return 4;
-        if(Done(TutorialObjective.PlaceBench)&&Done(TutorialObjective.PlaceCabinet))return 3;
-        return (mask&15)==15 ? 2:1;
+        // Older mods infer every task before this milestone as complete. Never
+        // advance across a missing purchase or placement when later tasks happen first.
+        for(var step=10;step>=2;step--){
+            var prefix=FromLegacy(step);
+            if((mask&prefix)==prefix)return step;
+        }
+        return 1;
     }
 }

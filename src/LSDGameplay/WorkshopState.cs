@@ -98,7 +98,12 @@ public sealed class WorkshopState
     {
         if (json.Length > WorkshopRules.MaximumPayload) throw new InvalidDataException("Workshop snapshot is too large.");
         var state = JsonSerializer.Deserialize<WorkshopState>(json) ?? throw new InvalidDataException("Empty workshop save.");
-        state.Validate();state.TutorialObjectives??=TutorialProgress.FromLegacy(state.TutorialStep);return state;
+        state.Validate();state.TutorialObjectives??=TutorialProgress.FromLegacy(state.TutorialStep);
+        // Repair inflated coarse progress from an earlier 0.2.5 build when its
+        // independently saved objectives show an unfinished prerequisite.
+        if(state.Introduced || state.TutorialStep>0 || state.TutorialObjectives>0)
+            state.TutorialStep=TutorialProgress.LegacyStep(state.TutorialObjectives.Value);
+        return state;
     }
 }
 

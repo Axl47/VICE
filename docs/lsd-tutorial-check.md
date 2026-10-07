@@ -8,6 +8,8 @@ Ordering and collecting Prism Base, registering and printing, collecting and loa
 
 The save schema remains version 1 with an additive objective mask. Missing masks migrate from the old `TutorialStep`, which still records a compatible coarse milestone. Completed tutorials stay completed. Old native quest labels are refreshed to the new labels after loading; an old drying-stage tutorial resumes at collecting its ready sheet.
 
+Review follow-up: label refresh also runs for completed quests and when the progress mask has not changed. The coarse milestone now represents only a contiguous prefix of completed objectives, so collecting Prism early cannot imply that supplies or equipment placement are complete. Loading a saved objective mask repairs inflated coarse milestones from the initial 0.2.5 build while retaining the actual completed objectives. Regression checks cover every one of the **262,144** possible objective masks and the order-first flow across reload and later placement.
+
 ## Native UI evidence
 
 These are unchanged game screenshots from the isolated diagnostic. The checker sets unsaved quest states to exercise the UI; these pictures do not represent another manual production playthrough. Green text is the native completed-entry animation.
