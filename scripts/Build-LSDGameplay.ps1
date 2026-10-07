@@ -12,10 +12,12 @@ if ($DotnetPath -eq 'dotnet' -and (Test-Path -LiteralPath $portableSdk)) { $Dotn
 $env:DOTNET_CLI_HOME = Join-Path $repoRoot '.tools\cli-home'
 $env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'
 if ($RebuildArt) {
-    & $BlenderPath --background --python (Join-Path $PSScriptRoot 'Build-LSDStudio.py')
+    & $BlenderPath --background --python-exit-code 1 --python (Join-Path $PSScriptRoot 'Build-LSDStudio.py')
     if ($LASTEXITCODE -ne 0) { throw 'Blender studio generation failed.' }
-    & $BlenderPath --background --python (Join-Path $PSScriptRoot 'Render-LSDIcons.py')
+    & $BlenderPath --background --python-exit-code 1 --python (Join-Path $PSScriptRoot 'Render-LSDIcons.py')
     if ($LASTEXITCODE -ne 0) { throw 'Blender icon rendering failed.' }
+    & $BlenderPath --background --python-exit-code 1 --python (Join-Path $PSScriptRoot 'Check-LSDStudio.py')
+    if ($LASTEXITCODE -ne 0) { throw 'Studio model contract checks failed.' }
     $unityLog = Join-Path $repoRoot 'artifacts\lsd-studio-unity.log'
     New-Item -ItemType Directory -Path (Split-Path $unityLog -Parent) -Force | Out-Null
     $unityArguments = @('-batchmode','-nographics','-quit','-projectPath',('"'+(Join-Path $repoRoot 'assets\LSDStudio')+'"'),

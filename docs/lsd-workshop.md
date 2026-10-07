@@ -32,6 +32,10 @@ Native inventory and placed equipment save normally. Workshop state is stored un
 
 Keep **both personal LSD DLLs and matching S1API installed** while this save contains studio items. Back up the full save before removing the workshop. The slice uses eight stable native edition IDs across saves; custom names appear in the studio, while inventory names use Studio 01–05 for those revisions.
 
+## Authored art polish
+
+The replacement Blender/FBX sources and review renders are described in [the art-polish notes](lsd-art-polish.md). The prebuilt Unity bundle still requires a real `-RebuildArt` rebuild before these replacements appear in game.
+
 ## Source and checks
 
 Run `scripts/Build-LSDGameplay.ps1` to build both modules, run the workshop rule checks and the preview's timing/render/audio guards, and package the DLLs. `-RebuildArt` regenerates the authored Blender props, transparent inventory icons and Unity bundle using Blender 5.2 and Unity 2022.3.62f2. Editable Blender files are generated under `assets/LSDStudio/Blender`; the generators, rendered PNGs, FBX files and Unity project are retained in the repository. Geometry and icons are authored locally; the runtime uses the installed game's native URP shader and existing packaging/consumption behavior.

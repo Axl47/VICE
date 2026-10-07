@@ -32,10 +32,13 @@ public static class BuildStudio
                     }
                     material.shader=shader;
                     material.color=key switch {
-                        "Steel"=>new Color(0.18f,0.23f,0.25f),"Wood"=>new Color(0.31f,0.19f,0.12f),
-                        "Paper"=>new Color(0.91f,0.88f,0.77f),"Ink"=>new Color(0.07f,0.085f,0.10f),
-                        "Accent"=>new Color(0.11f,0.72f,0.65f),"Lightbox"=>new Color(0.61f,0.83f,0.75f),
-                        "Glass"=>new Color(0.13f,0.24f,0.26f),_=>Color.white };
+                        "Steel"=>new Color(0.25f,0.30f,0.32f),"Wood"=>new Color(0.37f,0.29f,0.20f),
+                        "Paper"=>new Color(0.91f,0.87f,0.74f),"Ink"=>new Color(0.055f,0.070f,0.080f),
+                        "Accent"=>new Color(0.19f,0.40f,0.47f),"Lightbox"=>new Color(0.67f,0.82f,0.76f),
+                        "Glass"=>new Color(0.13f,0.24f,0.26f),
+                        "Enamel"=>new Color(0.62f,0.66f,0.63f),"Edge"=>new Color(0.77f,0.80f,0.77f),
+                        "Kraft"=>new Color(0.61f,0.39f,0.16f),"KraftEdge"=>new Color(0.74f,0.52f,0.25f),
+                        "Label"=>new Color(0.85f,0.80f,0.65f),"Warning"=>new Color(0.87f,0.55f,0.18f),_=>Color.white };
                     EditorUtility.SetDirty(material);
                     materials[i] = material;
                 }

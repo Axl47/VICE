@@ -1,0 +1,514 @@
+{
+  "baseline": "c0c78e9658cdd638f23fb04e07f2111e35e3ccf5",
+  "blender": "4.3.2",
+  "units": "metres, Blender Z-up",
+  "errors": [],
+  "warnings": [],
+  "models": {
+    "Bench": {
+      "blend": {
+        "bounds": {
+          "min": [
+            -0.7,
+            -0.38,
+            0.0
+          ],
+          "max": [
+            0.7,
+            0.375,
+            1.13
+          ]
+        },
+        "mesh_count": 10,
+        "triangles": 2406,
+        "materials": [
+          "Accent",
+          "Artwork",
+          "Edge",
+          "Enamel",
+          "Ink",
+          "KraftEdge",
+          "Label",
+          "Lightbox",
+          "Paper",
+          "Steel"
+        ],
+        "semantic_sha256": "683d50a7d7a4557cd2e8dfe8f3df1b72d40bf7a129876d8fc6450d16bdb07c48"
+      },
+      "fbx": {
+        "bounds": {
+          "min": [
+            -0.7,
+            -0.3800001,
+            -2e-07
+          ],
+          "max": [
+            0.7,
+            0.375,
+            1.13
+          ]
+        },
+        "mesh_count": 10,
+        "triangles": 2406,
+        "materials": [
+          "Accent",
+          "Artwork",
+          "Edge",
+          "Enamel",
+          "Ink",
+          "KraftEdge",
+          "Label",
+          "Lightbox",
+          "Paper",
+          "Steel"
+        ],
+        "semantic_sha256": "3d9dd104d11d507d273dfb9af47adaa191e823b4adc833ce69338cc5f72d84ed"
+      }
+    },
+    "Cabinet": {
+      "blend": {
+        "bounds": {
+          "min": [
+            -0.3685,
+            -0.34,
+            0.0
+          ],
+          "max": [
+            0.3685,
+            0.28,
+            1.335
+          ]
+        },
+        "mesh_count": 4,
+        "triangles": 2378,
+        "materials": [
+          "Accent",
+          "Artwork",
+          "Edge",
+          "Enamel",
+          "Ink",
+          "Label",
+          "Paper",
+          "Steel"
+        ],
+        "semantic_sha256": "90d79e07adc33a44ad0b633fab057835e5c52e8df69da54685f7ae7e937853fb"
+      },
+      "fbx": {
+        "bounds": {
+          "min": [
+            -0.3685,
+            -0.3400001,
+            -0.0
+          ],
+          "max": [
+            0.3685,
+            0.2800001,
+            1.3350002
+          ]
+        },
+        "mesh_count": 4,
+        "triangles": 2378,
+        "materials": [
+          "Accent",
+          "Artwork",
+          "Edge",
+          "Enamel",
+          "Ink",
+          "Label",
+          "Paper",
+          "Steel"
+        ],
+        "semantic_sha256": "8525739acd1c42020c92a0ace4c3a9f6e90aa15e9c5e5b473c58f36140abc6a3"
+      }
+    },
+    "Packet": {
+      "blend": {
+        "bounds": {
+          "min": [
+            -0.075,
+            -0.055,
+            0.0
+          ],
+          "max": [
+            0.075,
+            0.055,
+            0.009
+          ]
+        },
+        "mesh_count": 2,
+        "triangles": 95,
+        "materials": [
+          "Artwork",
+          "KraftEdge",
+          "Label",
+          "Paper"
+        ],
+        "semantic_sha256": "f4742c8146b1ee8264fd3256faf173eb3f8cc098ad202d5bc1394bd45500b138"
+      },
+      "fbx": {
+        "bounds": {
+          "min": [
+            -0.075,
+            -0.055,
+            -0.0
+          ],
+          "max": [
+            0.075,
+            0.055,
+            0.009
+          ]
+        },
+        "mesh_count": 2,
+        "triangles": 95,
+        "materials": [
+          "Artwork",
+          "KraftEdge",
+          "Label",
+          "Paper"
+        ],
+        "semantic_sha256": "c5f979436cdb02fb10688be1dbcacb61b02095231969ce9136f3ac398d3ffc1b"
+      }
+    },
+    "Parcel": {
+      "blend": {
+        "bounds": {
+          "min": [
+            -0.1154,
+            -0.082,
+            0.0
+          ],
+          "max": [
+            0.1154,
+            0.082,
+            0.177
+          ]
+        },
+        "mesh_count": 4,
+        "triangles": 234,
+        "materials": [
+          "Accent",
+          "Artwork",
+          "Ink",
+          "Kraft",
+          "KraftEdge",
+          "Label"
+        ],
+        "semantic_sha256": "3be75da06b10f9d4d636e0e8d5c7c240c19d37ca8dcd713580b20900ce5c6163"
+      },
+      "fbx": {
+        "bounds": {
+          "min": [
+            -0.1154,
+            -0.082,
+            -0.0
+          ],
+          "max": [
+            0.1154,
+            0.082,
+            0.177
+          ]
+        },
+        "mesh_count": 4,
+        "triangles": 234,
+        "materials": [
+          "Accent",
+          "Artwork",
+          "Ink",
+          "Kraft",
+          "KraftEdge",
+          "Label"
+        ],
+        "semantic_sha256": "29002c9b49986c6f5225977015378261b05d64cb3adb1d37880f2aa7cacd0404"
+      }
+    },
+    "Sheet": {
+      "blend": {
+        "bounds": {
+          "min": [
+            -0.22,
+            -0.16,
+            0.0
+          ],
+          "max": [
+            0.22,
+            0.16,
+            0.009
+          ]
+        },
+        "mesh_count": 2,
+        "triangles": 46,
+        "materials": [
+          "Artwork",
+          "Paper"
+        ],
+        "semantic_sha256": "a5cd075e537bc4362d63ccefb15ebc358d7ed9ad31900cdd4d318a778abba523"
+      },
+      "fbx": {
+        "bounds": {
+          "min": [
+            -0.22,
+            -0.16,
+            -0.0
+          ],
+          "max": [
+            0.22,
+            0.16,
+            0.009
+          ]
+        },
+        "mesh_count": 2,
+        "triangles": 46,
+        "materials": [
+          "Artwork",
+          "Paper"
+        ],
+        "semantic_sha256": "6795f048e3c1b605b4baf96a3b4262eb3389d42246dba25dd95f47f1e51813ad"
+      }
+    },
+    "Tab": {
+      "blend": {
+        "bounds": {
+          "min": [
+            -0.0325,
+            -0.0275,
+            0.0
+          ],
+          "max": [
+            0.0325,
+            0.0275,
+            0.009
+          ]
+        },
+        "mesh_count": 2,
+        "triangles": 46,
+        "materials": [
+          "Artwork",
+          "Paper"
+        ],
+        "semantic_sha256": "2bbcac28e0fd1c289618fd07537777ec8d939ff36af44e816749273f0c803889"
+      },
+      "fbx": {
+        "bounds": {
+          "min": [
+            -0.0325,
+            -0.0275,
+            -0.0
+          ],
+          "max": [
+            0.0325,
+            0.0275,
+            0.009
+          ]
+        },
+        "mesh_count": 2,
+        "triangles": 46,
+        "materials": [
+          "Artwork",
+          "Paper"
+        ],
+        "semantic_sha256": "2bbcac28e0fd1c289618fd07537777ec8d939ff36af44e816749273f0c803889"
+      }
+    }
+  },
+  "skipped": [
+    "Unity import, actual prefab contents and Windows64 bundle rebuild",
+    "Live game rendering, furniture colliders and native packaging physics",
+    "In-game sheet/cutter/camera and save-load diagnostics"
+  ],
+  "palette_parity": {
+    "authored_colours": {
+      "Steel": [
+        0.25,
+        0.3,
+        0.32,
+        1
+      ],
+      "Wood": [
+        0.37,
+        0.29,
+        0.2,
+        1
+      ],
+      "Paper": [
+        0.91,
+        0.87,
+        0.74,
+        1
+      ],
+      "Ink": [
+        0.055,
+        0.07,
+        0.08,
+        1
+      ],
+      "Accent": [
+        0.19,
+        0.4,
+        0.47,
+        1
+      ],
+      "Lightbox": [
+        0.67,
+        0.82,
+        0.76,
+        1
+      ],
+      "Glass": [
+        0.13,
+        0.24,
+        0.26,
+        1
+      ],
+      "Artwork": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "Enamel": [
+        0.62,
+        0.66,
+        0.63,
+        1
+      ],
+      "Edge": [
+        0.77,
+        0.8,
+        0.77,
+        1
+      ],
+      "Kraft": [
+        0.61,
+        0.39,
+        0.16,
+        1
+      ],
+      "KraftEdge": [
+        0.74,
+        0.52,
+        0.25,
+        1
+      ],
+      "Label": [
+        0.85,
+        0.8,
+        0.65,
+        1
+      ],
+      "Warning": [
+        0.87,
+        0.55,
+        0.18,
+        1
+      ]
+    },
+    "unity_colours": {
+      "Steel": [
+        0.25,
+        0.3,
+        0.32,
+        1.0
+      ],
+      "Wood": [
+        0.37,
+        0.29,
+        0.2,
+        1.0
+      ],
+      "Paper": [
+        0.91,
+        0.87,
+        0.74,
+        1.0
+      ],
+      "Ink": [
+        0.055,
+        0.07,
+        0.08,
+        1.0
+      ],
+      "Accent": [
+        0.19,
+        0.4,
+        0.47,
+        1.0
+      ],
+      "Lightbox": [
+        0.67,
+        0.82,
+        0.76,
+        1.0
+      ],
+      "Glass": [
+        0.13,
+        0.24,
+        0.26,
+        1.0
+      ],
+      "Enamel": [
+        0.62,
+        0.66,
+        0.63,
+        1.0
+      ],
+      "Edge": [
+        0.77,
+        0.8,
+        0.77,
+        1.0
+      ],
+      "Kraft": [
+        0.61,
+        0.39,
+        0.16,
+        1.0
+      ],
+      "KraftEdge": [
+        0.74,
+        0.52,
+        0.25,
+        1.0
+      ],
+      "Label": [
+        0.85,
+        0.8,
+        0.65,
+        1.0
+      ],
+      "Warning": [
+        0.87,
+        0.55,
+        0.18,
+        1.0
+      ],
+      "Artwork": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ]
+    }
+  },
+  "supported_materials": [
+    "Accent",
+    "Artwork",
+    "Edge",
+    "Enamel",
+    "Glass",
+    "Ink",
+    "Kraft",
+    "KraftEdge",
+    "Label",
+    "Lightbox",
+    "Paper",
+    "Steel",
+    "Warning",
+    "Wood"
+  ],
+  "assetset_sha256": "5642c8ccbf40145c50fa7b898512539885918fe6eb191b15db181354c54b4807",
+  "passed": true,
+  "rebuild_determinism": "Verified unchanged semantic fingerprints before and after a full six-model regeneration",
+  "negative_fixture": "Broken required mesh name and UV mapping correctly rejected in temporary copies",
+  "verification_date": "2026-10-07",
+  "renderer_note": "Static decoration batched; native Unity draw-call/performance profiling unrun"
+}
