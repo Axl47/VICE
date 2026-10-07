@@ -1,8 +1,10 @@
-# LSD visual preview 0.12.0
+# LSD visual preview 0.12.1
 
 This module supplies the visual/audio treatment for the [Off Register workshop](lsd-workshop.md) and remains independently usable as a manual preview. It registers no product itself. Consuming a workshop tab starts a treatment; another tab refreshes it without stacking. **F8** starts a three-minute manual preview or requests a short fade-out. **F9** immediately clears it outside a workshop interaction. Inside workshop controls it saves the drawing or skips the current production stage for testing.
 
 ## What changed
+
+Version 0.12.1 increases screen ripple displacement and lens breathing by another **25% over 0.12.0**. `RippleStrength` rises from `0.375` to `0.46875`; defaults revision 6 upgrades the previous default once and preserves custom strengths. At the stationary default peak, displacement is bounded to **5.90625–8.4375 pixels**, and lens amplitude before Volume blending is **0.0859375**. The absolute 18-pixel displacement and 0.11 lens caps, audio, closed-eye patterns and all other treatment settings stay unchanged.
 
 Version 0.12.0 implements the first [closed-eye patterns](future-closed-eye-patterns.md) pass. During an active manual or workshop-triggered treatment, **hold B** to close the eyes over 0.85 seconds and reveal soft, localized circles, spirals and lattices emerging from darkness. **Release B** to reopen over 0.45 seconds. The existing open-eye parameters, preferences migration and owned echo route remain unchanged.
 
@@ -14,26 +16,26 @@ Version 0.11.2 reserves F9 for open workshop controls and preserves the treatmen
 
 The owner approved 0.10.1's subtle motion and audible echo as a baseline. Its fixed source commit, installed DLL hash, captured preference section and implementation formulas are recorded in the [approved baseline](lsd-baseline-0.10.1.md). The old package and an additional DLL/preferences backup remain available locally.
 
-This trial raises default echo return, ripple displacement and lens breathing by **25%**, then adds independently adjustable reading-focus effects. Overall intensity, afterimages, colors, character sizes, timing, movement smoothing and the upright presentation remain as approved.
+The 0.11.0 trial raised default echo return, ripple displacement and lens breathing by **25%**, then added independently adjustable reading-focus effects. Version 0.12.1 adds a further 25% to the ripple/lens strengths. Overall intensity, afterimages, colors, character sizes, timing, movement smoothing and the upright presentation remain as approved.
 
-| Layer | Approved 0.10.1 | 0.11.0 trial |
-| --- | --- | --- |
-| RippleStrength | 0.30 | 0.375 |
-| Stationary peak displacement bound | 3.78–5.4 px | 4.725–6.75 px |
-| Lens amplitude before Volume blend | 0.055 | 0.06875 |
-| AudioStrength | 0.35 | 0.4375 |
-| Peak echo return | 23.52–29.4% | 29.4–36.75% |
-| TextFocusStrength | absent | 0.50; 0 retains earlier treatment |
+| Layer | Approved 0.10.1 | 0.11.0–0.12.0 | 0.12.1 |
+| --- | --- | --- | --- |
+| RippleStrength | 0.30 | 0.375 | 0.46875 |
+| Stationary peak displacement bound | 3.78–5.4 px | 4.725–6.75 px | 5.90625–8.4375 px |
+| Lens amplitude before Volume blend | 0.055 | 0.06875 | 0.0859375 |
+| AudioStrength | 0.35 | 0.4375 | 0.4375 |
+| Peak echo return | 23.52–29.4% | 29.4–36.75% | 29.4–36.75% |
+| TextFocusStrength | absent | 0.50; 0 retains earlier treatment | 0.50 |
 
 ### Completed-frame breathing and ripples
 
 Flow captures the completed rendered frame on the GPU, warps it into a second owned texture with explicit texture coordinates, and presents it with Unity's ordinary texture blit. Presentation explicitly reverses the captured texture's top-origin rows on Direct3D, once. The custom shader no longer draws directly to the backbuffer or reads the camera-global `_FlipY`. This separates texture processing from screen presentation. The frame includes the phone when present; its layout and input targets remain intact.
 
-The approved 0.10.1 field uses 70% uneven broad/detail flow, 20% small ripples around a slowly drifting origin, and 10% gentle radial breathing. The same field is used in this trial at greater displacement. Both horizontal and vertical texture details move across the image. The proportions sum to one and each field is bounded, preserving the absolute pixel limit. They do not add visible geometric overlays or change scene materials. The separate native zoom-like breathing receives the same 25% increase.
+The approved 0.10.1 field uses 70% uneven broad/detail flow, 20% small ripples around a slowly drifting origin, and 10% gentle radial breathing. The same field is used at greater displacement. Both horizontal and vertical texture details move across the image. The proportions sum to one and each field is bounded, preserving the absolute pixel limit. They do not add visible geometric overlays or change scene materials. The separate native zoom-like breathing receives the same proportional increase.
 
-At stationary default settings (`Intensity=0.60`, `RippleStrength=0.375`, `MotionStrength=0.50`), the flow's maximum vector displacement varies between **4.725 and 6.75 pixels**, exactly 25% above the approved bound. The absolute flow bound remains 18 pixels. The bound is an upper limit, not the displacement at every pixel. Normal strength is 37.5% of the corresponding full ripple range. `CenterClarityDegrees` is retained for compatibility and future experiments but does not mask the default path.
+At stationary default settings (`Intensity=0.60`, `RippleStrength=0.46875`, `MotionStrength=0.50`), the flow's maximum vector displacement varies between **5.90625 and 8.4375 pixels**, exactly 25% above 0.12.0 and 56.25% above the approved 0.10.1 bound. The absolute flow bound remains 18 pixels. The bound is an upper limit, not the displacement at every pixel. Normal strength is 46.875% of the corresponding full ripple range. `CenterClarityDegrees` is retained for compatibility and future experiments but does not mask the default path.
 
-The owned lens profile uses `min(0.11, 0.11 * RippleStrength / 0.30 * MotionStrength) * movementComfort * sin(0.65 * elapsed)`, before overall intensity blending. Its 0.30 calibration stays fixed when the default rises to 0.375; otherwise normalization would cancel the requested increase. Both axis multipliers remain enabled. Motion and ripple strength still control it. Shader breathing is independent of the native lens layer.
+The owned lens profile uses `min(0.11, 0.11 * RippleStrength / 0.30 * MotionStrength) * movementComfort * sin(0.65 * elapsed)`, before overall intensity blending. Its 0.30 calibration stays fixed when the default rises to 0.46875; otherwise normalization would cancel the requested increase. Both axis multipliers remain enabled. Motion and ripple strength still control it. Shader breathing is independent of the native lens layer.
 
 Moving or turning smoothly reduces both displacement layers. At four metres per second, strength approaches 62.5% of stationary strength, with a 25% floor during rapid travel. Standing still restores the stationary effect. The added vignette remains removed. Vivid colors, scene color breathing, outlines, upright afterimages and the approved text settings are retained.
 
@@ -61,20 +63,20 @@ The original `TextBlurStrength` stays independent. `TextFocusStrength=0` removes
 
 ## Install and use
 
-1. Close the game and replace only `Mods/Personal.LSDPreview.dll` from `LSDPreview-0.12.0.zip`. The preview also works with the existing workshop DLL. Keep backups outside `Mods`.
+1. Close the game and replace only `Mods/Personal.LSDPreview.dll` from `LSDPreview-0.12.1.zip`. The preview also works with the existing workshop DLL. Keep backups outside `Mods`.
 2. Restart, load a save and press F8. Allow roughly 30 seconds for the rising phase to reach its peak.
 3. Stand still near a shop wall, window frame or sign and watch several breathing cycles. Then compare F9. Test music at the gas station/shop and footsteps on a quiet street.
 4. Open the phone, talk to an NPC, move and ride. Effects continue while gameplay runs; only a real pause suspends them. Loading, death, unconsciousness, player/product replacement or scene cleanup clears the preview.
 5. During the trip, hold B while standing still, then release it. Compare `ClosedEyeStrength=0.2` and `0.8`, and test phone, dialogue, typing, pause, movement and F8/F9 while B is held. After a UI interruption, release B before trying again.
 
-Preferences remain in `UserData/MelonPreferences.cfg`, section `[PersonalLSDPreview]`. Defaults revision 5 upgrades unchanged ripple/audio values once and retains custom values. To replay the approved strengths after that upgrade, set `RippleStrength=0.30`, `AudioStrength=0.35`, `TextFocusStrength=0` and keep `DefaultsRevision=5` so the deliberate settings are not upgraded again. Exact historical playback is documented in the [baseline](lsd-baseline-0.10.1.md).
+Preferences remain in `UserData/MelonPreferences.cfg`, section `[PersonalLSDPreview]`. Defaults revision 6 upgrades unchanged `RippleStrength=0.375` to `0.46875` once and retains custom values; earlier revision 5 upgraded the original ripple/audio defaults. To replay the approved strengths after upgrading, set `RippleStrength=0.30`, `AudioStrength=0.35`, `TextFocusStrength=0` and keep `DefaultsRevision=6` so deliberate settings are not upgraded again. Set `RippleStrength=0.375` with revision 6 to return to the 0.12.0 distortion strength. Exact historical playback is documented in the [baseline](lsd-baseline-0.10.1.md).
 
 | Setting | Default | Meaning |
 | --- | --- | --- |
 | `Enabled` | `true` | Allow the manual preview. |
 | `Intensity` | `0.60` | Overall visual strength. |
 | `MotionStrength` | `0.50` | Flow, breathing, color separation and afterimages; zero disables motion. |
-| `RippleStrength` | `0.375` | Flow/lens strength; zero disables both. |
+| `RippleStrength` | `0.46875` | Flow/lens strength; zero disables both. |
 | `CenterClarityDegrees` | `5` | Reserved; default flow has no gaze mask. |
 | `AfterimageStrength` | `0.625` | Upright delayed images, also scaled by motion. |
 | `MaterialColorStrength` | `0.45` | Continuous scene/phone RGB breathing. |
@@ -101,7 +103,7 @@ Afterimages retain three bounded history images and corrected vertical sampling.
 
 The checked-in shader and Echo bundles let `scripts/Build-LSDPreview.ps1` build and package without a Unity editor or Python. The shader contains authored executable programs; the Echo bundle contains only four owned mixer/group/snapshot sets and their container, with no audio clips, meshes or textures. Build checks verify file and embedded-resource hashes. Regeneration uses `scripts/Build-LSDShader.py` or `scripts/Build-LSDEcho.py` with the local UnityPy tools and the installed game's serialization schema.
 
-The build compiles against installed IL2CPP assemblies with warnings treated as errors. Pure checks cover timing, visibility/input combinations, flow bounds, movement comfort, color ownership, character size guards, echo wet gain and exact default 25% ratios against the baseline. Compiled guards reject normal-path source scans/replays, listener-history/PCM writes, stripped echo filters, mixer snapshot replacement, startup audio initialization and playback detours. They also reject wording, spacing or layout writes from the reading-focus layer. Diagnostic-only tone generation and image/audio readback are intentionally separate.
+The build compiles against installed IL2CPP assemblies with warnings treated as errors. Pure checks cover timing, visibility/input combinations, flow bounds, movement comfort, color ownership, character size guards, unchanged echo wet gain, and the exact 25% ripple/lens increase over 0.12.0. Compiled guards reject normal-path source scans/replays, listener-history/PCM writes, stripped echo filters, mixer snapshot replacement, startup audio initialization and playback detours. They also reject wording, spacing or layout writes from the reading-focus layer. Diagnostic-only tone generation and image/audio readback are intentionally separate.
 
 ## Verification and playtest
 

@@ -135,7 +135,7 @@ try {
     Write-Output 'Checked closed eyes: held B input and guarded transition state; patterns share the owned completed-frame shader.'
 } finally { $definition.Dispose() }
 
-$packageRoot = Join-Path $repoRoot 'artifacts\LSDPreview-0.12.0'
+$packageRoot = Join-Path $repoRoot 'artifacts\LSDPreview-0.12.1'
 $modsDirectory = Join-Path $packageRoot 'Mods'
 New-Item -ItemType Directory -Path $modsDirectory -Force | Out-Null
 $dll = Join-Path $modsDirectory 'Personal.LSDPreview.dll'
@@ -163,6 +163,6 @@ foreach ($entry in @(@{ Path = $dll; Name = 'Mods/Personal.LSDPreview.dll' }, @{
     $hashLines += (Get-FileHash -LiteralPath $entry.Path -Algorithm SHA256).Hash.ToLowerInvariant() + '  ' + $entry.Name
 }
 Set-Content -LiteralPath $hashFile -Value $hashLines -Encoding utf8
-$zip = Join-Path $repoRoot 'artifacts\LSDPreview-0.12.0.zip'
+$zip = Join-Path $repoRoot 'artifacts\LSDPreview-0.12.1.zip'
 Compress-Archive -LiteralPath $modsDirectory, $guide, $hashFile, $baselineGuide, $alcoholGuide, $closedEyeGuide, $baselinesDirectory -DestinationPath $zip -Force
 Write-Output "Built and checked the separate LSD preview: $zip"

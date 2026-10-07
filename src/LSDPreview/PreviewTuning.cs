@@ -5,6 +5,7 @@ namespace PersonalMods.LSDPreview;
 internal static class PreviewTuning
 {
     internal const float BaselineRipple = 0.30f, BaselineAudio = 0.35f;
-    internal const float DefaultRipple = BaselineRipple * 1.25f,
+    internal const float PreviousRipple = BaselineRipple * 1.25f;
+    internal const float DefaultRipple = PreviousRipple * 1.25f,
         DefaultAudio = BaselineAudio * 1.25f, DefaultTextFocus = 0.50f;
 }

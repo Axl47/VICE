@@ -1,6 +1,6 @@
 # Off Register workshop — first playable slice
 
-Personal LSD Workshop 0.2.3 implements the starter manual loop from [the gameplay design](lsd-gameplay-design.md), with drawing and distinct minigames on the physical equipment. It requires the beta / IL2CPP game, MelonLoader 0.7.3 and S1API (Forked by Bars) 3.2.1-beta.7. The companion visual treatment is Personal LSD Preview 0.12.0, adding held-B closed-eye patterns; its approved 0.11 open-eye visual/audio parameters are unchanged.
+Personal LSD Workshop 0.2.3 implements the starter manual loop from [the gameplay design](lsd-gameplay-design.md), with drawing and distinct minigames on the physical equipment. It requires the beta / IL2CPP game, MelonLoader 0.7.3 and S1API (Forked by Bars) 3.2.1-beta.7. The companion visual treatment is Personal LSD Preview 0.12.1, retaining held-B closed-eye patterns and increasing screen ripple/lens distortion by 25% over 0.12.0. Audio and the other treatment settings remain unchanged.
 
 ## Play the slice
 

@@ -9,7 +9,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering.Universal;
 
-[assembly: MelonInfo(typeof(PersonalMods.LSDPreview.LSDPreviewMod), "Personal LSD Visual Preview", "0.12.0", "Axl47")]
+[assembly: MelonInfo(typeof(PersonalMods.LSDPreview.LSDPreviewMod), "Personal LSD Visual Preview", "0.12.1", "Axl47")]
 [assembly: MelonGame("TVGS", "Schedule I")]
 
 namespace PersonalMods.LSDPreview;
@@ -46,7 +46,7 @@ public sealed class LSDPreviewMod : MelonMod
         Intensity = ModSupport.Entry(config, "Intensity", DefaultIntensity, "Overall artistic effect strength from 0 to 1.");
         MotionStrength = ModSupport.Entry(config, "MotionStrength", DefaultMotion, "Breathing, flowing ripples, color separation and afterimages from 0 to 1; 0 disables them.");
         DurationSeconds = ModSupport.Entry(config, "DurationSeconds", TripTimeline.DefaultDuration, "Compressed preview length in seconds, from 20 to 600.");
-        RippleStrength = ModSupport.Entry(config, "RippleStrength", DefaultRipple, "Completed-frame flow and breathing from 0 to 1; default 0.375, default pixel bound 6.75, absolute bound 18. Also follows MotionStrength. Approved 0.10.1 baseline: 0.30.");
+        RippleStrength = ModSupport.Entry(config, "RippleStrength", DefaultRipple, "Completed-frame flow and breathing from 0 to 1; default 0.46875, default pixel bound 8.4375, absolute bound 18. Also follows MotionStrength. Approved 0.10.1 baseline: 0.30.");
         CenterClarityDegrees = ModSupport.Entry(config, "CenterClarityDegrees", RippleRange.DefaultCenterDegrees, "Reserved for the disabled peripheral experiment. The default completed-frame path has no gaze mask.");
         AfterimageStrength = ModSupport.Entry(config, "AfterimageStrength", DefaultAfterimage, "Brief delayed image trails from 0 to 1; also follows MotionStrength.");
         MaterialColorStrength = ModSupport.Entry(config, "MaterialColorStrength", 0.45f, "Continuous slow RGB color breathing across the scene and phone, from 0 to 1. No material discovery or texture copies.");
@@ -65,7 +65,7 @@ public sealed class LSDPreviewMod : MelonMod
     private void UpgradeDefaults(MelonPreferences_Category config)
     {
         var revision = config.CreateEntry("DefaultsRevision", 0, description: "Internal marker for one-time preview default upgrades.", is_hidden: true);
-        if (revision.Value >= 5) return;
+        if (revision.Value >= 6) return;
         // A one-time upgrade of untouched defaults, leaving custom values intact.
         // The marker also lets a later edit deliberately restore the old strength.
         var changed = 0;
@@ -78,7 +78,8 @@ public sealed class LSDPreviewMod : MelonMod
         if (revision.Value < 4) changed += Upgrade(CenterClarityDegrees, 12f);
         if (revision.Value < 5) changed += Upgrade(RippleStrength, PreviewTuning.BaselineRipple)
             + Upgrade(AudioStrength, PreviewTuning.BaselineAudio);
-        revision.Value = 5;
+        if (revision.Value < 6) changed += Upgrade(RippleStrength, PreviewTuning.PreviousRipple);
+        revision.Value = 6;
         config.SaveToFile(false);
         if (changed > 0) LoggerInstance.Msg("Applied updated LSD preview defaults; custom settings were preserved.");
     }

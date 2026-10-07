@@ -147,9 +147,9 @@ for (var step = 0; step <= 1200; step++)
     var maximum = RippleRange.Pixels(time, 1, 1, 1, 1);
     var normal = RippleRange.Pixels(time, 0.6f, RippleRange.DefaultStrength, 0.5f, 1);
     Check(maximum is >= 12.5999f and <= 18.0001f, "The absolute maximum must remain within eighteen pixels, with gentle continuous breathing.");
-    Check(normal is >= 4.7249f and <= 6.7501f, "The stronger default must remain within 4.725-6.75 pixels rather than returning to broad bends.");
-    Near(normal, RippleRange.Pixels(time, 0.6f, PreviewTuning.BaselineRipple, 0.5f, 1) * 1.25f,
-        "Every stationary default ripple sample must be exactly 25% stronger than the approved baseline.");
+    Check(normal is >= 5.9061f and <= 8.4376f, "The stronger default must remain within 5.90625-8.4375 pixels rather than returning to broad bends.");
+    Near(normal, RippleRange.Pixels(time, 0.6f, PreviewTuning.PreviousRipple, 0.5f, 1) * 1.25f,
+        "Every stationary default ripple sample must be exactly 25% stronger than 0.12.0.");
     Near(RippleRange.Pixels(time, 0.6f, 0, 0.5f, 1), 0, "Zero ripple strength must disable displacement.");
     Near(RippleRange.Pixels(time, 0.6f, 1, 0, 1), 0, "Zero motion strength must disable displacement.");
     Near(RippleRange.Pixels(time, 0, 1, 1, 1), 0, "A pause or reset must disable displacement.");
@@ -184,8 +184,8 @@ for (var step = 0; step <= 120; step++)
     Near(RippleRange.LensBreathing(time, 0, 0.5f, 1), 0, "Zero ripple strength also disables lens breathing.");
     Near(RippleRange.LensBreathing(time, 0.3f, 0, 1), 0, "Zero motion disables breathing.");
     Near(RippleRange.LensBreathing(time, RippleRange.DefaultStrength, 0.5f, 1),
-        RippleRange.LensBreathing(time, PreviewTuning.BaselineRipple, 0.5f, 1) * 1.25f,
-        "A new ripple default must increase native breathing by 25%, rather than recalibrating its reference.");
+        RippleRange.LensBreathing(time, PreviewTuning.PreviousRipple, 0.5f, 1) * 1.25f,
+        "The 0.12.1 ripple default must increase native breathing by 25% over 0.12.0, without recalibrating its reference.");
 }
 Check(Math.Abs(RippleRange.LensBreathing(2.4f, 0.3f, 0.5f, 1)) > 0.054f,
     "Default native breathing must restore the previously visible lens pulse.");
