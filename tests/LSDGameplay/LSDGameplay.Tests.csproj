@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework></PropertyGroup>
+  <ItemGroup><Compile Include="../../src/LSDGameplay/WorkshopState.cs" Link="WorkshopState.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../../src/LSDGameplay/CutStroke.cs" Link="CutStroke.cs" /></ItemGroup>
+</Project>

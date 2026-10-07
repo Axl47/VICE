@@ -55,9 +55,15 @@ Hostile rival gang activities use half the native cooldown and 50% wider ambush 
 
 ## Experimental LSD visuals
 
-A separate `Personal.LSDPreview.dll` 0.11.0 experiment preserves the [approved 0.10.1 baseline](docs/lsd-baseline-0.10.1.md) and tries 25% stronger echo, ripple displacement and zoom-like breathing. Independently timed glyph shadows and softening make reading require a little more focus while retaining original words, choices and layouts. Upright presentation, vivid colors, afterimages, ordinary-sized hallucinations and movement comfort remain. **F8** starts or fades out; **F9** clears immediately. Product/production/sales integration remains future work.
+A separate `Personal.LSDPreview.dll` 0.11.2 experiment preserves the [approved 0.10.1 baseline](docs/lsd-baseline-0.10.1.md) and tries 25% stronger echo, ripple displacement and zoom-like breathing. Independently timed glyph shadows and softening make reading require a little more focus while retaining original words, choices and layouts. Upright presentation, vivid colors, afterimages, ordinary-sized hallucinations and movement comfort remain. **F8** starts or fades out; **F9** clears outside workshop interactions. Consuming an Off Register tab starts or refreshes the same treatment.
 
-Run `./scripts/Build-LSDPreview.ps1` to build/check this separate experiment and produce `artifacts/LSDPreview-0.11.0.zip`. Pure checks cover timing, visibility, flow bounds, comfort, color ownership, character sizing, echo gain and the default 25% ratios. Compiled guards reject startup audio initialization, unsafe playback hooks and text-content/layout writes. Explicit diagnostics check shader motion, the completed screen image, final-listener echo and routing cleanup; see the [playtest guide](docs/lsd-preview.md). The original strong 0.5.0 range remains preserved in the [future alcohol note](docs/future-alcohol-preview.md).
+Run `./scripts/Build-LSDPreview.ps1` to build/check this separate experiment and produce `artifacts/LSDPreview-0.11.2.zip`. Pure checks cover timing, visibility, flow bounds, comfort, color ownership, character sizing, echo gain and the default 25% ratios. Compiled guards reject startup audio initialization, unsafe playback hooks and text-content/layout writes. Explicit diagnostics check shader motion, the completed screen image, final-listener echo and routing cleanup; see the [playtest guide](docs/lsd-preview.md). The original strong 0.5.0 range remains preserved in the [future alcohol note](docs/future-alcohol-preview.md).
+
+## Off Register workshop
+
+`Personal.LSDGameplay.dll` 0.2.4 adds the first playable workshop slice: contact and deliveries, a first-edition tutorial, drawing on physical sheets, separate registration/printing/cutting tasks, drying, native packaging, sales and saved editions. Prism Base is illegal contraband. The polished bench, cabinet, parcel, sleeve, sheet and tab models retain editable Blender sources and rebuilt Unity prefabs/materials/bundle.
+
+Run `./scripts/Build-LSDGameplay.ps1` to build/check and package both workshop modules; add `-RebuildArt` to regenerate the assets with Blender and Unity 2022.3.62f2. Install both DLLs from `artifacts/LSDGameplay-0.2.4.zip` with the game closed. See the [workshop guide](docs/lsd-workshop.md), [design](docs/lsd-gameplay-design.md) and [in-game model checks and screenshots](docs/lsd-art-integration.md).
 
 ## Build
 
