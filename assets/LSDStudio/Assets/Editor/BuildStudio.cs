@@ -10,6 +10,8 @@ public static class BuildStudio
         var shader = AssetDatabase.LoadAssetAtPath<Shader>("Assets/StudioSurface.shader");
         foreach (var name in new[] { "Bench", "Cabinet", "Parcel", "Sheet", "Tab", "Packet" })
         {
+            var importer=(ModelImporter)AssetImporter.GetAtPath("Assets/Models/"+name+".fbx");
+            if(!importer.isReadable){importer.isReadable=true;importer.SaveAndReimport();}
             var source = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Models/" + name + ".fbx");
             if (!source) throw new System.InvalidOperationException("Missing Blender model: " + name);
             var root = Object.Instantiate(source);

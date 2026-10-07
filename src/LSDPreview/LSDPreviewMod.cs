@@ -9,7 +9,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering.Universal;
 
-[assembly: MelonInfo(typeof(PersonalMods.LSDPreview.LSDPreviewMod), "Personal LSD Visual Preview", "0.11.1", "Axl47")]
+[assembly: MelonInfo(typeof(PersonalMods.LSDPreview.LSDPreviewMod), "Personal LSD Visual Preview", "0.11.2", "Axl47")]
 [assembly: MelonGame("TVGS", "Schedule I")]
 
 namespace PersonalMods.LSDPreview;
@@ -124,7 +124,8 @@ public sealed class LSDPreviewMod : MelonMod
                     }
                 }
             }
-            if (keyboard is not null && keyboard.f9Key.wasPressedThisFrame) { Cleanup(); DisposeChecks(); return; }
+            if (keyboard is not null && keyboard.f9Key.wasPressedThisFrame
+                && !(PlayerCamera.Instance && PlayerCamera.Instance.ActiveUIElements.Contains("OffRegister"))) { Cleanup(); DisposeChecks(); return; }
             if (!Enabled.Value || !TryContext(out var player, out var playerCamera, out var camera)) { Cleanup(); LastWorkshopConsumption = IntPtr.Zero; return; }
             var consumed = player.ConsumedProduct;
             if (consumed is not null && consumed.ID.StartsWith("personal.lsd:tab-", StringComparison.Ordinal))

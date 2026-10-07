@@ -16,6 +16,10 @@ Check(later.Slot != custom.Slot && custom.Pixels[0] == 3, "Editing repainted exi
 state.Machines.Add(new() { Id = Guid.NewGuid().ToString(), Property = "seweroffice", Kind = "cabinet", Stage = MachineStage.Drying, ArtSlot = custom.Slot, Yield = 37, DueMinute = 1520 });
 state.Orders.Add(new() { Id = Guid.NewGuid().ToString(), Quantity = 4, Shop = "hardware", DueMinute = 1480, Stage = OrderStage.Delivered });
 var restored = WorkshopState.Deserialize(state.Serialize());
+state.TutorialStep=7;
+Check(WorkshopState.Deserialize(state.Serialize()).TutorialStep==7,"Tutorial progress did not survive saving.");
+Check(WorkshopState.Deserialize("{\"Version\":1}").TutorialStep==0,"An existing first-slice save did not default its new tutorial state.");
+Reject(()=>new WorkshopState{TutorialStep=11}.Validate(),"Invalid tutorial stage accepted.");
 Check(!restored.Tick(1519), "Drying completed early.");
 Check(restored.Tick(3000) && restored.Machines[0].Stage == MachineStage.DryOutput, "Sleeping/time skip did not finish drying.");
 Check(!restored.Tick(4000) && restored.Machines[0].Yield == 37, "Ready output duplicated or gained quality/yield.");

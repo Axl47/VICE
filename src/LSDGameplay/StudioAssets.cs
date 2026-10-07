@@ -20,9 +20,35 @@ internal static class StudioAssets
     private static readonly Dictionary<int, Texture2D> ArtTextures = new();
     private static readonly Dictionary<int, Material> ArtMaterials = new();
     private static readonly Dictionary<int, Sprite> Icons = new();
+    private static readonly Dictionary<int, Texture2D> TabTextures=new(),SheetTextures=new();
+    private static readonly Dictionary<int, Material> SheetMaterials=new();
+    private static readonly Dictionary<int, Sprite> SheetIcons=new();
+    private static Sprite? Star,Brand;
     private static readonly Dictionary<string, Sprite> PropIcons = new();
     private static readonly Dictionary<int, string> Signatures = new();
-    internal static Sprite Symbol { get { Initialize();return Icon(2); } }
+    internal static Sprite Symbol { get { Initialize();return Brand??=Sprite.Create(ArtTextures[2],new Rect(0,0,64,64),new(0.5f,0.5f),64); } }
+    internal static Material SurfaceMaterial(Color color) { Initialize();var material=new Material(RenderShader);material.color=color;material.mainTexture=Texture2D.whiteTexture;return material; }
+    internal static Sprite DeliveryStar
+    {
+        get
+        {
+            if (Star is not null) return Star;
+            var texture=new Texture2D(64,64,TextureFormat.RGBA32,false);var pixels=new Color32[4096];
+            var corners=Enumerable.Range(0,10).Select(i=>{
+                var angle=MathF.PI/2+i*MathF.PI/5;var radius=i%2==0 ? 29:13;
+                return new Vector2(31.5f+MathF.Cos(angle)*radius,31.5f+MathF.Sin(angle)*radius);
+            }).ToArray();
+            for(var y=0;y<64;y++) for(var x=0;x<64;x++)
+            {
+                var inside=false;
+                for(int i=0,j=9;i<10;j=i++) if ((corners[i].y>y)!=(corners[j].y>y)
+                    && x<(corners[j].x-corners[i].x)*(y-corners[i].y)/(corners[j].y-corners[i].y)+corners[i].x) inside=!inside;
+                if (inside) pixels[y*64+x]=new(215,105,245,255);
+            }
+            texture.SetPixels32(new Il2CppStructArray<Color32>(pixels));texture.Apply();
+            Star=Sprite.Create(texture,new Rect(0,0,64,64),new(0.5f,0.5f),64);return Star;
+        }
+    }
 
     internal static void Initialize()
     {
@@ -59,7 +85,7 @@ internal static class StudioAssets
         var key = name + ":" + slot;
         if (Visuals.TryGetValue(key, out var existing) && existing) return existing;
         var visual = Object.Instantiate(Model(name), Cache!.transform);
-        visual.name = key; ApplyArtwork(visual, slot, name == "Tab"); visual.SetActive(false);
+        visual.name = key; ApplyArtwork(visual, slot, name == "Tab",name=="Sheet"); visual.SetActive(false);
         Visuals[key] = visual; return visual;
     }
 
@@ -100,7 +126,25 @@ internal static class StudioAssets
                 ArtMaterials[art.Slot] = material;
             }
             material.mainTextureScale = art.Repeated ? new(8, 5) : Vector2.one;
-            if (!Icons.ContainsKey(art.Slot)) Icons[art.Slot] = Sprite.Create(texture, new Rect(0, 0, 64, 64), new(0.5f, 0.5f), 64);
+            if (!TabTextures.TryGetValue(art.Slot,out var tabTexture))
+            { tabTexture=new Texture2D(64,64,TextureFormat.RGBA32,false);tabTexture.filterMode=FilterMode.Point;TabTextures[art.Slot]=tabTexture;Icons[art.Slot]=Sprite.Create(tabTexture,new Rect(0,0,64,64),new(0.5f,0.5f),64); }
+            var tabPixels=new Color32[4096];
+            for(var y=14;y<50;y++) for(var x=10;x<54;x++)
+                tabPixels[y*64+x]=x is 10 or 53 || y is 14 or 49 ? Palette[0] : Palette[art.Pixels[Math.Clamp((y-15)*64/34,0,63)*64+Math.Clamp((x-11)*64/42,0,63)]];
+            tabTexture.SetPixels32(new Il2CppStructArray<Color32>(tabPixels));tabTexture.Apply();
+            if (!SheetTextures.TryGetValue(art.Slot,out var sheetTexture))
+            {
+                sheetTexture=new Texture2D(320,200,TextureFormat.RGBA32,false);sheetTexture.filterMode=FilterMode.Point;SheetTextures[art.Slot]=sheetTexture;
+                SheetIcons[art.Slot]=Sprite.Create(sheetTexture,new Rect(0,0,320,200),new(0.5f,0.5f),320);
+                SheetMaterials[art.Slot]=new Material(RenderShader) { color=Color.white,mainTexture=sheetTexture };
+            }
+            var sheetPixels=new Color32[320*200];
+            for(var y=0;y<200;y++) for(var x=0;x<320;x++)
+            {
+                var sx=art.Repeated ? x%40*64/40 : x*64/320;var sy=art.Repeated ? y%40*64/40 : y*64/200;
+                sheetPixels[y*320+x]=(x%40==0 && y%4<2)||(y%40==0 && x%4<2) ? Palette[0] : Palette[art.Pixels[sy*64+sx]];
+            }
+            sheetTexture.SetPixels32(new Il2CppStructArray<Color32>(sheetPixels));sheetTexture.Apply();
             Signatures[art.Slot] = signature;
         }
         // Unused slots must not keep another save's drawing.
@@ -135,21 +179,22 @@ internal static class StudioAssets
     }
 
     internal static Texture2D Texture(int slot) { _ = Icon(slot); return ArtTextures[slot]; }
-    internal static void ApplyArtwork(GameObject root, int slot, bool tab = false)
+    internal static Sprite SheetIcon(int slot) { _=Icon(slot);return SheetIcons[slot]; }
+    internal static Texture2D SheetTexture(int slot) { _=Icon(slot);return SheetTextures[slot]; }
+    internal static void ApplyArtwork(GameObject root, int slot, bool tab = false,bool sheet=false)
     {
         _ = Icon(slot);
         foreach (var renderer in root.GetComponentsInChildren<Renderer>(true))
             if (renderer.name.StartsWith("ArtworkSurface", StringComparison.Ordinal))
             {
-                renderer.sharedMaterial = ArtMaterials[slot];
+                renderer.sharedMaterial = sheet ? SheetMaterials[slot] : ArtMaterials[slot];
                 if (tab)
                 {
-                    // A tab shows the centre crop of a sheet, or one complete
-                    // motif when the edition uses repeating artwork.
-                    var repeated = ArtMaterials[slot].mainTextureScale.x > 1;
+                    // Inventory and loose tabs show the complete artwork or
+                    // one motif from the repeated sheet's upper-left tile.
                     var block = new MaterialPropertyBlock();
-                    block.SetVector("_MainTex_ST", repeated ? new(1,1,0,0) : new(0.125f,0.2f,0.4375f,0.4f));
-                    block.SetVector("_BaseMap_ST", repeated ? new(1,1,0,0) : new(0.125f,0.2f,0.4375f,0.4f));
+                    block.SetVector("_MainTex_ST",new(1,1,0,0));
+                    block.SetVector("_BaseMap_ST",new(1,1,0,0));
                     renderer.SetPropertyBlock(block);
                 }
             }

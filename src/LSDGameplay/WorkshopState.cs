@@ -39,13 +39,14 @@ public sealed class WorkshopState
     public int Version { get; set; } = 1;
     public long Revision { get; set; }
     public bool Introduced { get; set; }
+    public int TutorialStep { get; set; }
     public List<Artwork> Artworks { get; set; } = PresetArt.Create();
     public List<MachineState> Machines { get; set; } = new();
     public List<CollectiveOrder> Orders { get; set; } = new();
 
     public void Validate()
     {
-        if (Version != 1 || Revision < 0 || Artworks is null || Machines is null || Orders is null)
+        if (Version != 1 || Revision < 0 || TutorialStep is < 0 or > 10 || Artworks is null || Machines is null || Orders is null)
             throw new InvalidDataException("Unsupported or incomplete workshop save. Keep the save and restore a compatible mod version.");
         if (Artworks.Count is < 3 or > WorkshopRules.ArtSlots || Machines.Count > 64 || Orders.Count > 128)
             throw new InvalidDataException("Workshop save exceeds the slice's content limits.");

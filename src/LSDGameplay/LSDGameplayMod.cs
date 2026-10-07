@@ -5,10 +5,11 @@ using MelonLoader;
 using S1API.Lifecycle;
 using S1API.Products;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using Clock = Il2CppScheduleOne.GameTime.TimeManager;
 using Money = S1API.Money.Money;
 
-[assembly: MelonInfo(typeof(PersonalMods.LSDGameplay.LSDGameplayMod), "Personal LSD Workshop", "0.1.0", "Axl47")]
+[assembly: MelonInfo(typeof(PersonalMods.LSDGameplay.LSDGameplayMod), "Personal LSD Workshop", "0.2.0", "Axl47")]
 [assembly: MelonGame("TVGS", "Schedule I")]
 
 namespace PersonalMods.LSDGameplay;
@@ -27,6 +28,7 @@ public sealed class LSDGameplayMod : MelonMod
     private readonly bool DiagnosticRequested=Environment.GetCommandLineArgs().Contains("--lsd-slice-check");
     private SliceDiagnostic? Diagnostic;
     private bool LoadFailed;
+    private DeliveryGuide? Delivery;
 
     public override void OnInitializeMelon()
     {
@@ -64,8 +66,10 @@ public sealed class LSDGameplayMod : MelonMod
         {
             // Some load paths create registries after the first pre-load callback.
             Content.Register(); State.Validate();StudioAssets.UpdateArtwork(State);
-            World=new WorkshopWorld(); Panel=new WorkshopPanel();
+            World=new WorkshopWorld(); Panel=new WorkshopPanel();Delivery=new DeliveryGuide();
             World.Load();WorkshopNetwork.Bind();Ready=true;
+            if(State.TutorialStep<10 && S1API.Quests.QuestManager.GetQuestByName("First edition") is null)
+                S1API.Quests.QuestManager.CreateQuest<StudioTutorial>();
             if (!WorkshopNetwork.Host) WorkshopNetwork.Submit(new StudioCommand());
             if (DiagnosticRequested && WorkshopNetwork.Host) Diagnostic=new SliceDiagnostic(this);
             LoggerInstance.Msg($"LSD_WORKSHOP_READY editions={State.Artworks.Count}, machines={State.Machines.Count}, orders={State.Orders.Count}.");
@@ -105,13 +109,18 @@ public sealed class LSDGameplayMod : MelonMod
         {
             if (DiagnosticRequested && !Ready) SliceDiagnostic.TryLoadFifthSlot();
             if (!Ready || !LoadManager.Instance || !LoadManager.Instance.IsGameLoaded || LoadManager.Instance.IsLoading) return;
-            Panel?.Tick();World?.Tick();Diagnostic?.Tick();
+            if(Panel?.IsOpen!=true && Keyboard.current?.f9Key.wasPressedThisFrame==true && World?.Office
+                && World!.Office!.DoBoundsContainPoint(Player.Local.transform.position))
+                WorkshopNetwork.Submit(new StudioCommand{Action="testfinish"});
+            Panel?.Tick();World?.Tick();Diagnostic?.Tick();CollectiveCatalogue.Tick();
+            Delivery?.Tick(World?.DeliveryTarget(State));StudioTutorial.Current?.Tick(State,World!);
             if (SaveManager.Instance && SaveManager.Instance.IsSaving) return;
             if (Time.realtimeSinceStartup<NextTick) return;
             NextTick=Time.realtimeSinceStartup+1;
             if (WorkshopNetwork.Host)
             {
                 var changed=State.Tick(Minute);
+                changed=StudioTutorial.Observe(State,World!)||changed;
                 changed=World!.DeliverOrders(State)||changed;
                 if (changed) { StudioAssets.UpdateArtwork(State);WorkshopNetwork.Publish();Panel?.Refresh(); }
             }
@@ -149,6 +158,17 @@ public sealed class LSDGameplayMod : MelonMod
                 committed=true;
                 World.Notify(reply.Message);
             }
+            else if(command.Action=="testfinish")
+            {
+                if(!player.IsLocalPlayer || !office.DoBoundsContainPoint(player.transform.position))
+                    throw new InvalidOperationException("The temporary F9 test skip is available to the host inside the Sewer Office.");
+                foreach(var machine in State.Machines){
+                    if(machine.Stage==MachineStage.Drying){machine.DueMinute=Minute;machine.Stage=MachineStage.DryOutput;}
+                    if(machine.Id==command.Machine && machine.Stage is MachineStage.Preparing or MachineStage.Printing)machine.Stage=MachineStage.WetOutput;
+                    if(machine.Id==command.Machine && machine.Stage==MachineStage.Cutting)machine.Stage=MachineStage.TabOutput;
+                }
+                State.Revision++;reply.Message="Test skip: current manual stage and cabinet drying completed. Collect output normally.";
+            }
             else if (command.Action=="release")
             { if (Leases.TryGetValue(command.Machine,out var lease) && lease.Owner==player.PlayerCode) Leases.Remove(command.Machine); }
             else
@@ -180,11 +200,11 @@ public sealed class LSDGameplayMod : MelonMod
                         machine.ArtSlot=command.ArtSlot;machine.Yield=40;machine.Stage=MachineStage.Preparing;StartLease(machine,player.PlayerCode);
                         reply.Message="Supplies loaded. Stabilize the pattern, then print.";break;
                     case "prepare":
-                        Require(machine,"bench",MachineStage.Preparing);RequireTime(machine,6);
+                        Require(machine,"bench",MachineStage.Preparing);RequireTime(machine,2);
                         machine.Yield-=WorkshopRules.Loss(command.Accuracy,2);machine.Stage=MachineStage.Printing;StartLease(machine,player.PlayerCode);
                         reply.Message="Preparation complete. Align the sheet and guide the roller.";break;
                     case "print":
-                        Require(machine,"bench",MachineStage.Printing);RequireTime(machine,6);
+                        Require(machine,"bench",MachineStage.Printing);RequireTime(machine,2);
                         machine.Yield-=WorkshopRules.Loss(command.Accuracy,2);machine.Stage=MachineStage.WetOutput;
                         reply.Message=$"Printed a wet sheet with {machine.Yield} usable tabs. Collect it and carry it to the cabinet.";break;
                     case "dry":
@@ -200,7 +220,7 @@ public sealed class LSDGameplayMod : MelonMod
                         machine.DueMinute=needsDry ? 0 : Minute+WorkshopRules.DryMinutes;StartLease(machine,player.PlayerCode);
                         reply.Message=needsDry ? "Align the cutting guide and pull the cutter." : "Drying started. Return in two game hours; sleeping also advances it.";break;
                     case "finishcut":
-                        Require(machine,"bench",MachineStage.Cutting);RequireTime(machine,6);
+                        Require(machine,"bench",MachineStage.Cutting);RequireTime(machine,2);
                         machine.Yield-=WorkshopRules.Loss(command.Accuracy,4);machine.Stage=MachineStage.TabOutput;
                         reply.Message=$"Cut {machine.Yield} Standard-quality tabs. Collect them, then package or store them.";break;
                     case "collect":
@@ -221,7 +241,7 @@ public sealed class LSDGameplayMod : MelonMod
                         transaction.Remove(productId,command.Quantity,i=>i.TryCast<ProductItemInstance>() is { } p && !p.AppliedPackaging && p.Quality==loose.Quality);
                         var container=command.Quantity switch { 1=>"baggie",5=>"jar",_=>WorkshopRules.Sleeve };
                         transaction.Remove(container,1);
-                        transaction.Add(Content.Create(productId,1,command.Quantity switch { 1=>"baggie",5=>"jar",_=>"brick" },(int)loose.Quality));
+                        transaction.Add(Content.Create(productId,1,command.Quantity switch { 1=>"baggie",5=>"jar",_=>WorkshopRules.Sleeve },(int)loose.Quality));
                         reply.Message=$"Packaged {command.Quantity} matching tabs. Native unpacking preserves the edition and quantity.";break;
                     default: throw new InvalidOperationException("Unknown studio action.");
                 }
@@ -270,8 +290,8 @@ public sealed class LSDGameplayMod : MelonMod
     internal void ShowMessage(string message) { if (message.Length>0) Panel?.ShowMessage(message); }
     private void ClearSession()
     {
-        Ready=false;Panel?.Dispose();Panel=null;World?.Dispose();World=null;Diagnostic=null;
-        Leases.Clear();WorkshopNetwork.Reset();State=new();SaveTarget=SaveSnapshot="";
+        Ready=false;Panel?.Dispose();Panel=null;Delivery?.Dispose();Delivery=null;World?.Dispose();World=null;Diagnostic=null;
+        Leases.Clear();WorkshopNetwork.Reset();StudioTutorial.Current=null;State=new();SaveTarget=SaveSnapshot="";
     }
     public override void OnSceneWasUnloaded(int buildIndex,string sceneName) { if (sceneName=="Main") ClearSession(); }
     public override void OnApplicationQuit()=>ClearSession();

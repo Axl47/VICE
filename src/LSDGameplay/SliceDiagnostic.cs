@@ -23,6 +23,9 @@ internal sealed class SliceDiagnostic
     private bool Completed;
     private bool CapturedScene;
     private BuildableItem? Bench,Cabinet;
+    private int EquippedBefore;
+    private bool EquippingBefore,HotbarBefore;
+    private float CutDeadline,StageDeadline;
     internal SliceDiagnostic(LSDGameplayMod mod)
     {
         Mod=mod;var args=Environment.GetCommandLineArgs();
@@ -57,10 +60,11 @@ internal sealed class SliceDiagnostic
         if (Phase==0)
         {
             Mod.State.Validate();Check(Mod.World?.Office?.IsOwned==true,"Test requires normally owned Sewer Office.");
-            for (var slot=0;slot<WorkshopRules.ArtSlots;slot++) foreach (var packaging in new[] { "","baggie","jar","brick" })
+            Check(Il2CppScheduleOne.UI.Shop.ShopInterface.AllShops.ToArray().Any(s=>s.GetListing(WorkshopRules.Sleeve) is {} listing && listing.Item.ID==WorkshopRules.Sleeve && listing.Price==1),"Warehouse does not sell the native edition sleeve.");
+            for (var slot=0;slot<WorkshopRules.ArtSlots;slot++) foreach (var packaging in new[] { "","baggie","jar","brick",WorkshopRules.Sleeve })
             {
                 var item=Content.Create(WorkshopRules.Product(slot),1,packaging).Cast<ProductItemInstance>();
-                Check(item.GetTotalAmount()==(packaging switch { "jar"=>5,"brick"=>20,_=>1 }),"Incorrect native sale-unit count.");
+                Check(item.GetTotalAmount()==(packaging switch { "jar"=>5,"brick" or WorkshopRules.Sleeve=>20,_=>1 }),"Incorrect native sale-unit count.");
                 Check(item.Definition.TryCast<ProductDefinition>()!.ConsumeAnimation,"Missing native consumption animation.");
             }
             MelonLogger.Msg($"LSD_SLICE_CHECK native definitions/counts passed; collection={Mod.World!.CollectionName}.");
@@ -80,36 +84,70 @@ internal sealed class SliceDiagnostic
             case 1:
                 if (!CapturedScene)
                 { CapturedScene=true;ScreenCapture.CaptureScreenshot(Path.Combine(Output,"studio-props.png"));Next=Time.realtimeSinceStartup+2;return; }
+                PlayerCamera.Instance.StopTransformOverride(0,true,true);
                 PlayerMovement.Instance.Teleport(Mod.World!.Office!.InteriorSpawnPoint.position,true);
                 Action("introduce");Check(Mod.State.Introduced,"Introduction did not persist.");Move(Bench!);
-                var pixels=Enumerable.Range(0,4096).Select(i=>(byte)((i/64+i%64)/8%7+1)).ToArray();
-                Action("draw",Bench,new() { Name="Diagnostic edition",Pixels=pixels,Repeated=true });Art=Mod.State.Artworks.Last().Slot;
+                CollectiveCatalogue.OpenCatalogue();
+                Next=Time.realtimeSinceStartup+1;Phase=10;return;
+            case 10:
+                Check(CollectiveCatalogue.CheckIsOpen,"Sticker catalogue action did not open the native phone app: "+CollectiveCatalogue.CheckPhoneState);
+                ScreenCapture.CaptureScreenshot(Path.Combine(Output,"phone.png"));Next=Time.realtimeSinceStartup+0.5f;Phase=100;return;
+            case 100:
+                CollectiveCatalogue.CheckClose();Next=Time.realtimeSinceStartup+0.5f;Phase=101;return;
+            case 101:
+                Check(PlayerInventory.Instance.EquippingEnabled && PlayerInventory.Instance.HotbarEnabled,"Native phone close did not restore inventory controls.");
+                Mod.Panel!.OpenMachine(Bench!);Mod.Panel.CheckDrawing("Diagnostic edition");Mod.Panel.CheckProjection();
+                Mod.Panel.CheckPointer(new(0.15f,0.2f),true,false);Next=Time.realtimeSinceStartup+0.8f;Phase=11;return;
+            case 11:
+                ScreenCapture.CaptureScreenshot(Path.Combine(Output,"drawing.png"));Next=Time.realtimeSinceStartup+0.5f;Phase=110;return;
+            case 110:
+                Mod.Panel!.CheckSaveDrawing();
+                Art=Mod.State.Artworks.Last().Slot;
+                Check(Mod.State.Artworks.Last().Pixels[12*64+9]==3 && Mod.State.Artworks[0].Pixels[12*64+9]!=3,"Drawing input did not paint the physical sheet or changed the original edition.");
+                Mod.Panel.Close();
                 Action("order",null,new() { Quantity=1 });
                 Mod.State.Orders.Last().DueMinute=LSDGameplayMod.Minute;
-                Check(Mod.World.DeliverOrders(Mod.State),"Delivery did not reach the physical pallet.");
+                Check(Mod.World!.DeliverOrders(Mod.State),"Delivery did not reach the physical pallet.");
                 Check(!Mod.World.DeliverOrders(Mod.State),"Delivered order was delivered twice.");
                 Add(WorkshopRules.Prism,2);Add(WorkshopRules.Paper,2);Add(WorkshopRules.Ink,2);
                 Add("baggie",1);Add("jar",1);Add(WorkshopRules.Sleeve,1);
-                Action("start",Bench,new() { ArtSlot=Art });
+                var selected=PlayerInventory.Instance.hotbarSlots.ToArray().First(s=>s.ItemInstance?.ID=="baggie");
+                PlayerInventory.Instance.Equip(selected);EquippedBefore=PlayerInventory.Instance.EquippedSlotIndex;
+                EquippingBefore=PlayerInventory.Instance.EquippingEnabled;HotbarBefore=PlayerInventory.Instance.HotbarEnabled;
+                Mod.Panel!.OpenMachine(Bench!);Mod.Panel.CheckCommand(new(){Action="start",ArtSlot=Art});
                 var supplies=Inventory();var state=Mod.State.Serialize();
                 var rejected=Mod.Execute(Player.Local,new() { Action="collect",Machine=Bench!.GUID.ToString() });
                 Check(!rejected.Success && Inventory()==supplies && Mod.State.Serialize()==state,"Early collection changed inventory or state.");
-                Next=Time.realtimeSinceStartup+7;Phase=2;return;
+                Next=Time.realtimeSinceStartup+0.5f;Phase=2;return;
             case 2:
-                ScreenCapture.CaptureScreenshot(Path.Combine(Output,"bench-menu.png"));
-                Action("prepare",Bench,new() { Accuracy=1 });
-                Next=Time.realtimeSinceStartup+7;Phase=3;return;
+                Check(Mod.Panel!.CurrentTask=="prepare","Registration controls did not open on the physical sheet.");
+                Mod.Panel.CheckProjection();ScreenCapture.CaptureScreenshot(Path.Combine(Output,"registration.png"));
+                Mod.Panel.CheckPointer(new(0.5f,0.5f),true,false);
+                StageDeadline=Time.realtimeSinceStartup+20;Next=Time.realtimeSinceStartup+3.2f;Phase=3;return;
             case 3:
-                Action("print",Bench,new() { Accuracy=1 });Action("collect",Bench);Mod.Panel!.Close();
+                if(Mod.Panel!.CurrentTask=="prepare" && Time.realtimeSinceStartup<StageDeadline){Next=Time.realtimeSinceStartup+1;return;}
+                Check(Mod.Panel!.CurrentTask=="print","Physical registration did not advance to the roller interaction.");
+                ScreenCapture.CaptureScreenshot(Path.Combine(Output,"printing.png"));Mod.Panel.CheckPointer(new(0,0),false,true);
+                StageDeadline=Time.realtimeSinceStartup+20;Next=Time.realtimeSinceStartup+4.5f;Phase=30;return;
+            case 30:
+                if(Mod.Panel!.CurrentTask=="print" && Time.realtimeSinceStartup<StageDeadline){Next=Time.realtimeSinceStartup+1;return;}
+                Check(Mod.State.Machines.Single(m=>m.Id==Bench!.GUID.ToString()).Stage==MachineStage.WetOutput,"Roller input did not produce a wet sheet.");
+                Mod.Panel!.Close();VerifyControls();Action("collect",Bench);
                 Check(Count(WorkshopRules.Sheet(false,Art,40))==1,"Wet sheet identity or yield changed.");
                 Move(Cabinet!);Action("dry",Cabinet);
                 Check(!Cabinet!.CanBePickedUp(out var reason),"Active cabinet could be moved.");
-                Clock.Instance.SkipToTimeAndSync(Clock.AddMinutesTo24HourTime(Clock.Instance.CurrentTime,121));Mod.State.Tick(LSDGameplayMod.Minute);
-                Check(Mod.State.Machines.Single(m=>m.Id==Cabinet.GUID.ToString()).Stage==MachineStage.DryOutput,"Native time skip did not finish drying.");
-                Action("collect",Cabinet);Move(Bench!);Action("cut",Bench);
-                Next=Time.realtimeSinceStartup+7;Phase=4;return;
+                Mod.Panel.OpenMachine(Cabinet);Action("testfinish",Cabinet);Mod.Panel.Close();VerifyControls();
+                Check(Mod.State.Machines.Single(m=>m.Id==Cabinet.GUID.ToString()).Stage==MachineStage.DryOutput,"F9 test skip did not finish drying.");
+                Action("collect",Cabinet);Move(Bench!);Mod.Panel.OpenMachine(Bench!);Mod.Panel.CheckCommand(new(){Action="cut"});
+                Next=Time.realtimeSinceStartup+0.5f;Phase=31;return;
+            case 31:
+                Check(Mod.Panel!.CurrentTask=="finishcut","Distinct cutting interaction did not open.");Mod.Panel.CheckProjection();
+                ScreenCapture.CaptureScreenshot(Path.Combine(Output,"cutting.png"));Mod.Panel.CheckPointer(new(0,0),false,true);
+                CutDeadline=Time.realtimeSinceStartup+30;Next=Time.realtimeSinceStartup+9;Phase=4;return;
             case 4:
-                Action("finishcut",Bench,new() { Accuracy=1 });
+                if(Mod.State.Machines.Single(m=>m.Id==Bench!.GUID.ToString()).Stage!=MachineStage.TabOutput && Time.realtimeSinceStartup<CutDeadline){Next=Time.realtimeSinceStartup+1;return;}
+                Check(Mod.State.Machines.Single(m=>m.Id==Bench!.GUID.ToString()).Stage==MachineStage.TabOutput,"Cutting strokes did not produce tabs: "+Mod.Panel!.CheckProgress);
+                Mod.Panel!.Close();VerifyControls();
                 var slots=InventoryTransaction.RegularSlots();var before=slots.Select(s=>s.ItemInstance?.GetCopy(s.Quantity)).ToArray();
                 foreach (var slot in slots) slot.SetStoredItem(Content.Create("baggie",20),false);
                 var full=Mod.Execute(Player.Local,new() { Action="collect",Machine=Bench!.GUID.ToString() });
@@ -121,6 +159,7 @@ internal sealed class SliceDiagnostic
                 var native=Il2CppScheduleOne.Registry.GetItem(WorkshopRules.Product(Art)).TryCast<ProductDefinition>()!;
                 Check(Il2CppScheduleOne.Product.ProductManager.DiscoveredProducts.ToArray().Any(d=>d.ID==native.ID),"Finished edition was not discoverable for native sales.");
                 Check(native.Price>0,"Native product price is unavailable.");
+                VerifyPackagingStation();
                 Player.Local.ConsumeProduct(Content.Create(WorkshopRules.Product(Art),1).Cast<ProductItemInstance>());
                 Next=Time.realtimeSinceStartup+3;Phase=5;return;
             case 5:
@@ -128,6 +167,7 @@ internal sealed class SliceDiagnostic
                 var preview=MelonMod.RegisteredMelons.First(m=>m.Info.Name=="Personal LSD Visual Preview");
                 var effects=preview.GetType().GetField("Effects",System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance)!.GetValue(preview);
                 Check(effects is not null,"Consuming a tab did not start the approved preview.");
+                Check(StudioTutorial.Current is not null && Mod.State.TutorialStep==10,$"First-edition tutorial did not follow production and packaging: native={StudioTutorial.Current is not null}, step={Mod.State.TutorialStep}.");
                 Move(Bench!);Action("start",Bench,new() { ArtSlot=Art });Action("order",null,new() { Quantity=1 });
                 File.WriteAllText(Path.Combine(Output,"expected-workshop.json"),Mod.State.Serialize());
                 File.WriteAllText(Path.Combine(Output,"expected-inventory.txt"),Inventory());
@@ -136,7 +176,7 @@ internal sealed class SliceDiagnostic
                 var path=Path.Combine(folder,"Modded","OffRegister","Workshop.json");
                 Check(File.Exists(path),"Workshop file missing after native save.");
                 Check(WorkshopState.Deserialize(File.ReadAllText(path)).Machines.Any(m=>m.Stage==MachineStage.Preparing),"In-progress batch missing after save.");
-                MelonLogger.Msg("LSD_SLICE_EXERCISE_PASSED introduction, drawing, ordering/delivery, native placement, production, time skip, capacity failure, packaging, consumption and save.");
+                MelonLogger.Msg("LSD_SLICE_EXERCISE_PASSED physical-sheet projection, distinct registration/roller/cuts, hotbar restoration, F9 drying, station packaging, tutorial, capacity failure, consumption and save.");
                 File.WriteAllText(Path.Combine(Output,"exercise-passed.txt"),Mod.State.Serialize());Completed=true;Application.Quit();return;
         }
     }
@@ -151,11 +191,43 @@ internal sealed class SliceDiagnostic
         }
         Check(Mod.State.Artworks.Last().Pixels.SequenceEqual(expected.Artworks.Last().Pixels),"Custom drawing changed after reload.");
         Check(Mod.State.Introduced && Mod.State.Orders.Count==expected.Orders.Count,"Introduction/order history changed after reload.");
+        Check(Mod.State.TutorialStep==expected.TutorialStep,"Tutorial progress changed after reload.");
         Check(Mod.State.Orders.Any(o=>o.Stage==OrderStage.InTransit),"In-transit order lost after reload.");
         Check(Inventory()==File.ReadAllText(Path.Combine(Output,"expected-inventory.txt")),"Native inventory/package quantities changed after reload.");
         Check(!Mod.World!.DeliverOrders(Mod.State),"Order was duplicated or delivered early after reload.");
         MelonLogger.Msg("LSD_SLICE_RELOAD_PASSED native equipment, packages, in-progress batch, immutable drawing, introduction and order ledger.");
         File.WriteAllText(Path.Combine(Output,"reload-passed.txt"),Mod.State.Serialize());Completed=true;Application.Quit();
+    }
+    private void VerifyControls()
+    {
+        var inventory=PlayerInventory.Instance;
+        Check(inventory.HotbarEnabled==HotbarBefore && inventory.EquippingEnabled==EquippingBefore && inventory.EquippedSlotIndex==EquippedBefore,
+            "Closing a workshop interaction did not restore native hotbar, equipping and selected item.");
+    }
+    private void VerifyPackagingStation()
+    {
+        var station=Place("packagingstation",3,2).Cast<Il2CppScheduleOne.ObjectScripts.PackagingStation>();
+        var definition=Il2CppScheduleOne.Registry.GetItem(WorkshopRules.Product(Art)).Cast<ProductDefinition>();
+        var scaffold=definition.FunctionalProduct;
+        var colliders=scaffold.GetComponentsInChildren<MeshCollider>(true).Where(c=>c.enabled).ToArray();
+        Check(colliders.Length>0 && colliders.All(c=>c.sharedMesh.bounds.size.x*c.transform.lossyScale.x<0.04f),"Packaging tabs retain the oversized donor collider.");
+        foreach(var packaging in new[]{"baggie","jar",WorkshopRules.Sleeve}){
+            var count=packaging=="baggie" ? 1:packaging=="jar" ? 5:20;
+            station.ProductSlot.SetStoredItem(Content.Create(WorkshopRules.Product(Art),count),false);
+            station.PackagingSlot.SetStoredItem(Content.Create(packaging,1),false);
+            Check(station.GetState(Il2CppScheduleOne.ObjectScripts.PackagingStation.EMode.Package)==Il2CppScheduleOne.ObjectScripts.PackagingStation.EState.CanBegin,"Packaging station rejected "+packaging);
+            MelonLogger.Msg("LSD_MANUAL_STATION starting "+packaging+", native staging="+station.ActiveProductAlignments.Length);
+            var task=station.StartTask().Cast<Il2CppScheduleOne.PlayerTasks.PackageProductTask>();
+            Check(task.Packaging && task.Products.Count==count,"Manual station did not create all tabs for "+packaging);
+            Check(task.Packaging!.gameObject.activeInHierarchy,"Manual packaging scaffold is inactive for "+packaging);
+            foreach(var product in task.Products.ToArray())task.Packaging.PackProduct(product);
+            Check(task.Packaging.IsFull && task.Packaging.PackedProducts.Count==count,"Manual packing failed for "+packaging);
+            task.Packaging.Seal();Check(task.Packaging.IsSealed,"Manual sealing failed for "+packaging);task.ReachedOutput();
+            var output=station.OutputSlot.ItemInstance?.TryCast<ProductItemInstance>();
+            Check(output is not null && output.PackagingID==packaging && output.GetTotalAmount()==count,"Native station changed edition/package units for "+packaging);
+            station.OutputSlot.SetStoredItem(null,false);
+        }
+        MelonLogger.Msg("LSD_STATION_CHECK manual baggie, jar and edition sleeve tasks, packing and sealing passed; small convex tab colliders verified.");
     }
     private BuildableItem Place(string id,int width,int depth)
     {

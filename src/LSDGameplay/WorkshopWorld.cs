@@ -43,6 +43,7 @@ internal sealed class WorkshopWorld : IDisposable
         ModSupport.Patch(harmony,typeof(BuildableItem),"CanBePickedUp",self,prefix:nameof(CanRemove));
         ModSupport.Patch(harmony,typeof(BuildableItem),"CanBeDestroyed",self,prefix:nameof(CanRemove));
         ModSupport.Patch(harmony,typeof(BuildableItem),"Destroy_Server",self,prefix:nameof(Destroy));
+        ModSupport.Patch(harmony,typeof(Il2CppScheduleOne.ObjectScripts.PackagingStation),"StartTask",self,prefix:nameof(SleeveStaging));
     }
 
     internal void Load()
@@ -56,8 +57,12 @@ internal sealed class WorkshopWorld : IDisposable
             ?? shops.FirstOrDefault(s=>Key(s.ShopCode).Contains("hardware") || Key(s.ShopName).Contains("hardware"));
         CollectionShop=hardware && hardware!.DeliveryBays is { Length:>0 } ? hardware : null;
         if (warehouse)
-            foreach (var id in new[] { WorkshopRules.Paper,WorkshopRules.Sleeve,WorkshopRules.Bench,WorkshopRules.Cabinet })
+            foreach (var id in new[] { WorkshopRules.Paper,WorkshopRules.Bench,WorkshopRules.Cabinet })
                 ShopManager.AddToShops(ItemManager.GetDefinition(id)!,warehouse!.ShopName);
+        if(warehouse && warehouse!.GetListing(WorkshopRules.Sleeve) is null){
+            var sleeve=new ShopListing{Item=Il2CppScheduleOne.Registry.GetItem(WorkshopRules.Sleeve).Cast<Il2CppScheduleOne.ItemFramework.StorableItemDefinition>(),name="Empty edition sleeve"};
+            warehouse.Listings.Add(sleeve);sleeve.Initialize(warehouse);warehouse.CreateListingUI(sleeve);
+        }
         foreach (var supplyShop in shops.Where(s=>Key(s.ShopCode).Contains("hardware") || Key(s.ShopName).Contains("hardware")))
             ShopManager.AddToShops(ItemManager.GetDefinition(WorkshopRules.Ink)!,supplyShop.ShopName);
         if (!warehouse || !hardware || !CollectionShop)
@@ -70,12 +75,27 @@ internal sealed class WorkshopWorld : IDisposable
         {
             Notify("Off Register. Paper from the warehouse, cartridges from the hardware store. Your edition. Your rules.",false);
             foreach (var order in LSDGameplayMod.Current.State.Orders.TakeLast(3))
-                Notify($"Order {order.Id[..8]} · {order.Quantity} Prism Base · {order.Stage} · {CollectionName}",false);
+                Notify($"{order.Quantity} Prism Base parcel(s) · {order.Stage} · {CollectionName}",false);
         }
         Scan();
     }
 
     private static string Key(string value)=>new(value.Where(char.IsLetterOrDigit).Select(char.ToLowerInvariant).ToArray());
+    private static void SleeveStaging(Il2CppScheduleOne.ObjectScripts.PackagingStation __instance)
+    {
+        if(__instance.PackagingSlot?.ItemInstance?.ID!=WorkshopRules.Sleeve
+            || __instance.ProductSlot?.ItemInstance?.ID.StartsWith(WorkshopRules.Owner+":tab-",StringComparison.Ordinal)!=true)return;
+        var native=__instance.ActiveProductAlignments?.ToArray();
+        if(native is null || native.Length==0 || native.Length>=20)return;
+        var points=new Transform[20];Array.Copy(native,points,native.Length);
+        for(var i=native.Length;i<points.Length;i++){
+            var source=native[i%native.Length];var point=new GameObject("Studio sleeve staging "+i);
+            point.transform.SetParent(__instance.Container,false);
+            point.transform.SetPositionAndRotation(source.position+__instance.transform.forward*(0.075f*(i/native.Length)),source.rotation);
+            points[i]=point.transform;
+        }
+        __instance.ActiveProductAlignments=new Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray<Transform>(points);
+    }
     internal BuildableItem? FindMachine(string id)=>Machines.TryGetValue(id,out var item) && item ? item : null;
 
     internal void Tick()
@@ -87,12 +107,14 @@ internal sealed class WorkshopWorld : IDisposable
     private void Scan()
     {
         if (Office is null || !Office || !Office.IsOwned) return;
-        if (!Sticker)
+        if (LSDGameplayMod.Current!.State.Introduced)
+        { if (Sticker) Object.Destroy(Sticker);Sticker=null;StickerInteraction=null; }
+        if (!Sticker && !LSDGameplayMod.Current.State.Introduced)
         {
             var anchor=Office.InteriorSpawnPoint ? Office.InteriorSpawnPoint : Office.SpawnPoint;
             if (!anchor) throw new InvalidOperationException("Sewer Office entrance anchor is unavailable.");
             Sticker=GameObject.CreatePrimitive(PrimitiveType.Cube);Sticker.name="Off Register sticker";
-            var origin=anchor.position+Vector3.up*1.45f;
+            var origin=anchor.position+anchor.forward*0.65f+Vector3.up*1.4f;
             var mounted=false;
             foreach (var direction in new[] { anchor.right,-anchor.right,anchor.forward,-anchor.forward })
                 if (Physics.Raycast(origin,direction,out var hit,3,-1,QueryTriggerInteraction.Ignore)
@@ -107,7 +129,9 @@ internal sealed class WorkshopWorld : IDisposable
             var material=new Material(StudioAssets.Model("Parcel").GetComponentInChildren<Renderer>().sharedMaterial);
             material.mainTexture=StudioAssets.Texture(2);material.color=Color.white;
             Sticker.GetComponent<Renderer>().sharedMaterial=material;
-            StickerInteraction=AddInteraction(Sticker,"Meet Off Register");
+            StickerInteraction=AddInteraction(Sticker,"Off Register");
+            var focus=new GameObject("Sticker centre");focus.transform.SetParent(Sticker.transform,false);
+            StickerInteraction.displayLocationPoint=focus.transform;
         }
         Machines.Clear();
         foreach (var item in Office.BuildableItems)
@@ -147,7 +171,7 @@ internal sealed class WorkshopWorld : IDisposable
                 { material=new Material(renderer.sharedMaterial);material.color=lamp switch { 1=>new(1,0.61f,0.12f),2=>new(0.22f,0.85f,0.52f),_=>new(0.16f,0.22f,0.24f) };Lamps[lamp]=material; }
                 renderer.sharedMaterial=material;
             }
-            if (machine is not null) StudioAssets.ApplyArtwork(item.gameObject,machine.ArtSlot);
+            if (machine is not null) StudioAssets.ApplyArtwork(item.gameObject,machine.ArtSlot,sheet:true);
         }
     }
 
@@ -155,6 +179,7 @@ internal sealed class WorkshopWorld : IDisposable
     {
         Conversation?.SetIsKnown(true);Conversation?.EnsureUIExists();Conversation?.SetEntryVisibility(true);
         Notify("Saw our sticker? Good. Order Prism Base through Off Register on your phone. Pick up at "+CollectionName+". Get a bench, cabinet and paper from the warehouse. Cartridges from the hardware store.");
+        if (Sticker) Object.Destroy(Sticker);Sticker=null;StickerInteraction=null;
     }
     internal void Notify(string message,bool alert=true)
     {
@@ -200,7 +225,7 @@ internal sealed class WorkshopWorld : IDisposable
                 var after=storage.ItemSlots.ToArray().Where(s=>s.ItemInstance?.ID==WorkshopRules.Prism).Sum(s=>s.Quantity);
                 if (after!=countBefore+order.Quantity) throw new InvalidOperationException("Pallet insertion did not preserve the expected parcel quantity.");
                 order.Stage=OrderStage.Delivered;changed=true;
-                Notify($"Order {order.Id[..8]} is at {CollectionName}. {order.Quantity} Prism Base parcel(s). No pickup deadline.");
+                Notify($"{order.Quantity} Prism Base parcel(s) ready at {CollectionName}. Follow the purple star.");
             }
             catch
             {
@@ -221,10 +246,27 @@ internal sealed class WorkshopWorld : IDisposable
             if (!PartOrigins.TryGetValue(part.Pointer,out var origin))
             { origin=(part.localPosition,part.localRotation);PartOrigins[part.Pointer]=origin; }
             if (task=="print" && part.name.StartsWith("Roller",StringComparison.Ordinal))
-                part.localPosition=origin.Position+new Vector3((x-0.5f)*0.02f,0,-progress*0.36f);
+                part.localPosition=origin.Position+new Vector3(0,0,progress*0.36f);
             if (task=="finishcut" && part.name.StartsWith("Cutter",StringComparison.Ordinal))
                 part.localRotation=origin.Rotation*Quaternion.Euler(progress*22,0,0);
         }
+    }
+    internal void ResetAnimation(BuildableItem? item)
+    {
+        if (item is null || !item) return;
+        foreach (var part in item.GetComponentsInChildren<Transform>(true))
+            if (PartOrigins.TryGetValue(part.Pointer,out var origin)) { part.localPosition=origin.Position;part.localRotation=origin.Rotation; }
+    }
+    internal Transform? DeliveryTarget(WorkshopState state)
+    {
+        if (!CollectionShop || CollectionShop!.DeliveryBays is null) return null;
+        foreach (var order in state.Orders.AsEnumerable().Reverse())
+        {
+            if (order.Bay>=CollectionShop.DeliveryBays.Length) continue;
+            var pallet=CollectionShop.DeliveryBays[order.Bay];if (!pallet) continue;
+            if (order.Stage!=OrderStage.Delivered || pallet.ItemSlots.ToArray().Any(s=>s.ItemInstance?.ID==WorkshopRules.Prism)) return pallet.transform;
+        }
+        return null;
     }
     private static bool Interact(InteractableObject __instance)
     {

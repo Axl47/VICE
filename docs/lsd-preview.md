@@ -1,10 +1,10 @@
-# LSD visual preview 0.11.1
+# LSD visual preview 0.11.2
 
-This module supplies the visual/audio treatment for the [Off Register workshop](lsd-workshop.md) and remains independently usable as a manual preview. It registers no product itself. Consuming a workshop tab starts a treatment; another tab refreshes it without stacking. **F8** starts a three-minute manual preview or requests a short fade-out. **F9** immediately clears it, including after consumption.
+This module supplies the visual/audio treatment for the [Off Register workshop](lsd-workshop.md) and remains independently usable as a manual preview. It registers no product itself. Consuming a workshop tab starts a treatment; another tab refreshes it without stacking. **F8** starts a three-minute manual preview or requests a short fade-out. **F9** immediately clears it outside a workshop interaction. Inside workshop controls it saves the drawing or skips the current production stage for testing.
 
 ## What changed
 
-Version 0.11.1 adds the native workshop-consumption trigger and keeps all 0.11.0 treatment parameters unchanged. It recognizes only the workshop's stable tab IDs and clears/restarts the existing owned effect instance.
+Version 0.11.2 reserves F9 for open workshop controls and preserves the treatment parameters. Version 0.11.1 adds the native workshop-consumption trigger and keeps all 0.11.0 treatment parameters unchanged. It recognizes only the workshop's stable tab IDs and clears/restarts the existing owned effect instance.
 
 The owner approved 0.10.1's subtle motion and audible echo as a baseline. Its fixed source commit, installed DLL hash, captured preference section and implementation formulas are recorded in the [approved baseline](lsd-baseline-0.10.1.md). The old package and an additional DLL/preferences backup remain available locally.
 
