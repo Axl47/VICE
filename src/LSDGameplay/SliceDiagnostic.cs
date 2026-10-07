@@ -23,6 +23,8 @@ internal sealed class SliceDiagnostic
     private readonly bool PrismCheck;
     private readonly bool ArtCheck;
     private readonly bool ArtGallery;
+    private readonly bool LightingCheck;
+    private LightingDiagnostic? Lighting;
     private readonly List<GameObject> ArtDisplay=new();
     private readonly Dictionary<IntPtr,bool> ArtVisibility=new();
     private Il2CppScheduleOne.ObjectScripts.PackagingStation? PhysicsStation;
@@ -47,12 +49,23 @@ internal sealed class SliceDiagnostic
         PrismCheck=args.Contains("--lsd-prism-check") && Output.Length>0;
         ArtGallery=args.Contains("--lsd-art-gallery") && Output.Length>0;
         ArtCheck=(args.Contains("--lsd-art-check") && Exercise) || ArtGallery;
+        LightingCheck=args.Contains("--lsd-lighting-check") && Output.Length>0;
         if (Output.Length>0) Directory.CreateDirectory(Output);
     }
     internal static void TryLoadFifthSlot()
     {
         if (Started || UnityEngine.SceneManagement.SceneManager.GetActiveScene().name!="Menu") return;
         var manager=LoadManager.Instance;
+        var args=Environment.GetCommandLineArgs();
+        if(manager && !manager.IsLoading && args.Contains("--lsd-lighting-check")){
+            var output=args.FirstOrDefault(a=>a.StartsWith("--lsd-check-output="))?[19..] ?? "";
+            var copy=Path.Combine(output,"SaveGame_5");
+            if(!Path.IsPathFullyQualified(output) || !LoadManager.TryLoadSaveInfo(copy,4,out var info,true))
+                throw new InvalidOperationException("Lighting diagnostics require an isolated SaveGame_5 beneath the absolute output directory.");
+            if(LoadManager.SaveGames is not null && LoadManager.SaveGames.ToArray().Any(save=>save is not null && Path.GetFullPath(save.SavePath).TrimEnd(Path.DirectorySeparatorChar).Equals(Path.GetFullPath(copy),StringComparison.OrdinalIgnoreCase)))
+                throw new InvalidOperationException("Lighting diagnostics refuse registered native save folders. Copy the save to the output directory first.");
+            Started=true;MelonLogger.Msg("LSD_LIGHTING_CHECK loading isolated save copy.");manager.StartGame(info,false,false);return;
+        }
         if (!manager || manager.IsLoading || LoadManager.SaveGames is null || LoadManager.SaveGames.Length<5 || LoadManager.SaveGames[4] is null) return;
         Started=true;MelonLogger.Msg("LSD_SLICE_CHECK loading only copied save slot five.");
         manager.StartGame(LoadManager.SaveGames[4],false,true);
@@ -60,12 +73,19 @@ internal sealed class SliceDiagnostic
     internal void Tick()
     {
         if (Completed || LoadManager.Instance.TimeSinceGameLoaded<5 || Time.realtimeSinceStartup<Next || SaveManager.Instance.IsSaving) return;
-        try { Run(); }
+        try {
+            if(LightingCheck){
+                Check(Path.GetFullPath(LoadManager.Instance.LoadedGameFolderPath).TrimEnd(Path.DirectorySeparatorChar)==Path.GetFullPath(Path.Combine(Output,"SaveGame_5")),"Lighting diagnostic refused a save outside its isolated output directory.");
+                Lighting??=new LightingDiagnostic(Mod,Output);
+                if(Lighting.Tick()){Completed=true;Application.Quit();}return;
+            }
+            Run();
+        }
         catch (Exception error)
         {
             Completed=true;MelonLogger.Error("LSD_SLICE_CHECK_FAILED phase="+Phase+" "+error);
             if (Output.Length>0) File.WriteAllText(Path.Combine(Output,"failure.txt"),error.ToString());
-            if (Exercise || Reload || SheetCheck || PackagingCheck || PrismCheck || ArtGallery) Application.Quit();
+            if (Exercise || Reload || SheetCheck || PackagingCheck || PrismCheck || ArtGallery || LightingCheck) Application.Quit();
         }
     }
     private void Run()

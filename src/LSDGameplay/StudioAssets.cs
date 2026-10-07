@@ -13,7 +13,8 @@ internal static class StudioAssets
     };
     private static Il2CppAssetBundle? Bundle;
     private static Shader? RenderShader;
-    private static readonly HashSet<string> BoundModels=new();
+    private static Shader? GuideShader;
+    private static readonly Dictionary<string,GameObject> Models=new();
     private static GameObject? Cache;
     private static readonly Dictionary<string, GameObject> Visuals = new();
     private static readonly Dictionary<string,GameObject> StoredVisuals=new();
@@ -28,7 +29,20 @@ internal static class StudioAssets
     private static readonly Dictionary<string, Sprite> PropIcons = new();
     private static readonly Dictionary<int, string> Signatures = new();
     internal static Sprite Symbol { get { Initialize();return Brand??=Sprite.Create(ArtTextures[2],new Rect(0,0,64,64),new(0.5f,0.5f),64); } }
-    internal static Material SurfaceMaterial(Color color) { Initialize();var material=new Material(RenderShader);material.color=color;material.mainTexture=Texture2D.whiteTexture;return material; }
+    internal static Material SurfaceMaterial(Color color,bool guide=false)
+    {
+        Initialize();var material=new Material(guide ? GuideShader:RenderShader);material.color=color;material.mainTexture=Texture2D.whiteTexture;
+        if(!guide)ConfigureLighting(material,"Paper");return material;
+    }
+    private static void ConfigureLighting(Material material,string surface)
+    {
+        // Native Packaging Station surfaces use URP Lit with environment reflections disabled.
+        material.SetFloat("_Metallic",0);material.SetFloat("_Smoothness",SurfaceSmoothness(surface));
+        material.SetFloat("_EnvironmentReflections",0);material.EnableKeyword("_ENVIRONMENTREFLECTIONS_OFF");
+        material.SetFloat("_ReceiveShadows",1);material.SetFloat("_SpecularHighlights",1);
+    }
+    internal static float SurfaceSmoothness(string surface)=>surface switch{
+        "Glass"=>0.3f,"Enamel" or "Edge"=>0.25f,"Steel" or "Accent"=>0.15f,_=>0.05f};
     internal static Sprite DeliveryStar
     {
         get
@@ -63,7 +77,10 @@ internal static class StudioAssets
         Object.DontDestroyOnLoad(Cache);
         // Use the live game's URP shader so the world, icon rig and held-item
         // cameras share the same supported pass/constant-buffer layout.
-        RenderShader=Shader.Find("Universal Render Pipeline/Unlit") ?? Bundle.LoadAsset<Shader>("assets/studiosurface.shader");
+        RenderShader=Shader.Find("Universal Render Pipeline/Lit")
+            ?? throw new InvalidOperationException("The native URP Lit shader required for studio lighting is unavailable.");
+        GuideShader=Shader.Find("Universal Render Pipeline/Unlit") ?? Bundle.LoadAsset<Shader>("assets/studiosurface.shader");
+        if(!RenderShader.isSupported)throw new InvalidOperationException("The native URP Lit studio shader is unsupported.");
         UpdateArtwork(new WorkshopState());
         File.WriteAllBytes(Path.Combine(MelonLoader.Utils.MelonEnvironment.ModsDirectory,"OffRegister.png"),
             ImageConversion.EncodeToPNG(ArtTextures[2]).ToArray());
@@ -72,11 +89,18 @@ internal static class StudioAssets
     internal static GameObject Model(string name)
     {
         Initialize();
-        var model=Bundle!.LoadAsset<GameObject>($"assets/prefabs/{name.ToLowerInvariant()}.prefab")
-            ?? throw new InvalidOperationException($"Missing studio prop: {name}.");
-        if (BoundModels.Add(name)) foreach (var renderer in model.GetComponentsInChildren<Renderer>(true))
+        if(!Models.TryGetValue(name,out var model) || !model){
+            model=Bundle!.LoadAsset<GameObject>($"assets/prefabs/{name.ToLowerInvariant()}.prefab")
+                ?? throw new InvalidOperationException($"Missing studio prop: {name}.");
+            Models[name]=model;
+        }
+        // Check actual materials, including inactive artwork planes. A name-only
+        // cache cannot guarantee bindings survive native asset/presentation hydration.
+        foreach (var renderer in model.GetComponentsInChildren<Renderer>(true))
             renderer.sharedMaterials=new Il2CppReferenceArray<Material>(renderer.sharedMaterials.ToArray().Select(original=>{
-                var material=new Material(RenderShader);material.color=original.color;material.mainTexture=original.mainTexture ?? Texture2D.whiteTexture;return material;
+                var surface=original.name.StartsWith("Studio ",StringComparison.Ordinal) ? original.name[7..]:original.name;
+                var material=original.shader==RenderShader ? original:new Material(RenderShader){name="Studio "+surface,color=original.color,mainTexture=original.mainTexture ?? Texture2D.whiteTexture};
+                ConfigureLighting(material,surface);return material;
             }).ToArray());
         return model;
     }
@@ -137,6 +161,7 @@ internal static class StudioAssets
             {
                 material = new Material(RenderShader);
                 material.color = Color.white; material.mainTexture = texture;
+                ConfigureLighting(material,"Paper");
                 ArtMaterials[art.Slot] = material;
             }
             material.mainTextureScale = art.Repeated ? new(8, 5) : Vector2.one;
@@ -149,7 +174,7 @@ internal static class StudioAssets
             if (!SheetTextures.TryGetValue(art.Slot,out var sheetTexture))
             {
                 sheetTexture=new Texture2D(320,200,TextureFormat.RGBA32,false);sheetTexture.filterMode=FilterMode.Point;SheetTextures[art.Slot]=sheetTexture;
-                SheetMaterials[art.Slot]=new Material(RenderShader) { color=Color.white,mainTexture=sheetTexture };
+                SheetMaterials[art.Slot]=SurfaceMaterial(Color.white);SheetMaterials[art.Slot].mainTexture=sheetTexture;
             }
             var sheetPixels=new Color32[320*200];
             for(var y=0;y<200;y++) for(var x=0;x<320;x++)

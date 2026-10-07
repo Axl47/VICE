@@ -1,0 +1,109 @@
+{
+  "checked": "2026-10-07",
+  "game": "0.4.7f11 / IL2CPP",
+  "gameplay": "0.2.4",
+  "preview": "0.11.2",
+  "shader": "Universal Render Pipeline/Lit",
+  "authoredBundleChanged": false,
+  "gameplaySha256": "ed20993725543302adf91148f64153b105accba7e3856efaaa7e9f524adac0df",
+  "testedGameplaySha256": "ed20993725543302adf91148f64153b105accba7e3856efaaa7e9f524adac0df",
+  "bundleSha256": "67d2a4fb1fd53af358124f5a83b21c81f6103e498d438dca7ebecd10bff50e7d",
+  "nativeAssertions": [
+    "All six physical model families use supported native URP Lit",
+    "Materials receive shadows and disable environment reflections",
+    "Bench shadow casting, received shadows, light probes, reflection probes and rendering layers match native Packaging Station"
+  ],
+  "conditions": [
+    "room lighting",
+    "warm point light",
+    "cool side light"
+  ],
+  "measurement": "Mean absolute warm-vs-room RGB change across five projected tabletop locations, averaged over 5x5 pixel patches, on a 0-255 scale",
+  "responses": [
+    {
+      "Stage": "Before",
+      "Model": "WorkbenchTop",
+      "Room": [
+        131.808,
+        150.232,
+        129.52
+      ],
+      "Warm": [
+        131.84,
+        150.264,
+        129.56
+      ],
+      "Cool": [
+        131.8,
+        150.24,
+        129.56
+      ],
+      "WarmResponse": 0.03466666666667114
+    },
+    {
+      "Stage": "Before",
+      "Model": "Table",
+      "Room": [
+        73.512,
+        74.928,
+        75.168
+      ],
+      "Warm": [
+        127.224,
+        113.048,
+        92.376
+      ],
+      "Cool": [
+        78.872,
+        85.584,
+        93.744
+      ],
+      "WarmResponse": 36.34666666666667
+    },
+    {
+      "Stage": "After",
+      "Model": "WorkbenchTop",
+      "Room": [
+        106.944,
+        123.144,
+        111.92
+      ],
+      "Warm": [
+        208.4,
+        208.616,
+        142.512
+      ],
+      "Cool": [
+        149.816,
+        222.0,
+        244.112
+      ],
+      "WarmResponse": 72.50666666666666
+    },
+    {
+      "Stage": "After",
+      "Model": "Table",
+      "Room": [
+        73.352,
+        74.72,
+        74.776
+      ],
+      "Warm": [
+        127.176,
+        112.968,
+        92.152
+      ],
+      "Cool": [
+        78.808,
+        85.328,
+        93.504
+      ],
+      "WarmResponse": 36.48266666666667
+    }
+  ],
+  "isolatedSaveFileCount": 47,
+  "isolatedSaveChangedFileCount": 0,
+  "installedModsChanged": false,
+  "previewAssertions": 132988,
+  "multiplayerTested": false
+}

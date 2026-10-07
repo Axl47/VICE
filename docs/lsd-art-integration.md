@@ -52,7 +52,51 @@ See [the recorded build and asset hashes](lsd-art-integration.json). Multiplayer
 
 The review of `31b7193` identified seven additional gameplay issues. The follow-up tracks actual local consumption events so repeated uses from one stack refresh the effect; retries pending actions after panel close and releases their leases after replies; exempts idempotent releases from action throttling and save/death restrictions; clears owned camera overrides independently of equipment validity; resets print textures, pixels, coverage and direction between batches; displays order replies in the phone catalogue; and observes all loaded player inventories for the shared tutorial.
 
-The follow-up passes warning-free workshop and preview builds, workshop persistence/rule checks, **132,988** preview assertions (including repeated consumption from the same stack), and the compiled rendering/audio guards. The opt-in native sheet diagnostic now also checks multiple consecutive editions and repeated batches in one sheet view. These follow-up fixes have not been exercised in a multiplayer session or a new native game run. The screenshots and JSON hashes above record the original art verification build; the follow-up package is separate and has not replaced the installed mods or test save.
+The follow-up passes warning-free workshop and preview builds, workshop persistence/rule checks, **132,988** preview assertions (including repeated consumption from the same stack), and the compiled rendering/audio guards. The opt-in native sheet diagnostic now also checks multiple consecutive editions and repeated batches in one sheet view. The follow-up build loaded successfully for the lighting comparison below; the seven review scenarios have not been re-exercised in that run or in multiplayer. The screenshots and JSON hashes above record the original art verification build; the follow-up package is separate and has not replaced the installed mods or test save.
+
+## Lighting follow-up
+
+The Blotter Bench originally used native URP **Unlit**, so the room's lights could not shade its authored surfaces. All six physical model families, artwork and sheet materials now use the game's supported URP **Lit** shader. Material binding checks actual cached renderers, including inactive artwork planes, rather than assuming a model name means every material is already bound. Cut and drawing guides keep their readable unlit material.
+
+The live Packaging Station supplied the lighting reference: receive shadows enabled, environment reflections disabled, nonmetallic surfaces, and matching shadow casting, light probes, reflection probes and rendering layers. Studio materials retain their authored colors and textures, with low gloss for paper, painted metal and enamel. The authored geometry and bundle are unchanged; this correction binds the game's own compiled shader at runtime.
+
+The native test places a real Blotter Bench on the right and a real Packaging Station on the left, then captures one fixed view under room lighting, a warm point light and a cool side light. The following PNGs are unchanged game captures. Before the fix, the bench remains nearly identical when the warm light is enabled; afterward, both pieces of furniture respond to the lights. Their different materials, positions and geometry still produce different brightness.
+
+Before, room lighting:
+
+![Unlit bench beside native Packaging Station](images/lsd-studio/in-game/lighting-before-room.png)
+
+Before, warm light:
+
+![Unlit bench fails to respond while native station changes](images/lsd-studio/in-game/lighting-before-warm-key.png)
+
+After, room lighting:
+
+![Lit bench beside native Packaging Station](images/lsd-studio/in-game/lighting-after-room.png)
+
+After, warm light:
+
+![Both workstations respond to the warm light](images/lsd-studio/in-game/lighting-after-warm-key.png)
+
+After, cool side light:
+
+![Both workstations respond to the cool side light](images/lsd-studio/in-game/lighting-after-cool-side.png)
+
+Native assertions verify supported Lit bindings on all six model families and matching live bench/station renderer settings. Five projected tabletop sample locations, each averaged over a 5 by 5 pixel patch, measure the warm-light change per RGB channel: bench **0.03 before / 72.51 after**, Packaging Station **36.35 before / 36.48 after** (0–255 scale). This demonstrates response to lighting, not equal reflectance between different surfaces. See [the lighting build hashes and measurements](lsd-lighting-check.json).
+
+The test used a workspace-local MelonLoader profile and an isolated copy of slot five. No saving occurred; all **47** copied save files still match the original backup. The normal installed DLL was not replaced. The rebuilt package passes all workshop rule/persistence checks, **132,988** preview assertions and compiled render/audio guards with no compiler warnings.
+
+To reproduce the lighting comparison, place a copy of the save directory at `<output>/SaveGame_5`, stage the built DLLs in a separate MelonLoader base directory, then launch the game with:
+
+```text
+--melonloader.basedir=<isolated-loader-directory> --lsd-slice-check --lsd-lighting-check --lsd-lighting-verify --lsd-check-output=<absolute-output-directory>
+```
+
+The checker refuses registered native save folders, places temporary furniture, captures three images and exits. Use distinct output directories for the old and fixed builds, then run:
+
+```powershell
+scripts/Check-LSDLighting.ps1 -BeforeDirectory <old-output> -AfterDirectory <fixed-output>
+```
 
 ## Reproduce
 

@@ -127,7 +127,7 @@ internal sealed class SheetView : IDisposable
         if(GuideCount<Guides.Count){line=Guides[GuideCount];line.gameObject.SetActive(true);}
         else{var root=new GameObject("Sheet guide");root.transform.SetParent(Lines.transform,false);line=root.AddComponent<LineRenderer>();Guides.Add(line);}
         GuideCount++;
-        if(!GuideMaterials.TryGetValue(color,out var material)){material=StudioAssets.SurfaceMaterial(color);GuideMaterials[color]=material;}
+        if(!GuideMaterials.TryGetValue(color,out var material)){material=StudioAssets.SurfaceMaterial(color,true);GuideMaterials[color]=material;}
         line.useWorldSpace=true;line.positionCount=2;line.sharedMaterial=material;
         line.startWidth=line.endWidth=width;line.SetPosition(0,Point(a));line.SetPosition(1,Point(b));
     }
