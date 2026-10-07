@@ -1,6 +1,10 @@
 param([string]$GameDir = 'C:\Program Files (x86)\Steam\steamapps\common\Schedule I')
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path $PSScriptRoot -Parent
+if (Test-Path -LiteralPath (Join-Path $repoRoot 'artifacts\VICE.Modules-0.1.0\hashes.json')) {
+    & (Join-Path $PSScriptRoot 'Install-VICEModules.ps1') -GameDir $GameDir
+    return
+}
 $package = Join-Path $repoRoot 'artifacts\PersonalMods-0.3.8\Mods'
 $gameRoot = (Resolve-Path -LiteralPath $GameDir).Path
 if (-not (Test-Path -LiteralPath (Join-Path $gameRoot 'Schedule I.exe'))) { throw 'GameDir is not a Schedule I installation.' }

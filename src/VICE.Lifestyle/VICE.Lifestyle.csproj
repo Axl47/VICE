@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsGameMod>true</IsGameMod><UseViceCore>true</UseViceCore>
+    <AssemblyName>VICE.Lifestyle</AssemblyName><RootNamespace>VICE.Lifestyle</RootNamespace>
+    <Version>0.1.0</Version><Authors>Axl47</Authors>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../VICE.Core/VICE.Core.csproj" />
+    <Reference Include="$(GameDir)/Mods/S1API.Il2Cpp.MelonLoader.dll"><Private>false</Private></Reference>
+  </ItemGroup>
+</Project>

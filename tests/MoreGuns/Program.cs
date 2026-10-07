@@ -1,4 +1,4 @@
-using PersonalMods.MoreGuns;
+using VICE.Arsenal.Guns;
 
 var assertions = 0;
 void Check(bool condition, string context)

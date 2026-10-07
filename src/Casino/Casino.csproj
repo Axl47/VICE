@@ -1,3 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup><IsGameMod>true</IsGameMod><AssemblyName>Personal.Casino</AssemblyName><Version>0.1.2</Version></PropertyGroup>
-</Project>

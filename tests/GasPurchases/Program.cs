@@ -1,4 +1,4 @@
-using PersonalMods.GasPurchases;
+using VICE.Commerce.Purchasing;
 using System.Text.Json;
 
 var root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../artifacts/order-tests", Guid.NewGuid().ToString("N")));

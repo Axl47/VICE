@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsGameMod>true</IsGameMod><UseViceCore>true</UseViceCore>
+    <AssemblyName>VICE.Arsenal</AssemblyName><RootNamespace>VICE.Arsenal</RootNamespace>
+    <Version>0.1.0</Version><Authors>Axl47</Authors>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../VICE.Core/VICE.Core.csproj" />
+    <EmbeddedResource Include="../../.research/assets/moreguns.bundle" LogicalName="Personal.MoreGuns.bundle" Condition="Exists('../../.research/assets/moreguns.bundle')" />
+  </ItemGroup>
+  <Target Name="CheckPrivateAssets" BeforeTargets="PrepareForBuild">
+    <Error Condition="!Exists('../../.research/assets/moreguns.bundle')" Text="Run scripts/Prepare-Assets.ps1 with your authorized original MoreGuns.dll before building Arsenal." />
+  </Target>
+</Project>

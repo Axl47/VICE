@@ -1,9 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup><IsGameMod>true</IsGameMod><AssemblyName>Personal.MoreGuns</AssemblyName><Version>0.2.0</Version></PropertyGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="..\..\.research\assets\moreguns.bundle" LogicalName="Personal.MoreGuns.bundle" Condition="Exists('..\..\.research\assets\moreguns.bundle')" />
-  </ItemGroup>
-  <Target Name="CheckPrivateAssets" BeforeTargets="PrepareForBuild">
-    <Error Condition="!Exists('..\..\.research\assets\moreguns.bundle')" Text="Run scripts/Prepare-Assets.ps1 with your authorized original MoreGuns.dll before building." />
-  </Target>
-</Project>

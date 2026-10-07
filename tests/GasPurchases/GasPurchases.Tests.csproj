@@ -1,4 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework></PropertyGroup>
-  <ItemGroup><Compile Include="..\..\src\GasPurchases\SavedOrders.cs" Link="SavedOrders.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../../src/VICE.Commerce/Purchasing/SavedOrders.cs" Link="SavedOrders.cs" /></ItemGroup>
 </Project>
