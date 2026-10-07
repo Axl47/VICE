@@ -84,7 +84,9 @@ After, cool side light:
 
 Native assertions verify supported Lit bindings on all six model families and matching live bench/station renderer settings. Five projected tabletop sample locations, each averaged over a 5 by 5 pixel patch, measure the warm-light change per RGB channel: bench **0.03 before / 72.51 after**, Packaging Station **36.35 before / 36.48 after** (0–255 scale). This demonstrates response to lighting, not equal reflectance between different surfaces. See [the lighting build hashes and measurements](lsd-lighting-check.json).
 
-The test used a workspace-local MelonLoader profile and an isolated copy of slot five. No saving occurred; all **47** copied save files still match the original backup. The normal installed DLL was not replaced. The rebuilt package passes all workshop rule/persistence checks, **132,988** preview assertions and compiled render/audio guards with no compiler warnings.
+The test used a workspace-local MelonLoader profile and an isolated copy of slot five. No saving occurred; all **47** copied save files still match the original backup. That diagnostic did not replace the normal installed DLL. The rebuilt package passes all workshop rule/persistence checks, **132,988** preview assertions and compiled render/audio guards with no compiler warnings.
+
+After full filesystem access was enabled on October 7, the game was confirmed closed and both packaged DLLs were installed into its normal `Mods` directory. Installed gameplay and preview hashes match the verified package. The previous DLLs were backed up under ignored `artifacts/lighting-install-backup-*`; no save files were changed during installation.
 
 To reproduce the lighting comparison, place a copy of the save directory at `<output>/SaveGame_5`, stage the built DLLs in a separate MelonLoader base directory, then launch the game with:
 

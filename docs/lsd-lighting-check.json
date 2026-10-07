@@ -103,7 +103,16 @@
   ],
   "isolatedSaveFileCount": 47,
   "isolatedSaveChangedFileCount": 0,
-  "installedModsChanged": false,
   "previewAssertions": 132988,
-  "multiplayerTested": false
+  "multiplayerTested": false,
+  "isolatedCheckModifiedInstalledMods": false,
+  "normalInstallation": {
+    "date": "2026-10-07",
+    "gameClosed": true,
+    "gameplaySha256": "ed20993725543302adf91148f64153b105accba7e3856efaaa7e9f524adac0df",
+    "previewSha256": "3c8c11e7a38e436ae768c5ce78eeffd08f581d824d251817cc88eaef98dfd3c5",
+    "matchesVerifiedPackage": true,
+    "saveFilesChanged": false,
+    "previousDllsBackedUp": true
+  }
 }
