@@ -55,6 +55,8 @@ Hostile rival gang activities use half the native cooldown and 50% wider ambush 
 
 ## Experimental LSD visuals
 
+Planned gameplay: run a blotter studio in the sewer office, print reusable custom art, dry and cut sheets into tabs, and package 1/5/20 units. Material sets quality; execution sets yield. Upgrade equipment for automation and collect supplies from shop pallets or registered business storage. See the [full design](docs/lsd-gameplay-design.md).
+
 A separate `Personal.LSDPreview.dll` 0.11.0 experiment preserves the [approved 0.10.1 baseline](docs/lsd-baseline-0.10.1.md) and tries 25% stronger echo, ripple displacement and zoom-like breathing. Independently timed glyph shadows and softening make reading require a little more focus while retaining original words, choices and layouts. Upright presentation, vivid colors, afterimages, ordinary-sized hallucinations and movement comfort remain. **F8** starts or fades out; **F9** clears immediately. Product/production/sales integration remains future work.
 
 Run `./scripts/Build-LSDPreview.ps1` to build/check this separate experiment and produce `artifacts/LSDPreview-0.11.0.zip`. Pure checks cover timing, visibility, flow bounds, comfort, color ownership, character sizing, echo gain and the default 25% ratios. Compiled guards reject startup audio initialization, unsafe playback hooks and text-content/layout writes. Explicit diagnostics check shader motion, the completed screen image, final-listener echo and routing cleanup; see the [playtest guide](docs/lsd-preview.md). The original strong 0.5.0 range remains preserved in the [future alcohol note](docs/future-alcohol-preview.md).
