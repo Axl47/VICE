@@ -76,6 +76,8 @@ internal sealed class TVDiagnostic
                 Check(TVNetwork.Host,"Native host is not available.");
                 TVNetwork.CheckWire(new TVCommand{Action="seek",Screen=Guid.NewGuid().ToString(),Position=23.5});
                 TVNetwork.CheckWire(new TVMessage{Type="imageChunk",Hash=new string('a',64),Data=new byte[MediaRules.ChunkBytes]});
+                TVNetwork.CheckWire(new TVCommand{Action="videoChunk",Hash=new string('a',64),Data=new byte[MediaRules.ChunkBytes]});
+                TVNetwork.CheckWire(new TVMessage{Type="videoBegin",Hash=new string('a',64),Length=MediaRules.MaxVideoBytes});
                 var shops=ShopInterface.AllShops.ToArray().Where(s=>s&&s.GetListing(TVContent.ItemId) is not null).ToArray();
                 Check(shops.Length==1&&shops[0].ShopCode=="boutique"&&shops[0].GetListing(TVContent.ItemId).Price==450,"Wall Screen must be sold only at the boutique.");
                 if(Reload)

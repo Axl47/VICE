@@ -1,5 +1,7 @@
 # Personal Wall Screens 0.1.2
 
+This guide describes the standalone Personal.TV mod. The migrated VICE Lifestyle 0.1.1 module adds [on-demand multiplayer sharing for local MP4 files](vice-lifestyle-video-sharing.md).
+
 Buy a **Wall Screen** for $450 at Herbert's Bleuball's Boutique. Equip it and place it on a wall using the game's normal furniture placement. Interact with it to choose a source, view the larger preview, or use playback controls. Escape returns to the game; the screen keeps playing and its audio comes from the furniture.
 
 The centered **E · Use Wall Screen** hint fades away after one second. Moving while looking at the same screen does not restart it; E remains available while the hint is hidden. Looking away and back shows it briefly again. Other furniture prompts keep their normal behavior.

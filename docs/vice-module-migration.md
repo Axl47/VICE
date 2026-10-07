@@ -2,6 +2,8 @@
 
 Commerce, Arsenal, Lifestyle, and Interface each replace their personal predecessor DLLs with one MelonLoader entry point. Gameplay settings, custom item IDs, embedded weapon resource names, saved shopping lists, and TV state/media locations retain their existing identities.
 
+VICE Lifestyle 0.1.1 adds [on-demand multiplayer sharing of local TV videos](vice-lifestyle-video-sharing.md). Selecting an MP4 shares metadata; Play transfers that file through the host and waits for connected peers before starting playback. All peers must update Lifestyle together. The separate Personal.TV implementation retains its original behavior.
+
 | Module | Feature code | Predecessors |
 | --- | --- | --- |
 | Commerce | `Trading`, `Purchasing`, `Warehouse` | Personal.Highballer, Personal.GasPurchases, Personal.Warehouse |

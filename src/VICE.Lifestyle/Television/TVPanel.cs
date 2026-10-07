@@ -130,12 +130,12 @@ internal sealed class TVPanel : IDisposable
     private void LocalFiles(bool video)
     {
         var directory=video?TVConfig.Videos:TVConfig.Images;
-        Heading=video?"Local MP4 files · single-player only":"Images · PNG or JPEG · shared with other players";
+        Heading=video?"Local MP4 · select first, then Play to share · up to 512 MiB":"Images · PNG or JPEG · shared with other players";
         var files=Directory.EnumerateFiles(directory,"*",SearchOption.TopDirectoryOnly)
             .Where(f=>video?Path.GetExtension(f).Equals(".mp4",StringComparison.OrdinalIgnoreCase):new[]{".png",".jpg",".jpeg"}.Contains(Path.GetExtension(f).ToLowerInvariant()))
             .Select(Path.GetFileName).Where(f=>f is not null).Take(1000).OrderBy(f=>f,StringComparer.OrdinalIgnoreCase).ToArray();
         Rows=files.Select(f=>(f!, (Action)(()=>{
-            if(video){var title=Path.GetFileNameWithoutExtension(f!);Select(new(){Kind="local",Source=f!,Title=title[..Math.Min(160,title.Length)]});}
+            if(video)TelevisionFeature.Current!.SelectLocalVideo(Screen,f!);
             else{Notice("Importing and sharing image…");TVNetwork.UploadImage(Screen,Path.GetFileNameWithoutExtension(f!)[..Math.Min(160,Path.GetFileNameWithoutExtension(f!).Length)],TVArtwork.Import(f!));}
         }))).ToList();
         DrawRows();Label("Put files in: "+directory,525,100);Button("Rescan folder",0,635,180,()=>Switch(Tab));
@@ -243,7 +243,7 @@ internal sealed class TVPanel : IDisposable
         if(Keyboard.current?.escapeKey.wasPressedThisFrame==true){Close();return;}
         var state=State();if(state is null)return;
         Title.text=state.Media.Title.Length>0?state.Media.Title:"WALL SCREEN";Status.text=controller.Status+(state.Status.Length>0?"\n"+state.Status:"");
-        PlayLabel.text=state.Playing?"Pause":"Play";RememberLabel.text=state.Remember?"Remember: on":"Remember: off";
+        PlayLabel.text=state.Playing||state.VideoRequested?"Pause":"Play";RememberLabel.text=state.Remember?"Remember: on":"Remember: off";
         Preview.texture=controller.Texture;
         var maxW=Fullscreen?1580:790;var maxH=Fullscreen?704:444;var texture=controller.Texture;
         var ratio=texture?texture!.width/(float)Math.Max(1,texture.height):16f/9;

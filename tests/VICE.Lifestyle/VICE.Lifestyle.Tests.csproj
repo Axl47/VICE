@@ -4,6 +4,9 @@
     <None Include="Fixtures/relay-game-v1.json" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../../src/VICE.Lifestyle/Television/MediaState.cs" Link="MediaState.cs" />
     <Compile Include="../../src/VICE.Lifestyle/Television/ImageCache.cs" Link="ImageCache.cs" />
+    <Compile Include="../../src/VICE.Lifestyle/Television/VideoCache.cs" Link="VideoCache.cs" />
+    <Compile Include="../../src/VICE.Lifestyle/Television/TVVideoNetwork.cs" Link="TVVideoNetwork.cs" />
+    <Compile Include="../../src/VICE.Lifestyle/Television/TVMessages.cs" Link="TVMessages.cs" />
     <Compile Include="../../src/VICE.Lifestyle/Television/RelayClient.cs" Link="RelayClient.cs" />
   </ItemGroup>
 </Project>

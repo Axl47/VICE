@@ -13,15 +13,23 @@ public sealed class MediaSelection
     public string? SourceId { get; set; }
     public string? VersionId { get; set; }
     public string SubtitleMode { get; set; } = "burned";
+    public string VideoName { get; set; } = "";
+    public int VideoBytes { get; set; }
     public MediaSelection Clone() => JsonSerializer.Deserialize<MediaSelection>(JsonSerializer.Serialize(this))!;
     public void Validate()
     {
-        if (Kind is not ("none" or "image" or "url" or "relay" or "local")) throw new InvalidDataException("Unknown media type.");
+        if (Kind is not ("none" or "image" or "url" or "relay" or "local" or "video")) throw new InvalidDataException("Unknown media type.");
         if (Title.Length > 160 || Source.Length > 4096 || SourceId?.Length > 256 || VersionId?.Length > 256)
             throw new InvalidDataException("Media selection is too long.");
         if (Kind == "image" && !MediaRules.IsHash(Source)) throw new InvalidDataException("Invalid image identity.");
         if (Kind == "url") MediaRules.VideoUrl(Source);
         if (Kind == "local") MediaRules.FileName(Source, ".mp4");
+        if (Kind == "video")
+        {
+            MediaRules.FileName(VideoName, ".mp4");
+            if (!MediaRules.IsHash(Source) || VideoBytes is < 12 or > MediaRules.MaxVideoBytes)
+                throw new InvalidDataException("Shared videos must be MP4 files of at most 512 MiB.");
+        }
         if (Kind == "relay" && (string.IsNullOrWhiteSpace(Source) || Source.Length > 256 || SubtitleMode is not ("burned" or "none")))
             throw new InvalidDataException("Invalid Relay episode selection.");
     }
@@ -43,6 +51,7 @@ public sealed class ScreenState
     public string PlaybackUrl { get; set; } = "";
     public DateTimeOffset? ExpiresAt { get; set; }
     public string Status { get; set; } = "";
+    public bool VideoRequested { get; set; }
     public double Target(double hostTime) => Math.Clamp(Position + (Playing ? Math.Max(0, hostTime - Anchor) : 0), 0, Duration > 0 ? Duration : 604800);
     public void Reanchor(double hostTime) { Position = Target(hostTime); Anchor = hostTime; }
     public ScreenState Clone() => JsonSerializer.Deserialize<ScreenState>(JsonSerializer.Serialize(this))!;
@@ -51,6 +60,7 @@ public sealed class ScreenState
         var saved = Clone();
         if (Media.Kind != "image" && !Remember) saved.Media = new();
         saved.Playing = false; saved.Position = 0; saved.Anchor = 0;
+        saved.VideoRequested = false;
         saved.PlaybackId = ""; saved.PlaybackUrl = ""; saved.ExpiresAt = null; saved.Status = "";
         return saved;
     }
@@ -93,6 +103,8 @@ public sealed class TVDocument
 internal static class MediaRules
 {
     internal const int MaxImageBytes = 4 * 1024 * 1024, ChunkBytes = 16384, MaxWireChars = 96000;
+    internal const int MaxVideoBytes = 512 * 1024 * 1024;
+    internal const long VideoCacheBytes = 1024L * 1024 * 1024;
     internal static bool IsHash(string value) => Regex.IsMatch(value, "^[a-f0-9]{64}$");
     internal static Uri VideoUrl(string value)
     {

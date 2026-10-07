@@ -59,11 +59,18 @@ internal sealed class ScreenController : IDisposable
             Status=selected.Title;return;
         }
         if(selected.Kind=="relay"&&state.PlaybackUrl.Length==0){Status=state.Status.Length>0?state.Status:"Select Play to resolve this Relay episode";return;}
+        string? sharedPath=null;
+        if(selected.Kind=="video")
+        {
+            if(!state.VideoRequested&&!Player){Status="Video selected · press Play to share";return;}
+            sharedPath=TVVideoNetwork.PathFor(selected);
+            if(sharedPath is null){Status=TVVideoNetwork.Progress(selected.Source);return;}
+        }
         if(FailedKey==key)return;
         if(!Player)
         {
             var url=selected.Kind switch
-            {"local"=>new Uri(Path.Combine(TVConfig.Videos,MediaRules.FileName(selected.Source,".mp4"))).AbsoluteUri,"relay"=>state.PlaybackUrl,_=>MediaRules.VideoUrl(selected.Source).AbsoluteUri};
+            {"video"=>new Uri(sharedPath!).AbsoluteUri,"local"=>new Uri(Path.Combine(TVConfig.Videos,MediaRules.FileName(selected.Source,".mp4"))).AbsoluteUri,"relay"=>state.PlaybackUrl,_=>MediaRules.VideoUrl(selected.Source).AbsoluteUri};
             if(selected.Kind=="local"&&TVNetwork.PeerCount>1){Status="Local videos are available only in single-player";return;}
             Prepare(url);return;
         }

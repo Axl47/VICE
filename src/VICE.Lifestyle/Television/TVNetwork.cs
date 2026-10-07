@@ -14,39 +14,6 @@ using MelonLoader;
 
 namespace VICE.Lifestyle.Television;
 
-public sealed class TVCommand
-{
-    public string Token { get; set; } = Guid.NewGuid().ToString();
-    public string Action { get; set; } = "sync";
-    public string Screen { get; set; } = "";
-    public MediaSelection? Media { get; set; }
-    public double Position { get; set; }
-    public float Volume { get; set; }
-    public bool Remember { get; set; }
-    public string Text { get; set; } = "";
-    public string Operation { get; set; } = "";
-    public int Season { get; set; }
-    public string Hash { get; set; } = "";
-    public int Length { get; set; }
-    public int Index { get; set; }
-    public byte[]? Data { get; set; }
-}
-public sealed class TVMessage
-{
-    public string Type { get; set; } = "reply";
-    public string Token { get; set; } = "";
-    public bool Success { get; set; } = true;
-    public string Text { get; set; } = "";
-    public string Json { get; set; } = "";
-    public double HostTime { get; set; }
-    public List<ScreenState> Screens { get; set; } = new();
-    public List<string> AllIds { get; set; } = new();
-    public List<MediaSelection> Favorites { get; set; } = new();
-    public string Hash { get; set; } = "";
-    public int Length { get; set; }
-    public int Index { get; set; }
-    public byte[]? Data { get; set; }
-}
 [RegisterTypeInIl2Cpp]
 [Il2CppImplements(typeof(IBroadcast))]
 public sealed class TVPacket : Il2CppSystem.Object
@@ -75,6 +42,7 @@ internal static class TVNetwork
     internal static bool Host => InstanceFinder.NetworkManager && InstanceFinder.NetworkManager.ServerManager.Started;
     internal static double Now => Host ? PlaybackClock.LocalNow : Clock.Now;
     internal static int PeerCount => Host ? InstanceFinder.NetworkManager.ServerManager.Clients.Count : 2;
+    internal static int QueuedMessages => Outbox.Count;
 
     internal static void Bind()
     {
@@ -133,6 +101,7 @@ internal static class TVNetwork
         foreach (var id in Uploads.Where(p => now - p.Value.Transfer.Started > 90).Select(p => p.Key).ToArray()) Uploads.Remove(id);
         foreach (var hash in Downloads.Where(p => now - p.Value.Started > 90).Select(p => p.Key).ToArray()) Downloads.Remove(hash);
         foreach (var token in Pings.Where(p => now-p.Value > 15).Select(p => p.Key).ToArray()) Pings.Remove(token);
+        TVVideoNetwork.Tick();
     }
     private static void ReceiveRequest(NetworkConnection connection, TVPacket packet)
     {
@@ -148,13 +117,14 @@ internal static class TVNetwork
             if (command is null) return;
             if (!Guid.TryParse(command.Token,out _)) throw new InvalidDataException("Invalid request identity.");
             var now = PlaybackClock.LocalNow;
-            if (command.Action != "imageChunk")
+            if (command.Action is not ("imageChunk" or "videoChunk"))
             {
                 var window=LastCommands.GetValueOrDefault(connection.ClientId);
                 if(now-window.Start>=1)window=(now,0);
                 if(window.Count>=20)throw new InvalidOperationException("Please wait a moment between controls.");
                 LastCommands[connection.ClientId]=(window.Start,window.Count+1);
             }
+            if (TVVideoNetwork.ReceiveRequest(connection, command)) return;
             if (command.Action == "imageNeed") { SendImage(connection, command.Hash); return; }
             if (command.Action == "imageBegin")
             {
@@ -186,12 +156,20 @@ internal static class TVNetwork
             if (command.Action == "sync") { reply(new() {Token=command.Token,HostTime=Now}); if(connection is not null) SendState(connection); return; }
             mod.RequireControl(player, command.Screen);
             if (command.Action == "relayQuery") { mod.QueryRelay(command,reply); return; }
-            mod.Execute(command); reply(new() {Token=command.Token,HostTime=Now}); Publish();
+            var videoSelection = command.Action == "videoSelect";
+            if (videoSelection)
+            {
+                if (command.Media?.Kind != "video") throw new InvalidDataException("Invalid shared video selection.");
+                command.Media.Validate(); command.Action = "select";
+            }
+            mod.Execute(command);
+            if (videoSelection) TVVideoNetwork.RegisterOwner(command.Media!, connection);
+            reply(new() {Token=command.Token,HostTime=Now}); Publish();
         }
         catch (Exception error) { reply(new() {Token=command.Token,Success=false,Text=SafeError(error)}); }
     }
     internal static string SafeError(Exception error) => error is InvalidDataException or InvalidOperationException ? error.Message : "TV action failed. Check the mod setup or try again.";
-    private static void Send(NetworkConnection connection, TVMessage message)
+    internal static void Send(NetworkConnection connection, TVMessage message)
     { if (!connection.Authenticated) return; message.HostTime=Now; Outbox.Enqueue((connection,Encode(message))); }
     internal static void Publish()
     {
@@ -218,6 +196,7 @@ internal static class TVNetwork
             if (Pings.Remove(message.Token,out var sent)) Clock.Observe(message.HostTime,sent,PlaybackClock.LocalNow);
             else Clock.Seed(message.HostTime);
             var mod=TelevisionFeature.Current!;
+            if (TVVideoNetwork.ReceiveMessage(message)) return;
             if(message.Type=="imageBegin") { if(Downloads.Count>=4) throw new InvalidDataException("Too many incoming images."); Downloads[message.Hash]=new(message.Hash,message.Length,PlaybackClock.LocalNow); return; }
             if(message.Type=="imageChunk")
             {
@@ -255,7 +234,7 @@ internal static class TVNetwork
             Send(connection,new(){Type="imageChunk",Hash=hash,Index=index,Data=bytes.Skip(index*MediaRules.ChunkBytes).Take(MediaRules.ChunkBytes).ToArray()});
     }
     internal static void Reset()
-    {Outbox.Clear();Uploads.Clear();Downloads.Clear();AssetRequests.Clear();Pings.Clear();LastCommands.Clear();Payloads.Clear();Clock.Reset();NextSync=0;}
+    {TVVideoNetwork.Reset();Outbox.Clear();Uploads.Clear();Downloads.Clear();AssetRequests.Clear();Pings.Clear();LastCommands.Clear();Payloads.Clear();Clock.Reset();NextSync=0;}
     internal static void CheckWire<T>(T value)
     {
         Bind();var payload=Encode(value);var packet=new TVPacket();Payloads[packet.Pointer]=payload;

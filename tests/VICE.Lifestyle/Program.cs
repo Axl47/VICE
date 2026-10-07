@@ -38,6 +38,7 @@ try
     var invalid=new ImageTransfer(hash,image.Length,0);Reject(()=>invalid.Add(0,image,91),"Expired chunk accepted.");
     Reject(()=>new ImageTransfer(hash,MediaRules.MaxImageBytes+1,0),"Oversized image allocation accepted.");
     var tampered=(byte[])image.Clone();tampered[^1]^=1;Reject(()=>new ImageTransfer(hash,image.Length,0).Add(0,tampered,1),"Corrupt transfer accepted.");
+    VideoProtocolTests.Run(Check,Reject,Path.Combine(taskRoot,"videos"));
 }
 finally{if(Directory.Exists(taskRoot))Directory.Delete(taskRoot,true);}
 var clock=new PlaybackClock();clock.Observe(500,100,102);Check(Math.Abs((clock.Now-PlaybackClock.LocalNow)-399)<.01,"Clock did not use ping midpoint.");
@@ -95,7 +96,7 @@ using(var fixture=JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.Ba
     fixtureHandler.Conflict=true;
     try{await relay.Create(selection,Guid.NewGuid().ToString(),default);throw new Exception("409 conflict accepted.");}catch(InvalidOperationException error){Check(error.Message.Contains("selection")&&!error.Message.Contains("request_conflict"),"Relay conflict did not receive a safe, useful message.");}
 }
-Console.WriteLine($"PASS: {checks} TV state, image transfer, clock, path and Relay contract checks.");
+Console.WriteLine($"PASS: {checks} TV state, image/video transfer, on-demand playback, cache, clock, path and Relay contract checks.");
 
 sealed class MergedRelayFixture(JsonElement root) : HttpMessageHandler
 {

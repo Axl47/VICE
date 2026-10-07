@@ -3,7 +3,7 @@ using VICE.Lifestyle.Casino;
 using VICE.Lifestyle.Television;
 using VICE.Core;
 
-[assembly: MelonInfo(typeof(VICE.Lifestyle.LifestyleMod), "VICE Lifestyle", "0.1.0", "Axl47")]
+[assembly: MelonInfo(typeof(VICE.Lifestyle.LifestyleMod), "VICE Lifestyle", "0.1.1", "Axl47")]
 [assembly: MelonGame("TVGS", "Schedule I")]
 [assembly: MelonPlatformDomain(MelonPlatformDomainAttribute.CompatibleDomains.IL2CPP)]
 [assembly: HarmonyDontPatchAll]

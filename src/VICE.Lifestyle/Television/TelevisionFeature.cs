@@ -15,11 +15,13 @@ internal sealed class TelevisionFeature
     internal TVWorld? World;
     internal TVPanel? Panel;
     internal ImageCache Cache=null!;
+    internal VideoCache Videos=null!;
     internal bool Ready;
     private readonly ConcurrentQueue<Action> MainThread=new();
     private readonly Dictionary<string,CancellationTokenSource> RelayJobs=new();
     private readonly Dictionary<string,bool> ResumeIntent=new();
     private readonly Dictionary<string,Func<RelayClient>> RelayOwners=new();
+    private readonly HashSet<string> VideoJobs=new();
     private int RelayQueries;
     private readonly HashSet<string> Executed=new();
     private CancellationTokenSource Lifetime=new();
@@ -33,6 +35,7 @@ internal sealed class TelevisionFeature
     public void Initialize(HarmonyLib.Harmony harmony)
     {
         Current=this;TVConfig.Initialize();Cache=new(Path.Combine(TVConfig.Root,"Cache","Images"));
+        Videos=new(Path.Combine(TVConfig.Root,"Cache","Videos"));
         Diagnostic=TVDiagnostic.Create(this);
         TVWorld.Install(harmony);
         GameLifecycle.OnPreLoad+=Preload;GameLifecycle.OnLoadComplete+=Loaded;GameLifecycle.OnPreSceneChange+=ClearSession;
@@ -87,7 +90,7 @@ internal sealed class TelevisionFeature
                 foreach(var state in Document.Screens.ToArray())
                 {
                     if(state.Media.Kind=="local"&&TVNetwork.PeerCount>1){Stop(state);Notice("Local video stopped because another player joined.");}
-                    if(state.Playing&&state.Duration>0&&state.Target(TVNetwork.Now)>=state.Duration){state.Reanchor(TVNetwork.Now);state.Playing=false;Touch(state);}
+                    if(state.Playing&&state.Duration>0&&state.Target(TVNetwork.Now)>=state.Duration){state.Reanchor(TVNetwork.Now);state.Playing=false;state.VideoRequested=false;Touch(state);}
                     if(state.Media.Kind=="relay"&&state.ExpiresAt is {} expires&&expires<DateTimeOffset.UtcNow.AddMinutes(2)&&!RelayJobs.ContainsKey(state.Id))StartRelay(state,true);
                 }
                 TVNetwork.Publish();
@@ -127,8 +130,9 @@ internal sealed class TelevisionFeature
                 break;
             case "toggle": case "play": case "pause":
                 if(state.Media.Kind is "none" or "image")throw new InvalidOperationException("Choose a video first.");
-                var wanted=command.Action=="play"||(command.Action=="toggle"&&!(RelayJobs.ContainsKey(state.Id)?ResumeIntent.GetValueOrDefault(state.Id):state.Playing));
-                if(state.Media.Kind=="relay"&&state.PlaybackUrl.Length==0&&!RelayJobs.ContainsKey(state.Id)){StartRelay(state,false);ResumeIntent[state.Id]=wanted;}
+                var wanted=command.Action=="play"||(command.Action=="toggle"&&!(state.Media.Kind=="video"?state.VideoRequested:RelayJobs.ContainsKey(state.Id)?ResumeIntent.GetValueOrDefault(state.Id):state.Playing));
+                if(state.Media.Kind=="video") { if(wanted)TVVideoNetwork.Play(state);else TVVideoNetwork.Pause(state); }
+                else if(state.Media.Kind=="relay"&&state.PlaybackUrl.Length==0&&!RelayJobs.ContainsKey(state.Id)){StartRelay(state,false);ResumeIntent[state.Id]=wanted;}
                 else if(RelayJobs.ContainsKey(state.Id))ResumeIntent[state.Id]=wanted;
                 else{state.Reanchor(now);state.Playing=wanted;}
                 break;
@@ -146,13 +150,45 @@ internal sealed class TelevisionFeature
                 if(command.Index<0||command.Index>=Document.Favorites.Count)throw new InvalidDataException("Unknown favorite.");Document.Favorites.RemoveAt(command.Index);break;
             case "stop":Stop(state);break;
             case "retry":
-                if(state.Media.Kind=="relay")StartRelay(state,state.PlaybackId.Length>0);
+                if(state.Media.Kind=="video"){state.MediaGeneration++;World?.Screens.GetValueOrDefault(state.Id)?.Retry();TVVideoNetwork.Play(state);}
+                else if(state.Media.Kind=="relay")StartRelay(state,state.PlaybackId.Length>0);
                 else{state.MediaGeneration++;World?.Screens.GetValueOrDefault(state.Id)?.Retry();}break;
             default:throw new InvalidDataException("Unknown TV control.");
         }
         if(Executed.Count>=512)Executed.Clear();Executed.Add(command.Token);Touch(state);
     }
     private void Touch(ScreenState state){state.Revision=++Revision;}
+    internal void VideoChanged(ScreenState state){Touch(state);TVNetwork.Publish();}
+    internal void SelectLocalVideo(string screen,string name)
+    {
+        if(VideoJobs.Count>=4)throw new InvalidOperationException("Wait for the current video scan to finish.");
+        var key="select:"+Guid.NewGuid();VideoJobs.Add(key);var token=Lifetime.Token;
+        Notice("Checking selected video…");
+        _=Task.Run(()=>
+        {
+            try
+            {
+                var media=VideoCache.Describe(TVConfig.Videos,name,token);
+                MainThread.Enqueue(()=>{if(token.IsCancellationRequested)return;VideoJobs.Remove(key);TVVideoNetwork.RegisterLocal(media);TVNetwork.Submit(new(){Action="videoSelect",Screen=screen,Media=media});Notice("Video selected. Press Play to share it.");});
+            }
+            catch(Exception error){MainThread.Enqueue(()=>{if(token.IsCancellationRequested)return;VideoJobs.Remove(key);Notice(TVNetwork.SafeError(error));});}
+        });
+    }
+    internal void FindSavedVideo(MediaSelection media)
+    {
+        if(VideoJobs.Contains(media.Source))return;
+        VideoJobs.Add(media.Source);var token=Lifetime.Token;
+        _=Task.Run(()=>
+        {
+            try
+            {
+                var local=VideoCache.Describe(TVConfig.Videos,media.VideoName,token);
+                if(local.Source!=media.Source)throw new InvalidDataException("The saved video changed. Select it again from Local MP4.");
+                MainThread.Enqueue(()=>{if(token.IsCancellationRequested)return;VideoJobs.Remove(media.Source);TVVideoNetwork.RegisterLocal(local);});
+            }
+            catch(Exception error){MainThread.Enqueue(()=>{if(token.IsCancellationRequested)return;VideoJobs.Remove(media.Source);TVVideoNetwork.Fail(media.Source,TVNetwork.SafeError(error));});}
+        });
+    }
     internal void SetDuration(string id,double duration)
     {
         var state=Document.Screens.FirstOrDefault(s=>s.Id==id);
@@ -163,6 +199,7 @@ internal sealed class TelevisionFeature
     {var state=Document.Screens.FirstOrDefault(s=>s.Id==id);if(state is null)return;Stop(state);Document.Screens.Remove(state);TVNetwork.Publish();}
     private void Stop(ScreenState state)
     {
+        TVVideoNetwork.Forget(state.Id);state.VideoRequested=false;
         if(RelayJobs.Remove(state.Id,out var job)){job.Cancel();job.Dispose();}ResumeIntent.Remove(state.Id);
         if(state.PlaybackId.Length>0)ReleaseRelay(state.PlaybackId,RelayOwners.GetValueOrDefault(state.Id));
         RelayOwners.Remove(state.Id);
@@ -280,6 +317,7 @@ internal sealed class TelevisionFeature
         foreach(var job in RelayJobs.Values){job.Cancel();job.Dispose();}RelayJobs.Clear();ResumeIntent.Clear();
         if(wasHost)foreach(var state in Document.Screens)if(state.PlaybackId.Length>0)ReleaseRelay(state.PlaybackId,RelayOwners.GetValueOrDefault(state.Id));
         RelayOwners.Clear();
+        VideoJobs.Clear();
         Panel?.Dispose();Panel=null;World?.Dispose();World=null;TVNetwork.Reset();Executed.Clear();
         Document=new();Revision=0;SavePath="";SaveTarget="";SaveSnapshot="";NextPublish=0;
     }
