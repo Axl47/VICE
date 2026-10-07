@@ -236,6 +236,10 @@ namespace VICE.Syndicate
         private void OnLoadCompleteCb()
         {
             if (registered) return;
+            // The native callback can run before the loaded flag/local player is
+            // published. OnUpdate starts setup once both are available.
+            var loader = LoadManager.Instance;
+            if (!loader || !loader.IsGameLoaded || !Il2CppScheduleOne.PlayerScripts.Player.Local) return;
             SaveSubscriptions.Dispose();
             SaveSubscriptions = new();
             registered = true;
@@ -508,7 +512,9 @@ namespace VICE.Syndicate
             playerDealerStolen.Clear();
             consumedGUIDs.Clear();
             stolenNPCs.Clear();
-            supplyLocations.Clear();
+            // This list is populated later by the allied supplies coroutine.
+            // An interrupted load may exit before that coroutine has run.
+            supplyLocations?.Clear();
             barrelLoot.Clear();
 
             // clear inner lists for car loot (kinda redundant since they get repopulated on save load)
