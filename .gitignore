@@ -11,4 +11,11 @@ NuGet.local.config
 *.pdb
 *.zip
 *.nupkg
-
+assets/LSDStudio/Library/
+assets/LSDStudio/Temp/
+assets/LSDStudio/Logs/
+assets/LSDStudio/UserSettings/
+*.blend1
+src/LSDGameplay/Assets/studio.bundle.manifest
+src/LSDGameplay/Assets/Assets
+src/LSDGameplay/Assets/Assets.manifest

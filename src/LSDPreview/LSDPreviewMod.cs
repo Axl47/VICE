@@ -2,6 +2,7 @@ using System.Collections;
 using Il2CppScheduleOne;
 using Il2CppScheduleOne.Persistence;
 using Il2CppScheduleOne.PlayerScripts;
+using Il2CppScheduleOne.Product;
 using Il2CppScheduleOne.UI;
 using Il2CppScheduleOne.UI.Phone;
 using MelonLoader;
@@ -9,7 +10,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering.Universal;
 
-[assembly: MelonInfo(typeof(PersonalMods.LSDPreview.LSDPreviewMod), "Personal LSD Visual Preview", "0.11.0", "Axl47")]
+[assembly: MelonInfo(typeof(PersonalMods.LSDPreview.LSDPreviewMod), "Personal LSD Visual Preview", "0.11.2", "Axl47")]
 [assembly: MelonGame("TVGS", "Schedule I")]
 
 namespace PersonalMods.LSDPreview;
@@ -33,12 +34,14 @@ public sealed class LSDPreviewMod : MelonMod
     private bool CheckedAudio;
     private PreviewEffects? Effects;
     private IntPtr PlayerPointer, ProductPointer;
+    private static readonly ConsumptionEvents WorkshopConsumptions=new();
+    private bool ConsumptionHookAttempted;
     private bool Suspended, LoggedMainLoop, CheckedShader;
 
     public override void OnInitializeMelon()
     {
         var config = MelonPreferences.CreateCategory("PersonalLSDPreview");
-        Enabled = ModSupport.Entry(config, "Enabled", true, "Allow the manual F8 preview. Effects never start automatically.");
+        Enabled = ModSupport.Entry(config, "Enabled", true, "Allow F8 previews and the approved effect when consuming an Off Register LSD tab.");
         WorldVisuals = ModSupport.Entry(config, "WorldVisuals", true, "Show faded hallucinations built from the game's character meshes.");
         PhoneEffects = ModSupport.Entry(config, "PhoneEffects", true, "Gentle color breathing and soft colored text fringes on the open phone.");
         Intensity = ModSupport.Entry(config, "Intensity", DefaultIntensity, "Overall artistic effect strength from 0 to 1.");
@@ -123,8 +126,25 @@ public sealed class LSDPreviewMod : MelonMod
                     }
                 }
             }
-            if (keyboard is not null && keyboard.f9Key.wasPressedThisFrame) { Cleanup(); DisposeChecks(); return; }
-            if (!Enabled.Value || !TryContext(out var player, out var playerCamera, out var camera)) { Cleanup(); return; }
+            if (keyboard is not null && keyboard.f9Key.wasPressedThisFrame
+                && !(PlayerCamera.Instance && PlayerCamera.Instance.ActiveUIElements.Contains("OffRegister"))) { WorkshopConsumptions.Clear();Cleanup(); DisposeChecks(); return; }
+            if (!Enabled.Value || !TryContext(out var player, out var playerCamera, out var camera)) { Cleanup(); WorkshopConsumptions.Clear(); return; }
+            if(!ConsumptionHookAttempted){
+                ConsumptionHookAttempted=true;
+                ModSupport.Patch(HarmonyInstance,typeof(Player),nameof(Player.ConsumeProductInternal),typeof(LSDPreviewMod),
+                    postfix:nameof(ProductConsumed),parameters:new[]{typeof(ProductItemInstance)});
+            }
+            var consumed = player.ConsumedProduct;
+            if (WorkshopConsumptions.Take(player.Pointer,out var consumedPointer) && consumed?.Pointer==consumedPointer)
+            {
+                Cleanup();
+                Effects = new PreviewEffects(camera);
+                PlayerPointer = player.Pointer;
+                ProductPointer = consumed.Pointer;
+                Timeline.Start(DurationSeconds.Value);
+                EnsureFrameLoop();
+                LoggerInstance.Msg("Off Register tab consumed: approved LSD treatment started/refreshed without stacking.");
+            }
             if (Effects is not null && (PlayerPointer != player.Pointer
                 || ProductPointer != (player.ConsumedProduct?.Pointer ?? IntPtr.Zero)))
             { Cleanup(); return; }
@@ -165,6 +185,12 @@ public sealed class LSDPreviewMod : MelonMod
             Cleanup();
             ModSupport.WarnOnce("lsd:preview", $"LSD preview could not continue: {error.Message}");
         }
+    }
+
+    private static void ProductConsumed(Player __instance,ProductItemInstance product)
+    {
+        if(__instance && __instance.IsLocalPlayer && product is not null && product.ID.StartsWith("personal.lsd:tab-",StringComparison.Ordinal))
+            WorkshopConsumptions.Record(__instance.Pointer,product.Pointer);
     }
 
     public override void OnLateUpdate()
@@ -245,9 +271,9 @@ public sealed class LSDPreviewMod : MelonMod
     private void DisposeChecks() { CheckAudio?.Dispose(); CheckAudio = null; CheckFrames?.Dispose(); CheckFrames = null; }
     public override void OnSceneWasUnloaded(int buildIndex, string sceneName)
     {
-        if (sceneName == "Main") Cleanup();
+        if (sceneName == "Main") { WorkshopConsumptions.Clear();Cleanup(); }
         if (sceneName == "Menu") DisposeChecks();
     }
-    public override void OnApplicationQuit() { Cleanup(); DisposeChecks(); }
-    public override void OnDeinitializeMelon() { Cleanup(); DisposeChecks(); }
+    public override void OnApplicationQuit() { WorkshopConsumptions.Clear();Cleanup(); DisposeChecks(); }
+    public override void OnDeinitializeMelon() { WorkshopConsumptions.Clear();Cleanup(); DisposeChecks(); }
 }
