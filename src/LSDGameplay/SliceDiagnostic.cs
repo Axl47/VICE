@@ -18,6 +18,7 @@ internal sealed class SliceDiagnostic
     private readonly LSDGameplayMod Mod;
     private readonly string Output;
     private readonly bool Exercise,Reload;
+    private readonly bool SheetCheck;
     private int Phase,Art;
     private float Next;
     private bool Completed;
@@ -32,6 +33,7 @@ internal sealed class SliceDiagnostic
         Output=args.FirstOrDefault(a=>a.StartsWith("--lsd-check-output="))?[19..] ?? "";
         Exercise=args.Contains("--lsd-slice-exercise") && Output.Length>0;
         Reload=args.Contains("--lsd-slice-reload") && Output.Length>0;
+        SheetCheck=args.Contains("--lsd-sheet-check") && Output.Length>0;
         if (Output.Length>0) Directory.CreateDirectory(Output);
     }
     internal static void TryLoadFifthSlot()
@@ -50,7 +52,7 @@ internal sealed class SliceDiagnostic
         {
             Completed=true;MelonLogger.Error("LSD_SLICE_CHECK_FAILED phase="+Phase+" "+error);
             if (Output.Length>0) File.WriteAllText(Path.Combine(Output,"failure.txt"),error.ToString());
-            if (Exercise || Reload) Application.Quit();
+            if (Exercise || Reload || SheetCheck) Application.Quit();
         }
     }
     private void Run()
@@ -68,6 +70,12 @@ internal sealed class SliceDiagnostic
                 Check(item.Definition.TryCast<ProductDefinition>()!.ConsumeAnimation,"Missing native consumption animation.");
             }
             MelonLogger.Msg($"LSD_SLICE_CHECK native definitions/counts passed; collection={Mod.World!.CollectionName}.");
+            if(SheetCheck){
+                Bench=Mod.World.Office!.BuildableItems.ToArray().First(i=>i && i.ItemInstance?.ID==WorkshopRules.Bench);
+                Move(Bench);
+                EquippedBefore=PlayerInventory.Instance.EquippedSlotIndex;EquippingBefore=PlayerInventory.Instance.EquippingEnabled;HotbarBefore=PlayerInventory.Instance.HotbarEnabled;
+                Mod.Panel!.OpenMachine(Bench);Next=Time.realtimeSinceStartup+1;Phase=200;return;
+            }
             if (Reload) { VerifyReload();return; }
             if (!Exercise) { Completed=true;return; }
             foreach (var slot in InventoryTransaction.RegularSlots()) slot.SetStoredItem(null,false);
@@ -81,6 +89,15 @@ internal sealed class SliceDiagnostic
         }
         switch (Phase)
         {
+            case 200:
+                VerifyPrintGeometry();ScreenCapture.CaptureScreenshot(Path.Combine(Output,"roller-halfway.png"));Next=Time.realtimeSinceStartup+0.7f;Phase=201;return;
+            case 201:
+                Mod.Panel!.CheckSheet.Frame(true);Next=Time.realtimeSinceStartup+0.7f;Phase=202;return;
+            case 202:
+                VerifyCutterGeometry();ScreenCapture.CaptureScreenshot(Path.Combine(Output,"cutter-raised.png"));Next=Time.realtimeSinceStartup+0.7f;Phase=203;return;
+            case 203:
+                Mod.Panel!.Close();VerifyControls();File.WriteAllText(Path.Combine(Output,"sheet-check-passed.txt"),"Screen-up roller, matching reveal, rigid cutter hinge, tolerant edge projection and hotbar restoration passed.");
+                MelonLogger.Msg("LSD_SHEET_CHECK_PASSED screen-up roller/reveal, rigid blade/handle, overshoot and hotbar restoration.");Completed=true;Application.Quit();return;
             case 1:
                 if (!CapturedScene)
                 { CapturedScene=true;ScreenCapture.CaptureScreenshot(Path.Combine(Output,"studio-props.png"));Next=Time.realtimeSinceStartup+2;return; }
@@ -203,6 +220,43 @@ internal sealed class SliceDiagnostic
         var inventory=PlayerInventory.Instance;
         Check(inventory.HotbarEnabled==HotbarBefore && inventory.EquippingEnabled==EquippingBefore && inventory.EquippedSlotIndex==EquippedBefore,
             "Closing a workshop interaction did not restore native hotbar, equipping and selected item.");
+    }
+    private void VerifyPrintGeometry()
+    {
+        var sheet=Mod.Panel!.CheckSheet;sheet.VerifyProjection();sheet.BeginPrinting();
+        var camera=PlayerCamera.Instance.Camera;
+        var start=sheet.Point(new(0.5f,sheet.PrintCoordinate(0)));var end=sheet.Point(new(0.5f,sheet.PrintCoordinate(1)));
+        Check(camera.WorldToScreenPoint(end).y>camera.WorldToScreenPoint(start).y,"Printing input still runs from the top of the screen to the bottom.");
+        Check(Math.Abs(sheet.PrintProgress(sheet.PrintCoordinate(0.4f))-0.4f)<0.001f,"Print input and reveal coordinates disagree.");
+        foreach(var progress in new[]{0f,0.5f,1f}){
+            Mod.World!.Animate(Bench,"print",progress,sheet);
+            var roller=Bench!.GetComponentsInChildren<MeshFilter>(true).First(p=>p.name=="Roller");
+            var center=roller.transform.TransformPoint(roller.sharedMesh.bounds.center);
+            var target=sheet.Point(new(0.5f,sheet.PrintCoordinate(progress)));
+            Check(Vector3.ProjectOnPlane(center-target,sheet.Normal).magnitude<0.005f,"Physical roller is out of alignment with the reveal line.");
+        }
+        sheet.Print(0,0.5f);sheet.Roller(0.5f);Mod.World!.Animate(Bench,"print",0.5f,sheet);
+        var texture=sheet.CheckPrintTexture;var source=StudioAssets.SheetTexture(0).GetPixels32().ToArray();var actual=texture.GetPixels32().ToArray();
+        var visibleY=(int)(sheet.PrintCoordinate(0.25f)*199);var hiddenY=(int)(sheet.PrintCoordinate(0.75f)*199);
+        Check(Enumerable.Range(0,320).Any(x=>!source[visibleY*320+x].Equals(StudioAssets.Palette[0])),"Reveal check needs a nonblank artwork row.");
+        Check(Enumerable.Range(0,320).All(x=>actual[visibleY*320+x].Equals(source[visibleY*320+x])) && Enumerable.Range(0,320).All(x=>actual[hiddenY*320+x].Equals(StudioAssets.Palette[0])),"Artwork is revealed ahead of the roller instead of behind it.");
+    }
+    private void VerifyCutterGeometry()
+    {
+        var sheet=Mod.Panel!.CheckSheet;sheet.CutGuide(6,0.92f);Mod.World!.ResetAnimation(Bench);
+        var parts=Bench!.GetComponentsInChildren<Transform>(true);var arm=parts.First(p=>p.name=="CutterArm");var grip=parts.First(p=>p.name=="CutterGrip");
+        var original=arm.InverseTransformPoint(grip.position);var resting=grip.position;
+        foreach(var progress in new[]{0f,0.5f,1f}){
+            Mod.World.Animate(Bench,"finishcut",progress,sheet);
+            Check(Vector3.Distance(arm.InverseTransformPoint(grip.position),original)<0.001f,"Cutter handle moves separately from its blade.");
+            if(progress==0)Check(Vector3.Distance(grip.position,resting)>0.02f,"Cutter grip does not follow the lifted blade.");
+        }
+        Check(Vector3.Distance(grip.position,resting)<0.001f,"Finished cut does not return the handle to its resting position.");
+        foreach(var uv in new[]{new Vector2(0.875f,1.12f),new Vector2(1.12f,0.8f),new Vector2(0.125f,-0.12f)}){
+            var screen=PlayerCamera.Instance.Camera.WorldToScreenPoint(sheet.Point(uv));
+            Check(!sheet.Project(new(screen.x,screen.y),out _) && sheet.Project(new(screen.x,screen.y),out var projected,0.2f) && Vector2.Distance(projected,uv)<0.025f,"Cut pointer is dropped when dragging slightly beyond the paper edge.");
+        }
+        Mod.World.Animate(Bench,"finishcut",0.35f,sheet);
     }
     private void VerifyPackagingStation()
     {

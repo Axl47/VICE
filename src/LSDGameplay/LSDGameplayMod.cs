@@ -9,7 +9,7 @@ using UnityEngine.InputSystem;
 using Clock = Il2CppScheduleOne.GameTime.TimeManager;
 using Money = S1API.Money.Money;
 
-[assembly: MelonInfo(typeof(PersonalMods.LSDGameplay.LSDGameplayMod), "Personal LSD Workshop", "0.2.0", "Axl47")]
+[assembly: MelonInfo(typeof(PersonalMods.LSDGameplay.LSDGameplayMod), "Personal LSD Workshop", "0.2.1", "Axl47")]
 [assembly: MelonGame("TVGS", "Schedule I")]
 
 namespace PersonalMods.LSDGameplay;

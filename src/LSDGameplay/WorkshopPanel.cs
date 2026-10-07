@@ -41,6 +41,7 @@ internal sealed class WorkshopPanel : IDisposable
     internal void CheckPointer(Vector2 point,bool held,bool space)
     {if(Environment.GetCommandLineArgs().Contains("--lsd-slice-check"))CheckInput=(point,held,space);}
     internal void CheckProjection()=>Sheet!.VerifyProjection();
+    internal SheetView CheckSheet=>Sheet!;
 
     internal WorkshopPanel()
     {
@@ -215,7 +216,7 @@ internal sealed class WorkshopPanel : IDisposable
         if(Busy || Sheet is null || Time.timeScale<=0 || (!Application.isFocused && !Environment.GetCommandLineArgs().Contains("--lsd-slice-check")))return;
         var delta=Math.Min(Time.unscaledDeltaTime,0.1f);Elapsed+=delta;var keyboard=Keyboard.current;
         Sheet.UpdateControlDirections();
-        var pointer=Sheet.Pointer(out var point);var held=Mouse.current?.leftButton.isPressed==true && pointer;
+        var pointer=Sheet.Pointer(out var point,Task=="finishcut" ? 0.2f:Task=="print" ? 0.12f:0);var held=Mouse.current?.leftButton.isPressed==true && pointer;
         var space=keyboard?.spaceKey.isPressed==true;
         if(CheckInput is { } input){point=input.Point;held=input.Held;space=input.Space;}
         if(Task=="prepare"){
@@ -227,21 +228,23 @@ internal sealed class WorkshopPanel : IDisposable
             if(Time.realtimeSinceStartup>NextGuide){NextGuide=Time.realtimeSinceStartup+0.05f;Sheet.Registration(new(ControlX,ControlY));}
             if(Stable>=2.5f)Finish(Score);
         }else if(Task=="print"){
-            if(held && point.y<0.15f)RollerStarted=true;if(held && RollerStarted)Progress=Math.Max(Progress,point.y);
+            if(Elapsed<0.3f)return; // Let the camera settle before choosing the screen's lower edge.
+            Sheet.BeginPrinting();var coverage=Sheet.PrintProgress(point.y);
+            if(held && coverage<0.18f)RollerStarted=true;if(held && RollerStarted)Progress=Math.Clamp(Math.Max(Progress,coverage),0,1);
             if(space){RollerStarted=true;Progress=Math.Min(1,Progress+delta*0.28f);}
             Message.text=$"Roller coverage {Progress*100:0}% · F9 test skip";
             if(Time.realtimeSinceStartup>NextGuide){NextGuide=Time.realtimeSinceStartup+0.05f;Sheet.Roller(Progress);Sheet.Print(SelectedArt,Progress);}
-            LSDGameplayMod.Current!.World?.Animate(Equipment,Task,Progress,0.5f,0.5f);if(Progress>=0.97f && Elapsed>=3)Finish(1);
+            LSDGameplayMod.Current!.World?.Animate(Equipment,Task,Progress,Sheet);if(Progress>=0.97f && Elapsed>=3)Finish(1);
         }else{
             var(a,b)=SheetView.CutLine(Cuts);var direction=b-a;
-            if(held && !CutHeld && Vector2.Distance(point,a)<0.14f){CutHeld=true;Progress=Score=Stable=0;}
+            if(held && !CutHeld && Vector2.Distance(point,a)<0.2f){CutHeld=true;Progress=Score=Stable=0;}
             if(held && CutHeld){Progress=Math.Clamp(Vector2.Dot(point-a,direction)/direction.sqrMagnitude,0,1);var deviation=Vector2.Distance(point,Vector2.Lerp(a,b,Progress));Score+=Math.Clamp(1-deviation*8,0,1)*delta;Stable+=delta;}
             if(!held && !space)CutHeld=false;
             if(space){CutHeld=true;Progress=Math.Min(1,Progress+delta*1.4f);Score+=delta;Stable+=delta;}
             Message.text=$"Cut {Cuts+1}/11 · follow the pink line · F9 test skip";
             if(Time.realtimeSinceStartup>NextGuide){NextGuide=Time.realtimeSinceStartup+0.05f;Sheet.CutGuide(Cuts,Progress);}
-            LSDGameplayMod.Current!.World?.Animate(Equipment,Task,Progress,0.5f,0.5f);
-            if(CutHeld && Progress>=0.97f){CutScore+=Stable>0 ? Score/Stable:1;Cuts++;CutHeld=false;Progress=Score=Stable=0;if(Cuts>=11)Finish(CutScore/11);}
+            LSDGameplayMod.Current!.World?.Animate(Equipment,Task,Progress,Sheet);
+            if(CutHeld && Progress>=0.92f){CutScore+=Stable>0 ? Score/Stable:1;Cuts++;CutHeld=false;Progress=Score=Stable=0;if(Cuts>=11)Finish(CutScore/11);}
         }
     }
     private void Finish(float accuracy){var task=Task;Task="";Sheet?.ClearGuides();Send(new(){Action=task,Accuracy=Math.Clamp(accuracy,0,1)});}

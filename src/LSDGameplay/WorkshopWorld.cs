@@ -237,18 +237,34 @@ internal sealed class WorkshopWorld : IDisposable
     }
 
     internal static bool Equipment(string id)=>id is WorkshopRules.Bench or WorkshopRules.Cabinet;
-    internal void Animate(BuildableItem? item,string task,float progress,float x,float y)
+    internal void Animate(BuildableItem? item,string task,float progress,SheetView sheet)
     {
         if (item is null || !item) return;
-        foreach (var part in item.GetComponentsInChildren<Transform>(true))
+        var parts=item.GetComponentsInChildren<Transform>(true).Where(p=>p.name is "Roller" or "RollerHandle" or "CutterArm" or "CutterGrip").ToArray();
+        foreach (var part in parts)
         {
-            if (part.name is not ("Roller" or "RollerHandle" or "CutterArm" or "CutterGrip")) continue;
             if (!PartOrigins.TryGetValue(part.Pointer,out var origin))
             { origin=(part.localPosition,part.localRotation);PartOrigins[part.Pointer]=origin; }
-            if (task=="print" && part.name.StartsWith("Roller",StringComparison.Ordinal))
-                part.localPosition=origin.Position+new Vector3(0,0,progress*0.36f);
-            if (task=="finishcut" && part.name.StartsWith("Cutter",StringComparison.Ordinal))
-                part.localRotation=origin.Rotation*Quaternion.Euler(progress*22,0,0);
+        }
+        Vector3 OriginalPoint(Transform part,Vector3 point){var origin=PartOrigins[part.Pointer];return part.parent.TransformPoint(origin.Position+origin.Rotation*Vector3.Scale(point,part.localScale));}
+        if(task=="print"){
+            var roller=parts.First(p=>p.name=="Roller");var original=OriginalPoint(roller,roller.GetComponent<MeshFilter>().sharedMesh.bounds.center);
+            var target=sheet.Point(new(0.5f,sheet.PrintCoordinate(progress)));
+            var offset=Vector3.ProjectOnPlane(target-original,sheet.Normal);
+            foreach(var part in parts.Where(p=>p.name.StartsWith("Roller",StringComparison.Ordinal)))part.position=OriginalPoint(part,Vector3.zero)+offset;
+        }
+        if(task=="finishcut"){
+            var arm=parts.First(p=>p.name=="CutterArm");var grip=parts.First(p=>p.name=="CutterGrip");
+            var bounds=arm.GetComponent<MeshFilter>().sharedMesh.bounds;
+            var length=bounds.extents;var extent=length.x>length.y && length.x>length.z ? new Vector3(length.x,0,0):length.y>length.z ? new Vector3(0,length.y,0):new Vector3(0,0,length.z);
+            var first=OriginalPoint(arm,bounds.center+extent);var second=OriginalPoint(arm,bounds.center-extent);
+            var handle=OriginalPoint(grip,grip.GetComponent<MeshFilter>().sharedMesh.bounds.center);var pivot=(first-handle).sqrMagnitude>(second-handle).sqrMagnitude ? first:second;
+            var axis=sheet.X.normalized;var sign=Vector3.Dot(Vector3.Cross(axis,handle-pivot),sheet.Normal)>=0 ? 1:-1;
+            var rotation=Quaternion.AngleAxis((1-progress)*28*sign,axis);
+            foreach(var part in new[]{arm,grip}){
+                var origin=PartOrigins[part.Pointer];part.position=pivot+rotation*(OriginalPoint(part,Vector3.zero)-pivot);
+                part.rotation=rotation*part.parent.rotation*origin.Rotation;
+            }
         }
     }
     internal void ResetAnimation(BuildableItem? item)

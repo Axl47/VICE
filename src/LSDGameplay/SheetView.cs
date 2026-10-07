@@ -19,6 +19,7 @@ internal sealed class SheetView : IDisposable
     private Texture2D? Printed;
     private Color32[]? PrintSource;
     private int PrintedRows=-1;
+    private bool PrintAscending=true,PrintDirectionSet;
     private readonly Vector3 SourcePosition,SourceScale;
     private readonly Quaternion SourceRotation;
     internal Vector3 Origin,X,Y,Normal;
@@ -40,12 +41,20 @@ internal sealed class SheetView : IDisposable
     }
     internal void SetArtwork(int slot)=>Paper.mainTexture=StudioAssets.SheetTexture(slot);
     internal void SetDrawing(Texture2D drawing)=>Paper.mainTexture=drawing;
+    internal void BeginPrinting()
+    {
+        if(PrintDirectionSet)return;
+        UpdateControlDirections();PrintAscending=ScreenYSign>=0;PrintDirectionSet=true;
+    }
+    internal float PrintProgress(float y)=>PrintAscending ? y:1-y;
+    internal float PrintCoordinate(float progress)=>PrintAscending ? progress:1-progress;
+    internal Texture2D CheckPrintTexture=>Printed!;
     internal void Print(int slot,float progress)
     {
         if(Printed is null){Printed=new Texture2D(320,200,TextureFormat.RGBA32,false);Printed.filterMode=FilterMode.Point;}
         PrintSource??=StudioAssets.SheetTexture(slot).GetPixels32().ToArray();
         var rows=Math.Clamp((int)(progress*200),0,200);if(rows==PrintedRows)return;PrintedRows=rows;
-        var pixels=(Color32[])PrintSource.Clone();Array.Fill(pixels,StudioAssets.Palette[0],rows*320,(200-rows)*320);
+        var pixels=(Color32[])PrintSource.Clone();Array.Fill(pixels,StudioAssets.Palette[0],PrintAscending ? rows*320:0,(200-rows)*320);
         Printed.SetPixels32(new Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<Color32>(pixels));Printed.Apply();Paper.mainTexture=Printed;
     }
     internal void Frame(bool cutting)
@@ -77,18 +86,18 @@ internal sealed class SheetView : IDisposable
         Normal=Filter.transform.TransformDirection(Filter.sharedMesh.normals[0]).normalized;
     }
     internal Vector3 Point(Vector2 uv)=>Origin+X*uv.x+Y*uv.y+Normal*0.002f;
-    internal bool Pointer(out Vector2 uv)
+    internal bool Pointer(out Vector2 uv,float margin=0)
     {
         uv=default;var mouse=Mouse.current;if(mouse is null)return false;
-        return Project(mouse.position.ReadValue(),out uv);
+        return Project(mouse.position.ReadValue(),out uv,margin);
     }
-    internal bool Project(Vector2 screen,out Vector2 uv)
+    internal bool Project(Vector2 screen,out Vector2 uv,float margin=0)
     {
         uv=default;var ray=PlayerCamera.Instance.Camera.ScreenPointToRay(screen);
         if(!new Plane(Normal,Origin).Raycast(ray,out var distance))return false;
         var local=ray.GetPoint(distance)-Origin;
         uv=new(Vector3.Dot(local,X)/X.sqrMagnitude,Vector3.Dot(local,Y)/Y.sqrMagnitude);
-        return uv.x is >=0 and <=1 && uv.y is >=0 and <=1;
+        return uv.x>=-margin && uv.x<=1+margin && uv.y>=-margin && uv.y<=1+margin;
     }
     internal void UpdateControlDirections()
     {
@@ -123,7 +132,7 @@ internal sealed class SheetView : IDisposable
         Line(control-new Vector2(0.045f,0),control+new Vector2(0.045f,0),new(1,0.25f,0.35f));
         Line(control-new Vector2(0,0.045f),control+new Vector2(0,0.045f),new(1,0.25f,0.35f));
     }
-    internal void Roller(float progress){ClearGuides();Line(new(0,progress),new(1,progress),new(0.3f,0.95f,0.8f),0.008f);}
+    internal void Roller(float progress){ClearGuides();var y=PrintCoordinate(progress);Line(new(0,y),new(1,y),new(0.3f,0.95f,0.8f),0.008f);}
     internal static (Vector2 Start,Vector2 End) CutLine(int index)=>index<7
         ? (new((index+1)/8f,0),new((index+1)/8f,1)) : (new(0,(index-6)/5f),new(1,(index-6)/5f));
     internal void CutGuide(int index,float progress)
