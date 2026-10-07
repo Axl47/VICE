@@ -25,6 +25,9 @@ internal sealed class SliceDiagnostic
     private readonly bool ArtGallery;
     private readonly bool LightingCheck;
     private LightingDiagnostic? Lighting;
+    private readonly bool TutorialCheck;
+    private TutorialDiagnostic? Tutorial;
+    internal bool TutorialChecking=>TutorialCheck && !Completed;
     private readonly List<GameObject> ArtDisplay=new();
     private readonly Dictionary<IntPtr,bool> ArtVisibility=new();
     private Il2CppScheduleOne.ObjectScripts.PackagingStation? PhysicsStation;
@@ -50,6 +53,7 @@ internal sealed class SliceDiagnostic
         ArtGallery=args.Contains("--lsd-art-gallery") && Output.Length>0;
         ArtCheck=(args.Contains("--lsd-art-check") && Exercise) || ArtGallery;
         LightingCheck=args.Contains("--lsd-lighting-check") && Output.Length>0;
+        TutorialCheck=args.Contains("--lsd-tutorial-check") && Output.Length>0;
         if (Output.Length>0) Directory.CreateDirectory(Output);
     }
     internal static void TryLoadFifthSlot()
@@ -57,14 +61,14 @@ internal sealed class SliceDiagnostic
         if (Started || UnityEngine.SceneManagement.SceneManager.GetActiveScene().name!="Menu") return;
         var manager=LoadManager.Instance;
         var args=Environment.GetCommandLineArgs();
-        if(manager && !manager.IsLoading && args.Contains("--lsd-lighting-check")){
+        if(manager && !manager.IsLoading && (args.Contains("--lsd-lighting-check") || args.Contains("--lsd-tutorial-check"))){
             var output=args.FirstOrDefault(a=>a.StartsWith("--lsd-check-output="))?[19..] ?? "";
             var copy=Path.Combine(output,"SaveGame_5");
             if(!Path.IsPathFullyQualified(output) || !LoadManager.TryLoadSaveInfo(copy,4,out var info,true))
-                throw new InvalidOperationException("Lighting diagnostics require an isolated SaveGame_5 beneath the absolute output directory.");
+                throw new InvalidOperationException("Isolated diagnostics require a SaveGame_5 copy beneath the absolute output directory.");
             if(LoadManager.SaveGames is not null && LoadManager.SaveGames.ToArray().Any(save=>save is not null && Path.GetFullPath(save.SavePath).TrimEnd(Path.DirectorySeparatorChar).Equals(Path.GetFullPath(copy),StringComparison.OrdinalIgnoreCase)))
-                throw new InvalidOperationException("Lighting diagnostics refuse registered native save folders. Copy the save to the output directory first.");
-            Started=true;MelonLogger.Msg("LSD_LIGHTING_CHECK loading isolated save copy.");manager.StartGame(info,false,false);return;
+                throw new InvalidOperationException("Isolated diagnostics refuse registered native save folders. Copy the save to the output directory first.");
+            Started=true;MelonLogger.Msg("LSD_ISOLATED_CHECK loading save copy.");manager.StartGame(info,false,false);return;
         }
         if (!manager || manager.IsLoading || LoadManager.SaveGames is null || LoadManager.SaveGames.Length<5 || LoadManager.SaveGames[4] is null) return;
         Started=true;MelonLogger.Msg("LSD_SLICE_CHECK loading only copied save slot five.");
@@ -74,6 +78,11 @@ internal sealed class SliceDiagnostic
     {
         if (Completed || LoadManager.Instance.TimeSinceGameLoaded<5 || Time.realtimeSinceStartup<Next || SaveManager.Instance.IsSaving) return;
         try {
+            if(TutorialCheck){
+                Check(Path.GetFullPath(LoadManager.Instance.LoadedGameFolderPath).TrimEnd(Path.DirectorySeparatorChar)==Path.GetFullPath(Path.Combine(Output,"SaveGame_5")),"Tutorial diagnostic refused a save outside its isolated output directory.");
+                Tutorial??=new TutorialDiagnostic(Output,Mod.World!,Mod.State);
+                if(Tutorial.Tick()){Completed=true;Application.Quit();}return;
+            }
             if(LightingCheck){
                 Check(Path.GetFullPath(LoadManager.Instance.LoadedGameFolderPath).TrimEnd(Path.DirectorySeparatorChar)==Path.GetFullPath(Path.Combine(Output,"SaveGame_5")),"Lighting diagnostic refused a save outside its isolated output directory.");
                 Lighting??=new LightingDiagnostic(Mod,Output);
@@ -85,7 +94,7 @@ internal sealed class SliceDiagnostic
         {
             Completed=true;MelonLogger.Error("LSD_SLICE_CHECK_FAILED phase="+Phase+" "+error);
             if (Output.Length>0) File.WriteAllText(Path.Combine(Output,"failure.txt"),error.ToString());
-            if (Exercise || Reload || SheetCheck || PackagingCheck || PrismCheck || ArtGallery || LightingCheck) Application.Quit();
+            if (Exercise || Reload || SheetCheck || PackagingCheck || PrismCheck || ArtGallery || LightingCheck || TutorialCheck) Application.Quit();
         }
     }
     private void Run()

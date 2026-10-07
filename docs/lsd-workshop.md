@@ -1,12 +1,12 @@
 # Off Register workshop — first playable slice
 
-Personal LSD Workshop 0.2.4 implements the starter manual loop from [the gameplay design](lsd-gameplay-design.md), with drawing and distinct minigames on the physical equipment. It requires the beta / IL2CPP game, MelonLoader 0.7.3 and S1API (Forked by Bars) 3.2.1-beta.7. The companion visual treatment is Personal LSD Preview 0.11.2; its approved 0.11 visual/audio parameters are unchanged.
+Personal LSD Workshop 0.2.5 implements the starter manual loop from [the gameplay design](lsd-gameplay-design.md), with drawing and distinct minigames on the physical equipment. It requires the beta / IL2CPP game, MelonLoader 0.7.3 and S1API (Forked by Bars) 3.2.1-beta.7. The companion visual treatment is Personal LSD Preview 0.11.2; its approved 0.11 visual/audio parameters are unchanged.
 
 Version 0.2.4 integrates the polished item models through a real Unity rebuild and fixes the precursor's held-prefab visibility. [In-game screenshots and native verification](lsd-art-integration.md) cover production, packaging, animation and save/reload with the new models.
 
 ## Play the slice
 
-Use the copied **fifth save slot**. Own and access the Sewer Office through the native game. Find the checkerboard Off Register sticker on a wall near the office entrance and select **Meet the collective**. Its prompt is anchored at the sticker's centre. This adds its message thread, opens the Studio phone catalogue and removes the sticker. The native **First edition** tutorial guides purchases, setup, printing and packaging. Existing introduced saves receive the tutorial too, with progress inferred from their equipment and stock.
+Use the copied **fifth save slot**. Own and access the Sewer Office through the native game. Find the checkerboard Off Register sticker on a wall near the office entrance and select **Meet the collective**. Its prompt is anchored at the sticker's centre. This adds its message thread, opens the Studio phone catalogue and removes the sticker. The native **First edition** tutorial has eighteen separate objectives. Its initial checklist tracks the bench, cabinet, blank stock and cartridge independently, followed by separate placement, ordering, collection, registration, printing, drying, cutting and packaging tasks. Purchased supplies remain checked after use; saved progress from the old grouped tutorial maps onto the corresponding completed objectives. Existing introduced saves receive the tutorial too, with progress inferred from their equipment and stock.
 
 1. Buy a **Blotter Bench ($350)**, **Blotter drying cabinet ($250)**, **Blank blotter stock ($4)** and **Empty edition sleeves ($1)** from **Oscar's warehouse store**. Buy **Print cartridges ($6)** at either hardware store.
 2. Place the bench and cabinet inside the owned Sewer Office. Active machines cannot be picked up or destroyed until their output is collected.

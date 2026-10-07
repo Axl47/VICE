@@ -40,13 +40,14 @@ public sealed class WorkshopState
     public long Revision { get; set; }
     public bool Introduced { get; set; }
     public int TutorialStep { get; set; }
+    public int? TutorialObjectives { get; set; }
     public List<Artwork> Artworks { get; set; } = PresetArt.Create();
     public List<MachineState> Machines { get; set; } = new();
     public List<CollectiveOrder> Orders { get; set; } = new();
 
     public void Validate()
     {
-        if (Version != 1 || Revision < 0 || TutorialStep is < 0 or > 10 || Artworks is null || Machines is null || Orders is null)
+        if (Version != 1 || Revision < 0 || TutorialStep is < 0 or > 10 || TutorialObjectives is < 0 or > TutorialProgress.All || Artworks is null || Machines is null || Orders is null)
             throw new InvalidDataException("Unsupported or incomplete workshop save. Keep the save and restore a compatible mod version.");
         if (Artworks.Count is < 3 or > WorkshopRules.ArtSlots || Machines.Count > 64 || Orders.Count > 128)
             throw new InvalidDataException("Workshop save exceeds the slice's content limits.");
@@ -97,7 +98,12 @@ public sealed class WorkshopState
     {
         if (json.Length > WorkshopRules.MaximumPayload) throw new InvalidDataException("Workshop snapshot is too large.");
         var state = JsonSerializer.Deserialize<WorkshopState>(json) ?? throw new InvalidDataException("Empty workshop save.");
-        state.Validate(); return state;
+        state.Validate();state.TutorialObjectives??=TutorialProgress.FromLegacy(state.TutorialStep);
+        // Repair inflated coarse progress from an earlier 0.2.5 build when its
+        // independently saved objectives show an unfinished prerequisite.
+        if(state.Introduced || state.TutorialStep>0 || state.TutorialObjectives>0)
+            state.TutorialStep=TutorialProgress.LegacyStep(state.TutorialObjectives.Value);
+        return state;
     }
 }
 
