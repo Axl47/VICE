@@ -237,7 +237,7 @@ internal sealed class WorkshopWorld : IDisposable
     }
 
     internal static bool Equipment(string id)=>id is WorkshopRules.Bench or WorkshopRules.Cabinet;
-    internal void Animate(BuildableItem? item,string task,float progress,SheetView sheet)
+    internal void Animate(BuildableItem? item,string task,float progress,SheetView sheet,int cutIndex=0)
     {
         if (item is null || !item) return;
         var parts=item.GetComponentsInChildren<Transform>(true).Where(p=>p.name is "Roller" or "RollerHandle" or "CutterArm" or "CutterGrip").ToArray();
@@ -259,10 +259,12 @@ internal sealed class WorkshopWorld : IDisposable
             var length=bounds.extents;var extent=length.x>length.y && length.x>length.z ? new Vector3(length.x,0,0):length.y>length.z ? new Vector3(0,length.y,0):new Vector3(0,0,length.z);
             var first=OriginalPoint(arm,bounds.center+extent);var second=OriginalPoint(arm,bounds.center-extent);
             var handle=OriginalPoint(grip,grip.GetComponent<MeshFilter>().sharedMesh.bounds.center);var pivot=(first-handle).sqrMagnitude>(second-handle).sqrMagnitude ? first:second;
-            var axis=sheet.X.normalized;var sign=Vector3.Dot(Vector3.Cross(axis,handle-pivot),sheet.Normal)>=0 ? 1:-1;
-            var rotation=Quaternion.AngleAxis((1-progress)*28*sign,axis);
+            var(start,end)=SheetView.CutLine(cutIndex);
+            var direction=(sheet.Point(end)-sheet.Point(start)).normalized;
+            var rotation=Quaternion.AngleAxis(Vector3.SignedAngle(Vector3.ProjectOnPlane(pivot-handle,sheet.Normal).normalized,direction,sheet.Normal),sheet.Normal);
+            var target=sheet.Point(Vector2.Lerp(start,end,progress))+sheet.Normal*0.003f;
             foreach(var part in new[]{arm,grip}){
-                var origin=PartOrigins[part.Pointer];part.position=pivot+rotation*(OriginalPoint(part,Vector3.zero)-pivot);
+                var origin=PartOrigins[part.Pointer];part.position=target+rotation*(OriginalPoint(part,Vector3.zero)-pivot);
                 part.rotation=rotation*part.parent.rotation*origin.Rotation;
             }
         }

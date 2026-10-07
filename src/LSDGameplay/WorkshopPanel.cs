@@ -25,7 +25,8 @@ internal sealed class WorkshopPanel : IDisposable
     private SheetView? Sheet;
     private string MachineId="";
     private int SelectedArt,Brush=2,Ink=3,LastX=-1,LastY=-1,Cuts;
-    private bool Editing,Repeated,Busy,PreviousLook,PreviousMove,PreviousHotbar,PreviousEquipping,PreviousTyping,Stroke,CutHeld,RollerStarted;
+    private bool Editing,Repeated,Busy,PreviousLook,PreviousMove,PreviousHotbar,PreviousEquipping,PreviousTyping,Stroke,RollerStarted;
+    private CutStroke? CuttingStroke;
     private byte[] Pixels=new byte[4096];
     private string Task="";
     private float Elapsed,Score,Stable,Progress,ControlX=0.28f,ControlY=0.68f,SubmittedAt,NextGuide,CutScore;
@@ -120,7 +121,7 @@ internal sealed class WorkshopPanel : IDisposable
                 var machine=LSDGameplayMod.Current!.State.Machines.FirstOrDefault(m=>m.Id==MachineId);
                 SelectedArt=machine?.ArtSlot??SelectedArt;
                 Task=machine?.Stage switch{MachineStage.Preparing=>"prepare",MachineStage.Printing=>"print",MachineStage.Cutting=>"finishcut",_=>""};
-                Elapsed=Score=Stable=Progress=CutScore=0;Cuts=0;CutHeld=RollerStarted=false;ControlX=0.28f;ControlY=0.68f;
+                Elapsed=Score=Stable=Progress=CutScore=0;Cuts=0;CuttingStroke=null;RollerStarted=false;ControlX=0.28f;ControlY=0.68f;
                 if(Sheet is not null){Sheet.SetArtwork(SelectedArt);Sheet.Frame(Task=="finishcut");}
             }
             Refresh();
@@ -216,7 +217,7 @@ internal sealed class WorkshopPanel : IDisposable
         if(Busy || Sheet is null || Time.timeScale<=0 || (!Application.isFocused && !Environment.GetCommandLineArgs().Contains("--lsd-slice-check")))return;
         var delta=Math.Min(Time.unscaledDeltaTime,0.1f);Elapsed+=delta;var keyboard=Keyboard.current;
         Sheet.UpdateControlDirections();
-        var pointer=Sheet.Pointer(out var point,Task=="finishcut" ? 0.2f:Task=="print" ? 0.12f:0);var held=Mouse.current?.leftButton.isPressed==true && pointer;
+        var pointer=Sheet.Pointer(out var point,Task=="finishcut" ? float.PositiveInfinity:Task=="print" ? 0.12f:0);var held=Mouse.current?.leftButton.isPressed==true && pointer;
         var space=keyboard?.spaceKey.isPressed==true;
         if(CheckInput is { } input){point=input.Point;held=input.Held;space=input.Space;}
         if(Task=="prepare"){
@@ -236,15 +237,13 @@ internal sealed class WorkshopPanel : IDisposable
             if(Time.realtimeSinceStartup>NextGuide){NextGuide=Time.realtimeSinceStartup+0.05f;Sheet.Roller(Progress);Sheet.Print(SelectedArt,Progress);}
             LSDGameplayMod.Current!.World?.Animate(Equipment,Task,Progress,Sheet);if(Progress>=0.97f && Elapsed>=3)Finish(1);
         }else{
-            var(a,b)=SheetView.CutLine(Cuts);var direction=b-a;
-            if(held && !CutHeld && Vector2.Distance(point,a)<0.2f){CutHeld=true;Progress=Score=Stable=0;}
-            if(held && CutHeld){Progress=Math.Clamp(Vector2.Dot(point-a,direction)/direction.sqrMagnitude,0,1);var deviation=Vector2.Distance(point,Vector2.Lerp(a,b,Progress));Score+=Math.Clamp(1-deviation*8,0,1)*delta;Stable+=delta;}
-            if(!held && !space)CutHeld=false;
-            if(space){CutHeld=true;Progress=Math.Min(1,Progress+delta*1.4f);Score+=delta;Stable+=delta;}
+            var(a,b)=SheetView.CutLine(Cuts);CuttingStroke??=new(a.x,a.y,b.x,b.y);
+            if(space)CuttingStroke.Advance(delta);else if(pointer || CheckInput is not null)CuttingStroke.Sample(point.x,point.y,held,delta);
+            Progress=CuttingStroke.Progress;
             Message.text=$"Cut {Cuts+1}/11 · follow the pink line · F9 test skip";
             if(Time.realtimeSinceStartup>NextGuide){NextGuide=Time.realtimeSinceStartup+0.05f;Sheet.CutGuide(Cuts,Progress);}
-            LSDGameplayMod.Current!.World?.Animate(Equipment,Task,Progress,Sheet);
-            if(CutHeld && Progress>=0.92f){CutScore+=Stable>0 ? Score/Stable:1;Cuts++;CutHeld=false;Progress=Score=Stable=0;if(Cuts>=11)Finish(CutScore/11);}
+            LSDGameplayMod.Current!.World?.Animate(Equipment,Task,Progress,Sheet,Cuts);
+            if(CuttingStroke.Complete){CutScore+=CuttingStroke.Accuracy;Cuts++;CuttingStroke=null;Progress=0;if(Cuts>=11)Finish(CutScore/11);}
         }
     }
     private void Finish(float accuracy){var task=Task;Task="";Sheet?.ClearGuides();Send(new(){Action=task,Accuracy=Math.Clamp(accuracy,0,1)});}

@@ -9,7 +9,7 @@ using UnityEngine.InputSystem;
 using Clock = Il2CppScheduleOne.GameTime.TimeManager;
 using Money = S1API.Money.Money;
 
-[assembly: MelonInfo(typeof(PersonalMods.LSDGameplay.LSDGameplayMod), "Personal LSD Workshop", "0.2.1", "Axl47")]
+[assembly: MelonInfo(typeof(PersonalMods.LSDGameplay.LSDGameplayMod), "Personal LSD Workshop", "0.2.2", "Axl47")]
 [assembly: MelonGame("TVGS", "Schedule I")]
 
 namespace PersonalMods.LSDGameplay;
@@ -41,6 +41,7 @@ public sealed class LSDGameplayMod : MelonMod
         GameLifecycle.OnSaveComplete+=SaveComplete;
         ModSupport.Patch(HarmonyInstance,typeof(SaveManager),"Save",typeof(LSDGameplayMod),prefix:nameof(SaveStarted),parameters:new[] { typeof(string) });
         WorkshopWorld.Install(HarmonyInstance);
+        StudioPackaging.Install(HarmonyInstance);
         LoggerInstance.Msg("Off Register workshop registered. Use the sticker inside your owned Sewer Office; test with save slot five.");
     }
 

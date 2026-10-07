@@ -19,6 +19,10 @@ internal sealed class SliceDiagnostic
     private readonly string Output;
     private readonly bool Exercise,Reload;
     private readonly bool SheetCheck;
+    private readonly bool PackagingCheck;
+    private Il2CppScheduleOne.ObjectScripts.PackagingStation? PhysicsStation;
+    private Il2CppScheduleOne.PlayerTasks.PackageProductTask? PhysicsTask;
+    private int PhysicsCase,PhysicsTab;
     private int Phase,Art;
     private float Next;
     private bool Completed;
@@ -34,6 +38,7 @@ internal sealed class SliceDiagnostic
         Exercise=args.Contains("--lsd-slice-exercise") && Output.Length>0;
         Reload=args.Contains("--lsd-slice-reload") && Output.Length>0;
         SheetCheck=args.Contains("--lsd-sheet-check") && Output.Length>0;
+        PackagingCheck=args.Contains("--lsd-packaging-check") && Output.Length>0;
         if (Output.Length>0) Directory.CreateDirectory(Output);
     }
     internal static void TryLoadFifthSlot()
@@ -52,7 +57,7 @@ internal sealed class SliceDiagnostic
         {
             Completed=true;MelonLogger.Error("LSD_SLICE_CHECK_FAILED phase="+Phase+" "+error);
             if (Output.Length>0) File.WriteAllText(Path.Combine(Output,"failure.txt"),error.ToString());
-            if (Exercise || Reload || SheetCheck) Application.Quit();
+            if (Exercise || Reload || SheetCheck || PackagingCheck) Application.Quit();
         }
     }
     private void Run()
@@ -70,7 +75,7 @@ internal sealed class SliceDiagnostic
                 Check(item.Definition.TryCast<ProductDefinition>()!.ConsumeAnimation,"Missing native consumption animation.");
             }
             MelonLogger.Msg($"LSD_SLICE_CHECK native definitions/counts passed; collection={Mod.World!.CollectionName}.");
-            if(SheetCheck){
+            if(SheetCheck || PackagingCheck){
                 Bench=Mod.World.Office!.BuildableItems.ToArray().First(i=>i && i.ItemInstance?.ID==WorkshopRules.Bench);
                 Move(Bench);
                 EquippedBefore=PlayerInventory.Instance.EquippedSlotIndex;EquippingBefore=PlayerInventory.Instance.EquippingEnabled;HotbarBefore=PlayerInventory.Instance.HotbarEnabled;
@@ -96,8 +101,23 @@ internal sealed class SliceDiagnostic
             case 202:
                 VerifyCutterGeometry();ScreenCapture.CaptureScreenshot(Path.Combine(Output,"cutter-raised.png"));Next=Time.realtimeSinceStartup+0.7f;Phase=203;return;
             case 203:
-                Mod.Panel!.Close();VerifyControls();File.WriteAllText(Path.Combine(Output,"sheet-check-passed.txt"),"Screen-up roller, matching reveal, rigid cutter hinge, tolerant edge projection and hotbar restoration passed.");
-                MelonLogger.Msg("LSD_SHEET_CHECK_PASSED screen-up roller/reveal, rigid blade/handle, overshoot and hotbar restoration.");Completed=true;Application.Quit();return;
+                Mod.Panel!.Close();VerifyControls();VerifySheetIcons();File.WriteAllText(Path.Combine(Output,"sheet-check-passed.txt"),"Screen-up roller, matching reveal, knife following all cut lines, tolerant edge projection, distinct sheet icons and hotbar restoration passed.");
+                MelonLogger.Msg("LSD_SHEET_CHECK_PASSED screen-up roller/reveal, knife path, overshoot, sheet icons and hotbar restoration.");
+                if(PackagingCheck){PhysicsStation=Place("packagingstation",3,2).Cast<Il2CppScheduleOne.ObjectScripts.PackagingStation>();BeginPhysicsCase();return;}
+                Completed=true;Application.Quit();return;
+            case 210:
+                Check(PhysicsTask!.Packaging.PackedProducts.Count==PhysicsTab+1,"Released tab missed the native package trigger: case="+PhysicsCase+", tab="+PhysicsTab+", position="+PhysicsTask.Products[PhysicsTab].transform.position);
+                PhysicsTab++;
+                if(PhysicsTab<PhysicsTask.Products.Count){DropPhysicsTab();return;}
+                Check(PhysicsTask.Packaging.IsFull,"Contact-packed container did not become full.");
+                PhysicsTask.Packaging.Seal();PhysicsTask.ReachedOutput();
+                var packed=PhysicsStation!.OutputSlot.ItemInstance?.TryCast<ProductItemInstance>();
+                Check(packed is not null && packed.GetTotalAmount()==(PhysicsCase<5 ? 1:5),"Physics contact packing changed native output quantities.");
+                PhysicsStation.OutputSlot.SetStoredItem(null,false);PhysicsCase++;
+                if(PhysicsCase<7){BeginPhysicsCase();return;}
+                VerifyNativePackagingUntouched();
+                File.WriteAllText(Path.Combine(Output,"packaging-check-passed.txt"),"Five baggie and two five-tab jar tasks accepted released tabs through real native physics trigger contacts, then sealed with exact quantities.");
+                MelonLogger.Msg("LSD_PACKAGING_PHYSICS_PASSED five baggies, two jars, 15 released tabs via native contacts and sealing.");Completed=true;Application.Quit();return;
             case 1:
                 if (!CapturedScene)
                 { CapturedScene=true;ScreenCapture.CaptureScreenshot(Path.Combine(Output,"studio-props.png"));Next=Time.realtimeSinceStartup+2;return; }
@@ -246,17 +266,63 @@ internal sealed class SliceDiagnostic
         var sheet=Mod.Panel!.CheckSheet;sheet.CutGuide(6,0.92f);Mod.World!.ResetAnimation(Bench);
         var parts=Bench!.GetComponentsInChildren<Transform>(true);var arm=parts.First(p=>p.name=="CutterArm");var grip=parts.First(p=>p.name=="CutterGrip");
         var original=arm.InverseTransformPoint(grip.position);var resting=grip.position;
-        foreach(var progress in new[]{0f,0.5f,1f}){
-            Mod.World.Animate(Bench,"finishcut",progress,sheet);
-            Check(Vector3.Distance(arm.InverseTransformPoint(grip.position),original)<0.001f,"Cutter handle moves separately from its blade.");
-            if(progress==0)Check(Vector3.Distance(grip.position,resting)>0.02f,"Cutter grip does not follow the lifted blade.");
+        foreach(var cut in Enumerable.Range(0,11)){
+            var(a,b)=SheetView.CutLine(cut);var positions=new List<Vector3>();
+            foreach(var progress in new[]{0f,0.5f,1f}){
+                Mod.World.Animate(Bench,"finishcut",progress,sheet,cut);positions.Add(grip.position);
+                Check(Vector3.Distance(arm.InverseTransformPoint(grip.position),original)<0.001f,"Knife handle moves separately from its blade.");
+            }
+            var travel=positions[2]-positions[0];var expected=sheet.Point(b)-sheet.Point(a);
+            Check(Vector3.Distance(travel,expected)<0.001f,"Knife travel does not follow the active cut direction.");
         }
-        Check(Vector3.Distance(grip.position,resting)<0.001f,"Finished cut does not return the handle to its resting position.");
         foreach(var uv in new[]{new Vector2(0.875f,1.12f),new Vector2(1.12f,0.8f),new Vector2(0.125f,-0.12f)}){
             var screen=PlayerCamera.Instance.Camera.WorldToScreenPoint(sheet.Point(uv));
             Check(!sheet.Project(new(screen.x,screen.y),out _) && sheet.Project(new(screen.x,screen.y),out var projected,0.2f) && Vector2.Distance(projected,uv)<0.025f,"Cut pointer is dropped when dragging slightly beyond the paper edge.");
         }
-        Mod.World.Animate(Bench,"finishcut",0.35f,sheet);
+        Mod.World.Animate(Bench,"finishcut",0.35f,sheet,6);
+    }
+    private void VerifySheetIcons()
+    {
+        var wet=StudioAssets.SheetIcon(0,false);var dry=StudioAssets.SheetIcon(0,true);
+        Check(wet.Pointer!=dry.Pointer && !wet.texture.GetPixels32().ToArray().SequenceEqual(dry.texture.GetPixels32().ToArray()),"Wet and ready sheet inventory icons are identical.");
+        Check(Il2CppScheduleOne.Registry.GetItem(WorkshopRules.Sheet(false,0,40)).Icon.Pointer==wet.Pointer && Il2CppScheduleOne.Registry.GetItem(WorkshopRules.Sheet(true,0,40)).Icon.Pointer==dry.Pointer,"Native sheet definitions do not use the stage-specific icons.");
+        File.WriteAllBytes(Path.Combine(Output,"wet-sheet-icon.png"),ImageConversion.EncodeToPNG(wet.texture).ToArray());
+        File.WriteAllBytes(Path.Combine(Output,"dry-sheet-icon.png"),ImageConversion.EncodeToPNG(dry.texture).ToArray());
+        Check(StudioAssets.Visual("Parcel").GetComponentsInChildren<Transform>(true).Count(p=>p.name.StartsWith("BrickStud",StringComparison.Ordinal))==6,"Prism toy brick is missing its studs.");
+    }
+    private void BeginPhysicsCase()
+    {
+        var packaging=PhysicsCase<5 ? "baggie":"jar";var count=packaging=="baggie" ? 1:5;
+        PhysicsStation!.ProductSlot.SetStoredItem(Content.Create(WorkshopRules.Product(0),count),false);
+        PhysicsStation.PackagingSlot.SetStoredItem(Content.Create(packaging,1),false);
+        PhysicsTask=PhysicsStation.StartTask().Cast<Il2CppScheduleOne.PlayerTasks.PackageProductTask>();PhysicsTab=0;
+        Check(PhysicsTask.Packaging.ProductContactTime<=0.01f,"Thin tab native contact interval was not configured.");
+        foreach(var collider in PhysicsTask.Packaging.GetComponentsInChildren<Collider>(true))
+            MelonLogger.Msg($"LSD_PACKAGE_COLLIDER {packaging} {collider.name}, enabled={collider.enabled}, trigger={collider.isTrigger}, bounds={collider.bounds}");
+        DropPhysicsTab();
+    }
+    private void DropPhysicsTab()
+    {
+        var product=PhysicsTask!.Products[PhysicsTab];var body=product.GetComponent<BoxCollider>();
+        Check(body && body.enabled && !body.isTrigger && body.bounds.size.x<0.05f,"Tab lacks its small solid packaging collider.");
+        var trigger=PhysicsTask.Packaging.GetComponentsInChildren<Collider>(true).Where(c=>c.enabled && c.isTrigger).OrderByDescending(c=>c.bounds.size.sqrMagnitude).First();
+        product._IsHeld_k__BackingField=true;PhysicsTask.Packaging.OnTriggerStay(body);
+        Check(!PhysicsTask.Packaging.productContactTime.ContainsKey(product) || PhysicsTask.Packaging.productContactTime[product]==0,"Native packaging accepted a tab while it was held.");
+        product._IsHeld_k__BackingField=false;
+        var point=trigger.bounds.center+trigger.transform.right*((PhysicsCase+PhysicsTab)%3-1)*Math.Min(trigger.bounds.extents.x*0.35f,0.006f);
+        product.transform.position+=point-body.bounds.center;product.Rb.position=product.transform.position;
+        product.Rb.velocity=Vector3.down*0.4f;product.Rb.angularVelocity=Vector3.zero;product.Rb.WakeUp();
+        Physics.SyncTransforms();
+        MelonLogger.Msg($"LSD_PACKAGE_DROP case={PhysicsCase}, tab={PhysicsTab}, body={body.bounds}, trigger={trigger.bounds}, velocity={product.Rb.velocity}");
+        Next=Time.realtimeSinceStartup+0.45f;Phase=210;
+    }
+    private void VerifyNativePackagingUntouched()
+    {
+        var ordinary=Il2CppScheduleOne.Registry.Instance.GetAllItems().ToArray().First(i=>i.TryCast<Il2CppScheduleOne.Product.ShroomDefinition>() is not null && !i.ID.StartsWith(WorkshopRules.Owner+":",StringComparison.Ordinal));
+        PhysicsStation!.ProductSlot.SetStoredItem(ordinary.GetDefaultInstance(1).Cast<Il2CppScheduleOne.ItemFramework.ItemInstance>(),false);
+        PhysicsStation.PackagingSlot.SetStoredItem(Content.Create("baggie",1),false);
+        var task=PhysicsStation.StartTask().Cast<Il2CppScheduleOne.PlayerTasks.PackageProductTask>();
+        Check(task.Packaging.ProductContactTime>0.01f,"LSD tab timing leaked into an ordinary native packaging task.");task.StopTask();
     }
     private void VerifyPackagingStation()
     {

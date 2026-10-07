@@ -36,6 +36,7 @@ public static class BuildStudio
                         "Paper"=>new Color(0.91f,0.88f,0.77f),"Ink"=>new Color(0.07f,0.085f,0.10f),
                         "Accent"=>new Color(0.11f,0.72f,0.65f),"Lightbox"=>new Color(0.61f,0.83f,0.75f),
                         "Glass"=>new Color(0.13f,0.24f,0.26f),_=>Color.white };
+                    if(key=="Prism")material.color=new Color(0.59f,0.24f,0.85f);
                     EditorUtility.SetDirty(material);
                     materials[i] = material;
                 }

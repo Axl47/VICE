@@ -22,7 +22,8 @@ internal static class StudioAssets
     private static readonly Dictionary<int, Sprite> Icons = new();
     private static readonly Dictionary<int, Texture2D> TabTextures=new(),SheetTextures=new();
     private static readonly Dictionary<int, Material> SheetMaterials=new();
-    private static readonly Dictionary<int, Sprite> SheetIcons=new();
+    private static readonly Dictionary<(int Slot,bool Dry), Sprite> SheetIcons=new();
+    private static readonly Dictionary<(int Slot,bool Dry), Texture2D> SheetIconTextures=new();
     private static Sprite? Star,Brand;
     private static readonly Dictionary<string, Sprite> PropIcons = new();
     private static readonly Dictionary<int, string> Signatures = new();
@@ -102,6 +103,19 @@ internal static class StudioAssets
         var stored=root.GetComponent<Il2CppScheduleOne.Storage.StoredItem>();stored.SetOriginalPrefab(donor);
         StoredVisuals[key]=root;return root;
     }
+    internal static GameObject StoredSupply(bool ink)
+    {
+        var key=ink ? "stock-ink":"stock-paper";
+        if(StoredVisuals.TryGetValue(key,out var cached) && cached)return cached;
+        var donor=Il2CppScheduleOne.Registry.GetItem("baggie").TryCast<Il2CppScheduleOne.ItemFramework.StorableItemDefinition>()!.StoredItem;
+        var root=Object.Instantiate(donor.gameObject,Cache!.transform);root.SetActive(false);root.name="Studio stored "+key;
+        foreach(var renderer in root.GetComponentsInChildren<Renderer>(true))renderer.enabled=false;
+        var model=Object.Instantiate(Model(ink ? "Bench":"Sheet"),root.transform);model.SetActive(true);
+        foreach(var renderer in model.GetComponentsInChildren<Renderer>(true))renderer.enabled=renderer.name==(ink ? "InkCartridge":"PaperBody");
+        var visible=model.GetComponentsInChildren<MeshFilter>(true).First(f=>f.name==(ink ? "InkCartridge":"PaperBody"));
+        model.transform.position+=root.transform.position-visible.transform.TransformPoint(visible.sharedMesh.bounds.center);
+        root.GetComponent<Il2CppScheduleOne.Storage.StoredItem>().SetOriginalPrefab(donor);StoredVisuals[key]=root;return root;
+    }
 
     internal static void UpdateArtwork(WorkshopState state)
     {
@@ -135,7 +149,6 @@ internal static class StudioAssets
             if (!SheetTextures.TryGetValue(art.Slot,out var sheetTexture))
             {
                 sheetTexture=new Texture2D(320,200,TextureFormat.RGBA32,false);sheetTexture.filterMode=FilterMode.Point;SheetTextures[art.Slot]=sheetTexture;
-                SheetIcons[art.Slot]=Sprite.Create(sheetTexture,new Rect(0,0,320,200),new(0.5f,0.5f),320);
                 SheetMaterials[art.Slot]=new Material(RenderShader) { color=Color.white,mainTexture=sheetTexture };
             }
             var sheetPixels=new Color32[320*200];
@@ -145,6 +158,7 @@ internal static class StudioAssets
                 sheetPixels[y*320+x]=(x%40==0 && y%4<2)||(y%40==0 && x%4<2) ? Palette[0] : Palette[art.Pixels[sy*64+sx]];
             }
             sheetTexture.SetPixels32(new Il2CppStructArray<Color32>(sheetPixels));sheetTexture.Apply();
+            foreach(var dry in new[]{false,true})UpdateSheetIcon(art,sheetPixels,dry);
             Signatures[art.Slot] = signature;
         }
         // Unused slots must not keep another save's drawing.
@@ -179,7 +193,31 @@ internal static class StudioAssets
     }
 
     internal static Texture2D Texture(int slot) { _ = Icon(slot); return ArtTextures[slot]; }
-    internal static Sprite SheetIcon(int slot) { _=Icon(slot);return SheetIcons[slot]; }
+    private static void UpdateSheetIcon(Artwork art,Color32[] sheet,bool dry)
+    {
+        var key=(art.Slot,dry);
+        if(!SheetIconTextures.TryGetValue(key,out var texture)){
+            texture=new Texture2D(128,128,TextureFormat.RGBA32,false);texture.filterMode=FilterMode.Point;
+            SheetIconTextures[key]=texture;SheetIcons[key]=Sprite.Create(texture,new Rect(0,0,128,128),new(0.5f,0.5f),128);
+        }
+        var pixels=new Color32[128*128];var border=dry ? new Color32(244,211,128,255):new Color32(74,199,240,255);
+        for(var y=27;y<103;y++)for(var x=7;x<121;x++){
+            var u=(x-9)/110f;var v=(y-29)/72f;
+            var color=sheet[Math.Clamp((int)(v*199),0,199)*320+Math.Clamp((int)(u*319),0,319)];
+            if(!dry)color=new((byte)(color.r*0.72f),(byte)(color.g*0.82f),(byte)Math.Min(255,color.b*0.72f+56),255);
+            if(x<9 || x>=119 || y<29 || y>=101)color=border;
+            else if((x-9)%14<2 || (y-29)%14<2)color=Palette[1];
+            pixels[y*128+x]=color;
+        }
+        // A bold badge survives the inventory's small thumbnail size.
+        for(var y=91;y<119;y++)for(var x=94;x<122;x++)if((x-108)*(x-108)+(y-105)*(y-105)<196){
+            var mark=dry ? (Math.Abs(y-(205-x))<3 && x is >=99 and <=105)||(Math.Abs(y-(100+(x-105)*1.18f))<3 && x is >=105 and <=116)
+                : (x-108)*(x-108)+(y-103)*(y-103)<55 || (y is >=104 and <=114 && Math.Abs(x-108)<(115-y)*0.6f);
+            pixels[y*128+x]=mark ? new Color32(250,250,242,255):dry ? new Color32(137,102,37,255):new Color32(27,112,186,255);
+        }
+        texture.SetPixels32(new Il2CppStructArray<Color32>(pixels));texture.Apply();
+    }
+    internal static Sprite SheetIcon(int slot,bool dry) { _=Icon(slot);return SheetIcons[(slot,dry)]; }
     internal static Texture2D SheetTexture(int slot) { _=Icon(slot);return SheetTextures[slot]; }
     internal static void ApplyArtwork(GameObject root, int slot, bool tab = false,bool sheet=false)
     {

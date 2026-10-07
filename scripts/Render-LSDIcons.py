@@ -1,5 +1,6 @@
 """Render transparent owned-model inventory icons with Blender's CPU renderer."""
 import bpy
+import sys
 from mathutils import Vector
 from pathlib import Path
 
@@ -7,12 +8,14 @@ repo = Path(__file__).resolve().parents[1]
 sources = repo / "assets/LSDStudio/Blender"
 output = repo / "src/LSDGameplay/Assets/Icons"
 output.mkdir(parents=True, exist_ok=True)
+only_icons=set(sys.argv[sys.argv.index("--")+1:]) if "--" in sys.argv else set()
 
 for name, source, only in [
     ("Bench", "Bench", None), ("Cabinet", "Cabinet", None),
     ("Prism", "Parcel", None), ("Paper", "Sheet", "PaperBody"),
     ("Ink", "Bench", "InkCartridge"), ("Sleeve", "Packet", "PaperBody")
 ]:
+    if only_icons and name not in only_icons: continue
     bpy.ops.wm.open_mainfile(filepath=str(sources / (source + ".blend")))
     scene = bpy.context.scene
     meshes = [o for o in scene.objects if o.type == "MESH"]

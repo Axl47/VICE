@@ -5,6 +5,7 @@ Dimensions are metres; moving parts and artwork surfaces retain stable names.
 """
 import bpy
 import math
+import sys
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[1] / "assets" / "LSDStudio"
@@ -12,12 +13,14 @@ output = root / "Assets" / "Models"
 output.mkdir(parents=True, exist_ok=True)
 sources = root / "Blender"
 sources.mkdir(exist_ok=True)
+only=set(sys.argv[sys.argv.index("--")+1:]) if "--" in sys.argv else set()
 
 palette = {
     "Steel": (0.18, 0.23, 0.25, 1), "Wood": (0.31, 0.19, 0.12, 1),
     "Paper": (0.91, 0.88, 0.77, 1), "Ink": (0.07, 0.085, 0.10, 1),
     "Accent": (0.11, 0.72, 0.65, 1), "Lightbox": (0.61, 0.83, 0.75, 1),
     "Glass": (0.13, 0.24, 0.26, 1), "Artwork": (1, 1, 1, 1),
+    "Prism": (0.59,0.24,0.85,1),
 }
 
 def material(name):
@@ -65,6 +68,7 @@ def start():
     bpy.ops.object.delete(use_global=False)
 
 def export(name):
+    if only and name not in only: return
     bpy.ops.object.select_all(action="SELECT")
     bpy.ops.wm.save_as_mainfile(filepath=str(sources / (name + ".blend")))
     bpy.ops.export_scene.fbx(filepath=str(output / (name + ".fbx")), use_selection=True,
@@ -86,8 +90,8 @@ box("RollerHandle", (-0.18,0.18,1.115), (0.31,0.05,0.03), "Accent")
 box("PreparationTray", (0.43,0.19,0.923), (0.32,0.23,0.035), "Steel")
 for x in [0.36,0.50]: cylinder("CalibrationDial", (x,0.18,0.953),0.035,0.025,(0,0,0),"Accent")
 box("CutterBase", (0.43,-0.18,0.919), (0.35,0.30,0.03), "Paper")
-box("CutterArm", (0.58,-0.18,0.959), (0.018,0.34,0.026), "Steel")
-box("CutterGrip", (0.58,-0.34,0.966), (0.05,0.09,0.045), "Accent")
+box("CutterArm", (0.58,-0.20,0.959), (0.018,0.10,0.006), "Steel")
+box("CutterGrip", (0.58,-0.28,0.969), (0.04,0.09,0.03), "Accent")
 box("InkCartridge", (-0.44,0.15,0.27),(0.18,0.17,0.10),"Accent")
 export("Bench")
 
@@ -107,9 +111,9 @@ box("CabinetHandle",(0.32,-0.31,0.66),(0.023,0.06,0.22),"Ink")
 export("Cabinet")
 
 start()
-box("WrappedParcel", (0,0,0.085),(0.23,0.16,0.17),"Paper")
-box("ParcelBand", (0,0,0.173),(0.055,0.164,0.006),"Accent",0)
-art_surface((0.055,0,0.177),0.06,0.065)
+box("PrismBrick", (0,0,0.022),(0.096,0.064,0.038),"Prism",0.002)
+for x in [-0.032,0,0.032]:
+    for y in [-0.016,0.016]: cylinder("BrickStud",(x,y,0.045),0.011,0.008,(0,0,0),"Prism")
 export("Parcel")
 
 for name,w,d in [("Sheet",0.44,0.32),("Tab",0.065,0.055),("Packet",0.15,0.11)]:

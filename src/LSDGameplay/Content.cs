@@ -28,13 +28,13 @@ internal static class Content
             new ProductKindMetadataBuilder(Kind).WithDisplayName("LSD").WithColor(new(0.25f,0.78f,0.69f))
                 .WithIcon(StudioAssets.Symbol).WithProductManagerVisibility().WithSearchAliases("tabs", "blotter").Build();
             foreach (var spec in new[] {
-                (WorkshopRules.Prism,"Prism Base parcel", "Off Register specialist material. One parcel supports one forty-tab sheet.",30f),
+                (WorkshopRules.Prism,"Prism Base brick", "Off Register's purple toy-brick precursor. One brick supports one forty-tab sheet.",30f),
                 (WorkshopRules.Paper,"Blank blotter stock", "One sheet of paper for the Blotter Bench.",4f),
                 (WorkshopRules.Ink,"Print cartridge", "A shared colour cartridge for one starter batch.",6f)
             })
                 ItemCreator.CreateBuilder().WithBasicInfo(spec.Item1,spec.Item2,spec.Item3,ItemCategory.Ingredient)
                     .WithStackLimit(20).WithPricing(spec.Item4).WithIcon(StudioAssets.PropIcon(spec.Item1==WorkshopRules.Prism ? "Prism" : spec.Item1==WorkshopRules.Paper ? "Paper" : spec.Item1==WorkshopRules.Ink ? "Ink" : "Sleeve"))
-                    .WithStoredItem(StudioAssets.Stored("Parcel")).WithoutStationItem().Build();
+                    .WithStoredItem(spec.Item1==WorkshopRules.Prism ? StudioAssets.Stored("Parcel"):StudioAssets.StoredSupply(spec.Item1==WorkshopRules.Ink)).WithoutStationItem().Build();
             var parcelHeld=new GameObject("Prism Base viewmodel");parcelHeld.SetActive(false);UnityEngine.Object.DontDestroyOnLoad(parcelHeld);
             var parcelVisual=UnityEngine.Object.Instantiate(StudioAssets.Visual("Parcel"),parcelHeld.transform);parcelVisual.SetActive(true);
             var held=parcelHeld.AddComponent<Il2CppScheduleOne.Equipping.Equippable_Viewmodel>();
@@ -119,10 +119,10 @@ internal static class Content
         {
             var id=WorkshopRules.Sheet(dry,slot,yield);
             var existing=ItemManager.GetDefinition(id);
-            if (existing is not null) { ItemManager.EnsureItemRegistered(existing); continue; }
+            if (existing is not null) { Il2CppScheduleOne.Registry.GetItem(id).Icon=StudioAssets.SheetIcon(slot,dry);ItemManager.EnsureItemRegistered(existing); continue; }
             ItemCreator.CreateBuilder().WithBasicInfo(id,$"{(dry ? "Ready" : "Wet")} sheet · {WorkshopRules.EditionLabel(slot)} ({yield} tabs)",
                 dry ? "Return to the bench for cutting." : "Carry to the drying cabinet.",ItemCategory.Ingredient)
-                .WithStackLimit(1).WithPricing(0).WithLegalStatus(LegalStatus.Illegal).WithIcon(StudioAssets.SheetIcon(slot))
+                .WithStackLimit(1).WithPricing(0).WithLegalStatus(LegalStatus.Illegal).WithIcon(StudioAssets.SheetIcon(slot,dry))
                 .WithStoredItem(StudioAssets.Stored("Sheet",slot)).WithoutStationItem().Build();
         }
     }

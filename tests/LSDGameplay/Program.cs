@@ -7,6 +7,20 @@ static void Reject(Action action, string message)
     throw new Exception(message);
 }
 var state = new WorkshopState();
+var quickCut=new CutStroke(0,0.8f,1,0.8f);
+quickCut.Sample(0,0.8f,true,0.016f);quickCut.Sample(1.7f,0.8f,true,0.016f);
+Check(quickCut.Complete,"A fast cut beyond the right edge lost its endpoint.");
+Check(Math.Abs(quickCut.Accuracy-1)<0.001f,"Accurate endpoint overshoot was treated as an off-line cutting mistake.");
+var releasedCut=new CutStroke(0,0,0,1);
+releasedCut.Sample(0,0,true,0.016f);releasedCut.Sample(0,0.4f,true,0.016f);releasedCut.Sample(0,1.4f,false,0.016f);
+Check(releasedCut.Complete,"The release frame dropped a cut that crossed the endpoint.");
+var resumedCut=new CutStroke(0,0,0,1);
+resumedCut.Sample(0,0,true,0.016f);resumedCut.Sample(0,0.65f,true,0.016f);resumedCut.Sample(0,0.65f,false,0.016f);
+resumedCut.Sample(0,0.65f,true,0.016f);resumedCut.Sample(0,1,true,0.016f);
+Check(resumedCut.Complete,"Interrupted cutting could not resume from the current point.");
+var untouchedCut=new CutStroke(0,0,1,0);
+untouchedCut.Sample(1,0,true,0.016f);
+Check(!untouchedCut.Started,"A fresh cut could be skipped by clicking its endpoint.");
 var pixels = Enumerable.Repeat((byte)3, 4096).ToArray();
 var custom = state.AddArt("First edition", pixels, false);
 pixels[0] = 6;
