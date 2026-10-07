@@ -1,142 +1,127 @@
 using System.Reflection;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
-using Il2CppScheduleOne.FX;
 using UnityEngine;
-using UnityEngine.Rendering.Universal;
+using UnityEngine.Rendering;
 using Object = UnityEngine.Object;
 
 namespace PersonalMods.LSDPreview;
 
-// Own a native pass/material instead of writing the mushroom feature's state.
+// Warp the completed frame with the verified authored shader. A clear-center
+// mask and an early camera-color target no longer suppress the visible result.
 internal sealed class SurfaceRipples : IDisposable
 {
-    private readonly ScriptableRenderer Renderer;
     private readonly Camera Camera;
     private Il2CppAssetBundle? Bundle;
-    private bool Peripheral;
-    private PsychedelicFullScreenFeature? Feature;
     private Material? Material;
-    private PsychedelicFullScreenFeature.MaterialProperties? Properties;
-    private bool Disposed, Reported;
+    private RenderTexture? Capture;
+    private float Pixels, Elapsed;
+    private int Width, Height;
+    private bool Disposed, Faulted, Reported;
+    private readonly bool Diagnostic;
+    internal RenderTexture? LastCapture => Capture;
 
-    internal SurfaceRipples(Camera camera)
+    internal SurfaceRipples(Camera camera, bool diagnostic = false)
     {
         Camera = camera;
-        var data = camera.GetComponent<UniversalAdditionalCameraData>();
-        if (!data) throw new InvalidOperationException("The player camera has no URP renderer.");
-        Renderer = data.scriptableRenderer;
+        Diagnostic = diagnostic;
         try
         {
-            PsychedelicFullScreenFeature? source = null;
-            foreach (var candidate in Renderer.rendererFeatures)
-            {
-                source = candidate.TryCast<PsychedelicFullScreenFeature>();
-                if (source is not null && source) break;
-            }
-            // The manager provides a fallback for a temporarily changed renderer.
-            source ??= PostProcessingManager.Instance?._psychedelicFullScreenFeature;
-            if (source is null || !source || !source.FeatureSettings.passMaterial)
-                throw new InvalidOperationException("The game's psychedelic shader is unavailable.");
-            Material = new Material(source.FeatureSettings.passMaterial) { name = "Personal LSD ripple material", hideFlags = HideFlags.DontSave };
-            LoadPeripheralShader();
-            Feature = Object.Instantiate(source);
-            Feature.name = "Personal LSD surface ripples";
-            Feature.hideFlags = HideFlags.DontSave;
-            Feature.SetActive(false);
-            Properties = new PsychedelicFullScreenFeature.MaterialProperties
-            {
-                NoiseScale = 14, Blend = 0, PanSpeed = new Vector2(0.035f, 0.022f), DoesBounce = true, Amplitude = 0
-            };
-            Feature._settings = new PsychedelicFullScreenFeature.Settings
-            {
-                profilerTag = "Personal LSD ripples", renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing,
-                passMaterial = Material, ActiveProperties = Properties,
-                MaterialPresets = new Il2CppSystem.Collections.Generic.List<PsychedelicFullScreenFeature.MaterialPropertyPreset>()
-            };
-            // The clone has not rendered: the initial pass has allocated no RTs.
-            // Recreate against the owned settings and material before attaching.
-            Feature.Create();
-            Renderer.rendererFeatures.Add(Feature);
+            using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Personal.LSDPreview.Peripheral.bundle")
+                ?? throw new InvalidOperationException("The authored flow shader is missing.");
+            using var memory = new MemoryStream();
+            stream.CopyTo(memory);
+            Bundle = Il2CppAssetBundleManager.LoadFromMemory(new Il2CppStructArray<byte>(memory.ToArray()));
+            var shader = Bundle.LoadAsset<Shader>("assets/personal/lsdperipheral.shader");
+            if (!shader || !shader.isSupported) throw new InvalidOperationException("The authored flow shader is unsupported by this graphics device.");
+            Material = new Material(shader) { name = "Personal LSD completed-frame flow", hideFlags = HideFlags.DontSave };
+            Material.SetFloat("_DoesBounce", 0); // No gaze mask on the default path.
+            MelonLoader.MelonLogger.Msg("LSD completed-frame flow ready: end-of-frame draw, authored shader, full image, no gaze mask.");
         }
         catch { Dispose(); throw; }
     }
 
-    private void LoadPeripheralShader()
+    internal void Tick(float elapsed, float amount, float strength, float motion, float movement)
     {
+        if (Disposed || Faulted) return;
+        Elapsed = elapsed;
+        Pixels = RippleRange.Pixels(elapsed, amount, strength, motion, movement);
+    }
+
+    internal void RenderFrame()
+    {
+        if (Disposed || Faulted || (Pixels <= 0.001f && !Diagnostic) || !Camera || Material is null || !Material) return;
+        if (Screen.width < 1 || Screen.height < 1) return;
         try
         {
-            using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Personal.LSDPreview.Peripheral.bundle")
-                ?? throw new InvalidOperationException("Authored peripheral shader resource is missing.");
-            using var memory = new MemoryStream();
-            stream.CopyTo(memory);
-            Bundle = Il2CppAssetBundleManager.LoadFromMemory(new Il2CppStructArray<byte>(memory.ToArray()));
-            if (Bundle is null) throw new InvalidOperationException("Unity could not load the peripheral shader bundle.");
-            var shader = Bundle.LoadAsset<Shader>("assets/personal/lsdperipheral.shader");
-            if (!shader || !shader.isSupported) throw new InvalidOperationException("The peripheral shader requires Direct3D 11.");
-            Material!.shader = shader;
-            Peripheral = true;
-            MelonLoader.MelonLogger.Msg("LSD peripheral shader loaded: pixel-bounded displacement with a clear gaze center.");
+            if (!Capture || Width != Screen.width || Height != Screen.height)
+            {
+                ReleaseCapture();
+                Width = Screen.width;
+                Height = Screen.height;
+                Capture = new RenderTexture(Width, Height, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Default)
+                { name = "Personal LSD completed frame", hideFlags = HideFlags.DontSave, filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp };
+                if (!Capture.Create()) throw new InvalidOperationException("The completed-frame texture could not be created.");
+            }
+            ScreenCapture.CaptureScreenshotIntoRenderTexture(Capture);
+            Material.SetFloat("_NoiseScale", Width / (float)Height);
+            Material.SetFloat("_Blend", Pixels / Height);
+            Material.SetFloat("_Amplitude", Elapsed);
+            Material.SetFloat("_DoesBounce", 0);
+            Draw(Material, Capture!, null, Width, Height, SystemInfo.graphicsUVStartsAtTop ? 1 : 0);
+            if (!Reported && Elapsed >= 10)
+            {
+                Reported = true;
+                MelonLoader.MelonLogger.Msg($"LSD completed-frame flow rendered: {Width}x{Height}, bound {Pixels:F2}px, elapsed {Elapsed:F2}s, gaze mask off; radial breathing and flowing detail share the final image.");
+            }
         }
         catch (Exception error)
         {
-            ModSupport.WarnOnce("lsd:peripheral", $"LSD peripheral shader unavailable; using a very small native warp without a center mask: {error.GetBaseException().Message}");
+            Faulted = true;
+            ModSupport.WarnOnce("lsd:flow:frame", $"LSD completed-frame flow stopped: {error.GetBaseException().Message}");
         }
     }
 
-    internal void Tick(float elapsed, float amount, float strength, float motion, float movement)
+    // The offscreen diagnostic calls this same binding/draw path. A null
+    // destination means the actual screen, after all cameras and UI rendered.
+    internal static void Draw(Material material, Texture source, RenderTexture? destination, int width, int height, float flip)
     {
-        if (Disposed || Feature is null || !Feature || Properties is null) return;
-        var pixels = RippleRange.Pixels(elapsed, amount, strength, motion, movement);
-        if (Peripheral)
+        var previousFlip = Shader.GetGlobalFloat("_FlipY");
+        var previousTexture = Shader.GetGlobalTexture("_BlitTexture");
+        var previousTarget = RenderTexture.active;
+        var previousSrgb = GL.sRGBWrite;
+        try
         {
-            var inner = RippleRange.FocusRadius(LSDPreviewMod.CenterClarityDegrees.Value, Camera.fieldOfView);
-            Properties.Blend = pixels / Mathf.Max(1, Camera.pixelHeight);
-            Properties.NoiseScale = Mathf.Max(0.1f, Camera.aspect);
-            Properties.Amplitude = elapsed;
-            Properties.PanSpeed = new Vector2(inner, RippleRange.FocusOuter(inner));
-            Properties.DoesBounce = true;
+            Graphics.SetRenderTarget(destination!);
+            GL.Viewport(new Rect(0, 0, width, height));
+            GL.sRGBWrite = destination ? destination!.sRGB : QualitySettings.activeColorSpace == ColorSpace.Linear;
+            Shader.SetGlobalFloat("_FlipY", flip);
+            Shader.SetGlobalTexture("_BlitTexture", source);
+            if (!material.SetPass(0)) throw new InvalidOperationException("The completed-frame shader pass could not be bound.");
+            Graphics.DrawProceduralNow(MeshTopology.Triangles, 3, 1);
         }
-        else
+        finally
         {
-            // Native Blend lerps UVs toward a scalar noise value. Its maximum
-            // vector travel is sqrt(width^2+height^2); cap that in pixels too.
-            Properties.Blend = pixels / Mathf.Max(1, Mathf.Sqrt(Camera.pixelWidth * (float)Camera.pixelWidth
-                + Camera.pixelHeight * (float)Camera.pixelHeight));
-            Properties.NoiseScale = 12 + 3 * Mathf.Sin(elapsed * 0.08f);
-            Properties.Amplitude = 0.001f;
-            Properties.PanSpeed = new Vector2(0.035f, 0.022f);
+            Shader.SetGlobalFloat("_FlipY", previousFlip);
+            Shader.SetGlobalTexture("_BlitTexture", previousTexture);
+            GL.sRGBWrite = previousSrgb;
+            RenderTexture.active = previousTarget;
         }
-        Feature.SetActive(pixels > 0.001f);
-        if (!Reported && elapsed >= 10)
-        {
-            Reported = true;
-            var pass = Feature._psychedelicPass;
-            var rendering = pass is not null && pass._source is not null && pass._tempTexture is not null;
-            var written = Material!.GetFloat("_Blend");
-            MelonLoader.MelonLogger.Msg($"LSD ripple check: pass allocated {rendering}, active {Feature.isActive}, bound {pixels:F2}px, material blend {written:F7}, elapsed {Material.GetFloat("_Amplitude"):F2}s, focus {Properties.PanSpeed.x:F3}-{Properties.PanSpeed.y:F3}.");
-            if (pixels > 0.001f && (!rendering || written <= 0))
-                ModSupport.WarnOnce("lsd:ripple:render", "LSD ripple pass has not verified a rendered material update; retain the ripple check line for diagnosis.");
-        }
+    }
+
+    private void ReleaseCapture()
+    {
+        if (Capture) { Capture!.Release(); Object.Destroy(Capture); }
+        Capture = null;
     }
 
     public void Dispose()
     {
         if (Disposed) return;
         Disposed = true;
-        if (Feature is not null && Feature)
-        {
-            Feature.SetActive(false);
-            Renderer.rendererFeatures.Remove(Feature);
-            // _source belongs to URP; only the pass's temporary texture is ours.
-            Feature._psychedelicPass?._tempTexture?.Release();
-            Feature.Dispose();
-            Object.Destroy(Feature);
-        }
-        if (Material is not null && Material) Object.Destroy(Material);
+        ReleaseCapture();
+        if (Material) Object.Destroy(Material);
+        Material = null;
         Bundle?.Unload(true);
         Bundle = null;
-        Feature = null;
-        Material = null;
-        Properties = null;
     }
 }

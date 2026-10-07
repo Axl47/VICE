@@ -6,8 +6,6 @@
     <Compile Include="..\..\src\LSDPreview\ColorBreathing.cs" Link="ColorBreathing.cs" />
     <Compile Include="..\..\src\LSDPreview\RippleRange.cs" Link="RippleRange.cs" />
     <Compile Include="..\..\src\LSDPreview\AudioBlend.cs" Link="AudioBlend.cs" />
-    <Compile Include="..\..\src\LSDPreview\EchoVoices.cs" Link="EchoVoices.cs" />
-    <Compile Include="..\..\src\LSDPreview\SoundStarts.cs" Link="SoundStarts.cs" />
-    <Compile Include="..\..\src\LSDPreview\DelayedClip.cs" Link="DelayedClip.cs" />
+    <Compile Include="..\..\src\LSDPreview\GhostSizing.cs" Link="GhostSizing.cs" />
   </ItemGroup>
 </Project>

@@ -51,9 +51,11 @@ internal sealed class PreviewEffects : IDisposable
             Chromatic = Profile.Add<ChromaticAberration>(false);
             Chromatic.intensity.overrideState = true;
             Breathing = Profile.Add<LensDistortion>(false);
-            Breathing.intensity.overrideState = Breathing.center.overrideState = Breathing.scale.overrideState = true;
+            Breathing.intensity.overrideState = Breathing.center.overrideState = Breathing.scale.overrideState
+                = Breathing.xMultiplier.overrideState = Breathing.yMultiplier.overrideState = true;
             Breathing.center.value = new Vector2(0.5f, 0.5f);
             Breathing.scale.value = 1;
+            Breathing.xMultiplier.value = Breathing.yMultiplier.value = 1;
             Cartoon = Profile.Add<Beautify>(false);
             var native = PostProcessingManager.Instance;
             if (native && native.beautifySettings) BaseSharpen = native.beautifySettings.sharpenIntensity.value;
@@ -71,6 +73,8 @@ internal sealed class PreviewEffects : IDisposable
     }
 
     internal bool BelongsTo(Camera camera) => !Disposed && Camera && camera && Camera.Pointer == camera.Pointer;
+
+    internal void RenderVision() { if (!Disposed) Ripples?.RenderFrame(); }
 
     internal void Tick(float elapsed, float amount, float motion, bool worldVisuals)
     {

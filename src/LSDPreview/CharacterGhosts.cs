@@ -73,17 +73,48 @@ internal sealed class CharacterGhosts : IDisposable
                 mesh = filter ? filter.sharedMesh : null;
                 if (mesh is null || !mesh || mesh.vertexCount <= 0 || mesh.vertexCount > vertexBudget) continue;
             }
-            var rootScale = avatar.transform.lossyScale;
             var scale = renderer.transform.lossyScale;
             var sources = renderer.sharedMaterials.ToArray();
             var part = new Part { Mesh = mesh, OwnsMesh = owns,
-                Position = avatar.transform.InverseTransformPoint(renderer.transform.position),
+                // The new root is unit-sized. Retain imported renderer scales
+                // and use only translation/rotation to enter its local frame.
+                Position = Quaternion.Inverse(avatar.transform.rotation) * (renderer.transform.position - avatar.transform.position),
                 Rotation = Quaternion.Inverse(avatar.transform.rotation) * renderer.transform.rotation,
-                Scale = new Vector3(Ratio(scale.x, rootScale.x), Ratio(scale.y, rootScale.y), Ratio(scale.z, rootScale.z)),
+                Scale = scale,
                 Sources = sources, Colors = sources.Select(SourceColor).ToArray() };
             Parts.Add(part);
             vertexBudget -= mesh.vertexCount;
         }
+        FitToCharacterHeight();
+    }
+
+    private void FitToCharacterHeight()
+    {
+        if (Parts.Count == 0) return;
+        var min = new Vector3(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
+        var max = new Vector3(float.NegativeInfinity, float.NegativeInfinity, float.NegativeInfinity);
+        foreach (var part in Parts)
+        {
+            var bounds = part.Mesh.bounds;
+            var transform = Matrix4x4.TRS(part.Position, part.Rotation, part.Scale);
+            for (var corner = 0; corner < 8; corner++)
+            {
+                var local = bounds.center + Vector3.Scale(bounds.extents,
+                    new Vector3((corner & 1) == 0 ? -1 : 1, (corner & 2) == 0 ? -1 : 1, (corner & 4) == 0 ? -1 : 1));
+                var point = transform.MultiplyPoint3x4(local);
+                min = Vector3.Min(min, point);
+                max = Vector3.Max(max, point);
+            }
+        }
+        var height = max.y - min.y;
+        var fit = GhostSizing.Fit(height);
+        if (fit <= 0) throw new InvalidOperationException("The captured character has invalid mesh bounds.");
+        foreach (var part in Parts)
+        {
+            part.Position = (part.Position - new Vector3(0, min.y, 0)) * fit;
+            part.Scale *= fit;
+        }
+        MelonLoader.MelonLogger.Msg($"LSD character size: '{SourceName}', captured {height:F2}m, fitted {height * fit:F2}m; native renderer scales preserved, feet grounded.");
     }
 
     internal List<Material> Build(GameObject parent, int layer)
@@ -164,8 +195,6 @@ internal sealed class CharacterGhosts : IDisposable
         return new Material(shader) { name = "Personal LSD faded character", hideFlags = HideFlags.DontSave,
             mainTexture = texture, color = tint, renderQueue = 3000 };
     }
-
-    private static float Ratio(float numerator, float denominator) => Mathf.Abs(denominator) > 0.001f ? numerator / denominator : 1;
 
     public void Dispose()
     {

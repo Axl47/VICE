@@ -1,0 +1,20 @@
+{
+  "bundleSha256": "27bddb96a31e514cb2289668cff5de438ed26300bcdfb09433795187c7e6dae2",
+  "generatorSha256": "654ae6ed2d4a94ea4e16f93bf431a590c651edb193dc92b893e2e4b08fdb3039",
+  "mixers": 4,
+  "echoType": 6,
+  "parameters": [
+    "DelayMs",
+    "DecayRatio",
+    "MaxChannels",
+    "DryMix",
+    "WetMix"
+  ],
+  "defaults": {
+    "delayMs": 220,
+    "decay": 0.18,
+    "dry": 1,
+    "wet": 0
+  },
+  "containsAudioClips": false
+}

@@ -12,6 +12,13 @@ if (-not $NugetConfig -and (Test-Path -LiteralPath (Join-Path $repoRoot 'NuGet.l
 }
 $env:DOTNET_CLI_HOME = Join-Path $repoRoot '.tools\cli-home'
 $env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'
+$echoDirectory = Join-Path $repoRoot 'src\LSDPreview\Assets'
+$echoManifest = Get-Content -LiteralPath (Join-Path $echoDirectory 'echo.json') -Raw | ConvertFrom-Json
+foreach ($inputFile in @(@{ Path = (Join-Path $echoDirectory 'echo.bundle'); Expected = $echoManifest.bundleSha256 },
+    @{ Path = (Join-Path $repoRoot 'scripts\Build-LSDEcho.py'); Expected = $echoManifest.generatorSha256 })) {
+    $actualHash = (Get-FileHash -LiteralPath $inputFile.Path -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($actualHash -ne $inputFile.Expected) { throw 'Owned echo mixer inputs changed. Rebuild with scripts/Build-LSDEcho.py.' }
+}
 $shaderDirectory = Join-Path $repoRoot 'src\LSDPreview\Assets'
 $shaderManifest = Get-Content -LiteralPath (Join-Path $shaderDirectory 'peripheral.json') -Raw | ConvertFrom-Json
 foreach ($inputFile in @(@{ Name = 'PeripheralWarp.hlsl'; Expected = $shaderManifest.sourceSha256 },
@@ -35,42 +42,51 @@ $builtDll = Join-Path $repoRoot 'src\LSDPreview\bin\Release\net6.0\Personal.LSDP
 $null = [System.Reflection.Assembly]::LoadFrom((Join-Path $GameDir 'MelonLoader\net6\Mono.Cecil.dll'))
 $definition = [Mono.Cecil.AssemblyDefinition]::ReadAssembly($builtDll)
 try {
-    $audioType = $definition.MainModule.Types | Where-Object { $_.FullName -eq 'PersonalMods.LSDPreview.PreviewAudio' }
-    $audioTypes = $definition.MainModule.Types | Where-Object { $_.FullName -in @('PersonalMods.LSDPreview.PreviewAudio', 'PersonalMods.LSDPreview.ContinuousAudioReturn', 'PersonalMods.LSDPreview.AudioReturnSource') }
-    if (-not $audioType) { throw 'The preview audio layer is missing.' }
+    $audioTypes = $definition.MainModule.Types | Where-Object { $_.FullName -in @('PersonalMods.LSDPreview.PreviewAudio', 'PersonalMods.LSDPreview.EchoMixerBank') }
+    if ($audioTypes.Count -ne 2) { throw 'The direct native-bus echo layer is missing.' }
     if ($definition.MainModule.GetTypeReferences() | Where-Object { $_.FullName -eq 'UnityEngine.AudioEchoFilter' }) {
         throw 'The preview references the stripped AudioEchoFilter class.'
     }
-    $hasScheduledPlayback = $hasNativeSource = $hasNativePool = $false
+    $hasMixerRoute = $hasMixerParameter = $false
     foreach ($method in @($audioTypes | ForEach-Object { $_.Methods })) {
         if (-not $method.HasBody) { continue }
         foreach ($instruction in $method.Body.Instructions) {
             $call = $instruction.Operand
-            if ($call -is [Mono.Cecil.MethodReference] -and $call.Name -eq 'PlayScheduled' -and $call.DeclaringType.FullName -eq 'UnityEngine.AudioSource') { $hasScheduledPlayback = $true }
-            if ($call -is [Mono.Cecil.MethodReference] -and $call.Name -eq 'get__audioSource' -and $call.DeclaringType.FullName -eq 'Il2CppScheduleOne.Audio.AudioSourceController') { $hasNativeSource = $true }
-            if ($call -is [Mono.Cecil.MethodReference] -and $call.Name -eq 'get__soundsInUse' -and $call.DeclaringType.FullName -eq 'Il2CppScheduleOne.Audio.SFXManager') { $hasNativePool = $true }
-            if ($call -is [Mono.Cecil.MethodReference] -and $call.DeclaringType.FullName -eq 'PersonalMods.ModSupport' -and $call.Name -eq 'Patch') { throw 'The audio preview must not detour native playback methods.' }
-            if ($call -is [Mono.Cecil.MethodReference] -and $call.Name -eq 'GetOutputData' -and $call.DeclaringType.FullName -eq 'UnityEngine.AudioListener') { throw 'The preview must not use the ineffective listener-history capture route.' }
-            if ($call -is [Mono.Cecil.MethodReference] -and $call.Name -eq 'SetData' -and $call.DeclaringType.FullName -eq 'UnityEngine.AudioClip') { throw 'The preview must replay native clips instead of rewriting PCM history.' }
-            if ($call -is [Mono.Cecil.MethodReference] -and $call.Name -eq 'TransitionToSnapshots') { throw 'The preview must not replace native mixer snapshots.' }
-            if ($call -is [Mono.Cecil.GenericInstanceMethod] -and $call.DeclaringType.FullName.StartsWith('UnityEngine.') -and
-                $call.Name -match '^(GetComponent|GetComponentsInChildren|GetComponentInChildren|AddComponent|FindObjectsOfType|FindObjectsByType)$') {
-                throw "Audio contains an unsafe IL2CPP generic component call: $($call.FullName)"
-            }
+            if ($call -isnot [Mono.Cecil.MethodReference]) { continue }
+            if ($call.Name -eq 'set_outputAudioMixerGroup' -and $call.DeclaringType.FullName -eq 'UnityEngine.Audio.AudioMixer') { $hasMixerRoute = $true }
+            if ($call.Name -eq 'SetFloat' -and $call.DeclaringType.FullName -eq 'UnityEngine.Audio.AudioMixer') { $hasMixerParameter = $true }
+            if ($call.DeclaringType.FullName -eq 'PersonalMods.ModSupport' -and $call.Name -eq 'Patch') { throw 'The audio preview must not detour native playback methods.' }
+            if ($call.DeclaringType.FullName -eq 'UnityEngine.AudioListener' -and $call.Name -eq 'GetOutputData') { throw 'Normal preview audio must not capture listener history.' }
+            if ($call.DeclaringType.FullName -eq 'UnityEngine.AudioClip' -and $call.Name -eq 'SetData') { throw 'Normal preview audio must not rewrite PCM history.' }
+            if ($call.DeclaringType.FullName -eq 'UnityEngine.AudioSource') { throw 'The direct bus route must not discover, modify or replay individual audio sources.' }
+            if ($call.Name -match '^FindObjects(OfType|ByType)') { throw 'Normal preview audio must not scan scene sources.' }
+            if ($call.Name -match '^TransitionToSnapshot') { throw 'The preview must not replace native mixer snapshots.' }
         }
     }
-    if (-not $hasScheduledPlayback -or -not $hasNativeSource -or -not $hasNativePool) { throw 'Passive native sound-pool observation or scheduled clip playback is missing.' }
-    $musicType = $audioTypes | Where-Object { $_.Name -eq 'ContinuousAudioReturn' }
-    if (-not $musicType -or -not (@($musicType.Methods | ForEach-Object { $_.Body.Instructions }) | Where-Object {
-        $_.Operand -is [Mono.Cecil.MethodReference] -and $_.Operand.Name -eq 'set_timeSamples'
-    })) { throw 'Continuous music copies must seek to the real delayed track cursor.' }
-    if ($audioType.Methods | Where-Object { $_.Name -in 'InstallHooks', 'AfterPlay', 'AfterOneShot' }) { throw 'Unsafe audio playback detours remain in the DLL.' }
+    if (-not $hasMixerRoute -or -not $hasMixerParameter) { throw 'Direct native mixer output routing or owned Echo parameter updates are missing.' }
     $previewType = $definition.MainModule.Types | Where-Object { $_.FullName -eq 'PersonalMods.LSDPreview.LSDPreviewMod' }
+    $flowType = $definition.MainModule.Types | Where-Object { $_.FullName -eq 'PersonalMods.LSDPreview.SurfaceRipples' }
+    $flowCalls = @($flowType.Methods | Where-Object { $_.HasBody } | ForEach-Object { $_.Body.Instructions } |
+        ForEach-Object { $_.Operand } | Where-Object { $_ -is [Mono.Cecil.MethodReference] })
+    if (-not ($flowCalls | Where-Object { $_.DeclaringType.FullName -eq 'UnityEngine.Graphics' -and $_.Name -eq 'DrawProceduralNow' }) -or
+        -not ($flowCalls | Where-Object { $_.DeclaringType.FullName -eq 'UnityEngine.Material' -and $_.Name -eq 'SetPass' }) -or
+        -not ($flowCalls | Where-Object { $_.DeclaringType.FullName -eq 'UnityEngine.ScreenCapture' -and $_.Name -eq 'CaptureScreenshotIntoRenderTexture' })) {
+        throw 'The completed-frame capture or explicit shader draw is missing.'
+    }
+    if ($flowCalls | Where-Object { $_.DeclaringType.FullName -eq 'UnityEngine.Rendering.RenderPipelineManager' }) {
+        throw 'Normal flow must use the completed-frame coroutine rather than the removed render-event experiment.'
+    }
+    $frameIterator = $previewType.NestedTypes | Where-Object { $_.Name -like '*RenderCompletedFrames*' }
+    $iteratorCalls = @($frameIterator.Methods | Where-Object { $_.HasBody } | ForEach-Object { $_.Body.Instructions } |
+        ForEach-Object { $_.Operand } | Where-Object { $_ -is [Mono.Cecil.MethodReference] })
+    if (-not ($iteratorCalls | Where-Object { $_.DeclaringType.FullName -eq 'UnityEngine.WaitForEndOfFrame' -and $_.Name -eq '.ctor' })) {
+        throw 'The normal flow coroutine must wait for cameras and UI to finish.'
+    }
     $initializer = $previewType.Methods | Where-Object { $_.Name -eq 'OnInitializeMelon' }
     foreach ($instruction in $initializer.Body.Instructions) {
         $call = $instruction.Operand
         if ($call -is [Mono.Cecil.MethodReference] -and
-            ($call.DeclaringType.FullName -eq 'PersonalMods.LSDPreview.PreviewAudio' -or
+            ($call.DeclaringType.FullName -in @('PersonalMods.LSDPreview.PreviewAudio', 'PersonalMods.LSDPreview.EchoMixerBank') -or
              $call.DeclaringType.FullName.StartsWith('Il2CppScheduleOne.Audio.') -or
              ($call.DeclaringType.FullName -eq 'PersonalMods.ModSupport' -and $call.Name -eq 'Patch'))) {
             throw 'The preview initializer must not initialize audio or install detours during game startup.'
@@ -83,10 +99,17 @@ try {
     try { $embeddedHash = [BitConverter]::ToString($hasher.ComputeHash($bytes)).Replace('-', '').ToLowerInvariant() }
     finally { $hasher.Dispose() }
     if ($embeddedHash -ne $shaderManifest.bundleSha256) { throw 'The embedded shader does not match the validated authored bundle.' }
-    Write-Output 'Checked compiled audio: passive native sound pool, continuous track seeking and scheduled clips; no startup audio initialization or playback detours, listener capture, PCM writes, stripped filter or generic audio component call; authored peripheral shader verified.'
+    $echoResource = $definition.MainModule.Resources | Where-Object { $_.Name -eq 'Personal.LSDPreview.Echo.bundle' }
+    if (-not $echoResource) { throw 'The owned native Echo mixer bundle is missing from the DLL.' }
+    $hasher = [System.Security.Cryptography.SHA256]::Create()
+    try { $embeddedEchoHash = [BitConverter]::ToString($hasher.ComputeHash($echoResource.GetResourceData())).Replace('-', '').ToLowerInvariant() }
+    finally { $hasher.Dispose() }
+    if ($embeddedEchoHash -ne $echoManifest.bundleSha256) { throw 'The embedded Echo mixer does not match the validated bundle.' }
+    Write-Output 'Checked compiled audio: direct native mixer buses and owned Echo parameters; no startup audio initialization, source scans/replays, playback detours, listener capture, PCM history writes or stripped filter; embedded assets verified.'
+    Write-Output 'Checked completed-frame flow: end-of-frame coroutine, GPU capture, explicit material binding and screen draw; no render-event dependency.'
 } finally { $definition.Dispose() }
 
-$packageRoot = Join-Path $repoRoot 'artifacts\LSDPreview-0.9.0'
+$packageRoot = Join-Path $repoRoot 'artifacts\LSDPreview-0.10.0'
 $modsDirectory = Join-Path $packageRoot 'Mods'
 New-Item -ItemType Directory -Path $modsDirectory -Force | Out-Null
 $dll = Join-Path $modsDirectory 'Personal.LSDPreview.dll'
@@ -99,6 +122,6 @@ foreach ($entry in @(@{ Path = $dll; Name = 'Mods/Personal.LSDPreview.dll' }, @{
     $hashLines += (Get-FileHash -LiteralPath $entry.Path -Algorithm SHA256).Hash.ToLowerInvariant() + '  ' + $entry.Name
 }
 Set-Content -LiteralPath $hashFile -Value $hashLines -Encoding utf8
-$zip = Join-Path $repoRoot 'artifacts\LSDPreview-0.9.0.zip'
+$zip = Join-Path $repoRoot 'artifacts\LSDPreview-0.10.0.zip'
 Compress-Archive -LiteralPath $modsDirectory, $guide, $hashFile -DestinationPath $zip -Force
 Write-Output "Built and checked the separate LSD preview: $zip"

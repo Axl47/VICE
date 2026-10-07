@@ -39,7 +39,7 @@ internal static class RippleRange
     // applies overall intensity; scaling here includes motion/ripple/comfort.
     internal static float LensBreathing(float elapsed, float strength, float motion, float movement)
         => float.IsFinite(elapsed)
-            ? Math.Min(0.055f, 0.055f * Safe(strength) / DefaultStrength * Safe(motion))
+            ? Math.Min(0.11f, 0.11f * Safe(strength) / DefaultStrength * Safe(motion))
                 * Safe(movement) * MathF.Sin(elapsed * 0.65f)
             : 0;
 
