@@ -9,7 +9,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering.Universal;
 
-[assembly: MelonInfo(typeof(PersonalMods.LSDPreview.LSDPreviewMod), "Personal LSD Visual Preview", "0.11.0", "Axl47")]
+[assembly: MelonInfo(typeof(PersonalMods.LSDPreview.LSDPreviewMod), "Personal LSD Visual Preview", "0.11.1", "Axl47")]
 [assembly: MelonGame("TVGS", "Schedule I")]
 
 namespace PersonalMods.LSDPreview;
@@ -33,12 +33,13 @@ public sealed class LSDPreviewMod : MelonMod
     private bool CheckedAudio;
     private PreviewEffects? Effects;
     private IntPtr PlayerPointer, ProductPointer;
+    private IntPtr LastWorkshopConsumption;
     private bool Suspended, LoggedMainLoop, CheckedShader;
 
     public override void OnInitializeMelon()
     {
         var config = MelonPreferences.CreateCategory("PersonalLSDPreview");
-        Enabled = ModSupport.Entry(config, "Enabled", true, "Allow the manual F8 preview. Effects never start automatically.");
+        Enabled = ModSupport.Entry(config, "Enabled", true, "Allow F8 previews and the approved effect when consuming an Off Register LSD tab.");
         WorldVisuals = ModSupport.Entry(config, "WorldVisuals", true, "Show faded hallucinations built from the game's character meshes.");
         PhoneEffects = ModSupport.Entry(config, "PhoneEffects", true, "Gentle color breathing and soft colored text fringes on the open phone.");
         Intensity = ModSupport.Entry(config, "Intensity", DefaultIntensity, "Overall artistic effect strength from 0 to 1.");
@@ -124,7 +125,23 @@ public sealed class LSDPreviewMod : MelonMod
                 }
             }
             if (keyboard is not null && keyboard.f9Key.wasPressedThisFrame) { Cleanup(); DisposeChecks(); return; }
-            if (!Enabled.Value || !TryContext(out var player, out var playerCamera, out var camera)) { Cleanup(); return; }
+            if (!Enabled.Value || !TryContext(out var player, out var playerCamera, out var camera)) { Cleanup(); LastWorkshopConsumption = IntPtr.Zero; return; }
+            var consumed = player.ConsumedProduct;
+            if (consumed is not null && consumed.ID.StartsWith("personal.lsd:tab-", StringComparison.Ordinal))
+            {
+                if (consumed.Pointer != LastWorkshopConsumption)
+                {
+                    LastWorkshopConsumption = consumed.Pointer;
+                    Cleanup();
+                    Effects = new PreviewEffects(camera);
+                    PlayerPointer = player.Pointer;
+                    ProductPointer = consumed.Pointer;
+                    Timeline.Start(DurationSeconds.Value);
+                    EnsureFrameLoop();
+                    LoggerInstance.Msg("Off Register tab consumed: approved LSD treatment started/refreshed without stacking.");
+                }
+            }
+            else LastWorkshopConsumption = IntPtr.Zero;
             if (Effects is not null && (PlayerPointer != player.Pointer
                 || ProductPointer != (player.ConsumedProduct?.Pointer ?? IntPtr.Zero)))
             { Cleanup(); return; }

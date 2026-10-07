@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><IsGameMod>true</IsGameMod><AssemblyName>Personal.LSDGameplay</AssemblyName><Version>0.1.0</Version></PropertyGroup>
+  <ItemGroup>
+    <Reference Include="$(GameDir)\Mods\S1API.Il2Cpp.MelonLoader.dll"><Private>false</Private></Reference>
+    <EmbeddedResource Include="Assets/studio.bundle" LogicalName="Personal.LSDGameplay.Studio.bundle" />
+    <EmbeddedResource Include="Assets/Icons/*.png" LogicalName="Personal.LSDGameplay.Icons.%(Filename).png" />
+  </ItemGroup>
+</Project>

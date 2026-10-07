@@ -127,7 +127,7 @@ try {
     Write-Output 'Checked reading focus: owned glyph treatment; no text rewriting or layout/spacing changes.'
 } finally { $definition.Dispose() }
 
-$packageRoot = Join-Path $repoRoot 'artifacts\LSDPreview-0.11.0'
+$packageRoot = Join-Path $repoRoot 'artifacts\LSDPreview-0.11.1'
 $modsDirectory = Join-Path $packageRoot 'Mods'
 New-Item -ItemType Directory -Path $modsDirectory -Force | Out-Null
 $dll = Join-Path $modsDirectory 'Personal.LSDPreview.dll'
@@ -152,6 +152,6 @@ foreach ($entry in @(@{ Path = $dll; Name = 'Mods/Personal.LSDPreview.dll' }, @{
     $hashLines += (Get-FileHash -LiteralPath $entry.Path -Algorithm SHA256).Hash.ToLowerInvariant() + '  ' + $entry.Name
 }
 Set-Content -LiteralPath $hashFile -Value $hashLines -Encoding utf8
-$zip = Join-Path $repoRoot 'artifacts\LSDPreview-0.11.0.zip'
+$zip = Join-Path $repoRoot 'artifacts\LSDPreview-0.11.1.zip'
 Compress-Archive -LiteralPath $modsDirectory, $guide, $hashFile, $baselineGuide, $alcoholGuide, $baselinesDirectory -DestinationPath $zip -Force
 Write-Output "Built and checked the separate LSD preview: $zip"

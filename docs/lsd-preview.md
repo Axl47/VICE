@@ -1,8 +1,10 @@
-# LSD visual preview 0.11.0
+# LSD visual preview 0.11.1
 
-This is a separate manual visual/audio experiment. It registers no product and changes no production, sales or save data. **F8** starts a three-minute preview or requests a short fade-out. **F9** immediately clears it.
+This module supplies the visual/audio treatment for the [Off Register workshop](lsd-workshop.md) and remains independently usable as a manual preview. It registers no product itself. Consuming a workshop tab starts a treatment; another tab refreshes it without stacking. **F8** starts a three-minute manual preview or requests a short fade-out. **F9** immediately clears it, including after consumption.
 
 ## What changed
+
+Version 0.11.1 adds the native workshop-consumption trigger and keeps all 0.11.0 treatment parameters unchanged. It recognizes only the workshop's stable tab IDs and clears/restarts the existing owned effect instance.
 
 The owner approved 0.10.1's subtle motion and audible echo as a baseline. Its fixed source commit, installed DLL hash, captured preference section and implementation formulas are recorded in the [approved baseline](lsd-baseline-0.10.1.md). The old package and an additional DLL/preferences backup remain available locally.
 
@@ -53,7 +55,7 @@ The original `TextBlurStrength` stays independent. `TextFocusStrength=0` removes
 
 ## Install and use
 
-1. Close the game and replace only `Mods/Personal.LSDPreview.dll` from `LSDPreview-0.11.0.zip`. Keep backups outside `Mods`.
+1. Close the game and replace only `Mods/Personal.LSDPreview.dll` from `LSDPreview-0.11.1.zip`, or install both DLLs from the workshop package. Keep backups outside `Mods`.
 2. Restart, load a save and press F8. Allow roughly 30 seconds for the rising phase to reach its peak.
 3. Stand still near a shop wall, window frame or sign and watch several breathing cycles. Then compare F9. Test music at the gas station/shop and footsteps on a quiet street.
 4. Open the phone, talk to an NPC, move and ride. Effects continue while gameplay runs; only a real pause suspends them. Loading, death, unconsciousness, player/product replacement or scene cleanup clears the preview.
