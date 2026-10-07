@@ -9,7 +9,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering.Universal;
 
-[assembly: MelonInfo(typeof(PersonalMods.LSDPreview.LSDPreviewMod), "Personal LSD Visual Preview", "0.11.2", "Axl47")]
+[assembly: MelonInfo(typeof(PersonalMods.LSDPreview.LSDPreviewMod), "Personal LSD Visual Preview", "0.12.0", "Axl47")]
 [assembly: MelonGame("TVGS", "Schedule I")]
 
 namespace PersonalMods.LSDPreview;
@@ -23,8 +23,9 @@ public sealed class LSDPreviewMod : MelonMod
     internal static MelonPreferences_Entry<float> Intensity = null!, MotionStrength = null!, DurationSeconds = null!,
         RippleStrength = null!, AfterimageStrength = null!, OutlineStrength = null!, TextBlurStrength = null!,
         MaterialColorStrength = null!, HallucinationStrength = null!, AudioStrength = null!, CenterClarityDegrees = null!,
-        TextFocusStrength = null!;
+        TextFocusStrength = null!, ClosedEyeStrength = null!;
     private readonly TripTimeline Timeline = new();
+    private readonly ClosedEyeView ClosedEyes = new();
     private readonly bool RequestedShaderCheck = Environment.GetCommandLineArgs().Contains("--lsd-render-check"),
         RequestedAudioCheck = Environment.GetCommandLineArgs().Contains("--lsd-audio-check");
     private AudioCheck? CheckAudio;
@@ -54,9 +55,10 @@ public sealed class LSDPreviewMod : MelonMod
         OutlineStrength = ModSupport.Entry(config, "OutlineStrength", 0.7f, "Defined cartoon-like edges and sharpening from 0 to 1.");
         TextBlurStrength = ModSupport.Entry(config, "TextBlurStrength", DefaultTextBlur, "Soft/indistinct HUD and dialogue text from 0 to 1; also colors phone text fringes when PhoneEffects is enabled.");
         TextFocusStrength = ModSupport.Entry(config, "TextFocusStrength", PreviewTuning.DefaultTextFocus, "Slow drifting letter shadows and brief stroke softening on HUD, dialogue and phone text, from 0 to 1. Wording/choices/layout remain intact; 0 restores the approved baseline treatment.");
+        ClosedEyeStrength = ModSupport.Entry(config, "ClosedEyeStrength", ClosedEyeView.DefaultStrength, "Brightness of organic closed-eye circles, spirals and lattices while holding B during a trip, from 0 to 1. Zero keeps eye closure dark without patterns. Phone/dialogue/menus reopen the eyes.");
         GhostModelNPC = ModSupport.Entry(config, "GhostModelNPC", "", "NPC ID or full name used for hallucination meshes. Empty selects a nearby loaded character.");
         UpgradeDefaults(config);
-        LoggerInstance.Msg("LSD visual experiment ready: F8 starts/fades out; F9 clears immediately. No product is registered.");
+        LoggerInstance.Msg("LSD visual experiment ready: F8 starts/fades out; F9 clears immediately; hold B for closed-eye patterns. No product is registered.");
         LoggerInstance.Msg("LSD startup audio hooks removed. Audio observation begins only during an active preview.");
     }
 
@@ -176,6 +178,10 @@ public sealed class LSDPreviewMod : MelonMod
                 }
             }
             Timeline.Step(Time.unscaledDeltaTime, Suspended);
+            ClosedEyes.Step(Time.unscaledDeltaTime, keyboard is not null && keyboard.bKey.isPressed,
+                ClosedEyeView.CanClose(Timeline.Active, Timeline.IsStopping, paused, Application.isFocused,
+                    GameInput.IsTyping, menuOpen, playerCamera.CanLook, playerCamera.ActiveUIElementCount > 0)
+                && TripTimeline.Safe(Intensity.Value, DefaultIntensity, 0, 1) > 0);
             if (Effects is not null && !Timeline.Active) Cleanup();
         }
         catch (Exception error)
@@ -191,7 +197,7 @@ public sealed class LSDPreviewMod : MelonMod
         try
         {
             Effects.Tick(Timeline.Elapsed, Suspended ? 0 : Timeline.Envelope * TripTimeline.Safe(Intensity.Value, DefaultIntensity, 0, 1),
-                TripTimeline.Safe(MotionStrength.Value, DefaultMotion, 0, 1), WorldVisuals.Value);
+                TripTimeline.Safe(MotionStrength.Value, DefaultMotion, 0, 1), WorldVisuals.Value, ClosedEyes.Closure);
         }
         catch (Exception error)
         {
@@ -252,6 +258,7 @@ public sealed class LSDPreviewMod : MelonMod
     private void Cleanup()
     {
         Timeline.Reset();
+        ClosedEyes.Reset();
         PlayerPointer = ProductPointer = IntPtr.Zero;
         var effects = Effects;
         Effects = null;

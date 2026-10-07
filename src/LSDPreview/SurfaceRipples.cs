@@ -14,7 +14,7 @@ internal sealed class SurfaceRipples : IDisposable
     private Il2CppAssetBundle? Bundle;
     private Material? Material;
     private RenderTexture? Capture, Warped;
-    private float Pixels, Elapsed;
+    private float Pixels, Elapsed, Closure, PatternAmount, PatternMotion;
     private int Width, Height;
     private bool Disposed, Faulted, Reported;
     private readonly bool Diagnostic;
@@ -40,16 +40,20 @@ internal sealed class SurfaceRipples : IDisposable
         catch { Dispose(); throw; }
     }
 
-    internal void Tick(float elapsed, float amount, float strength, float motion, float movement)
+    internal void Tick(float elapsed, float amount, float strength, float motion, float movement,
+        float closedEyes = 0, float patternAmount = 0)
     {
         if (Disposed || Faulted) return;
         Elapsed = elapsed;
         Pixels = RippleRange.Pixels(elapsed, amount, strength, motion, movement);
+        Closure = TripTimeline.Safe(closedEyes, 0, 0, 1);
+        PatternAmount = TripTimeline.Safe(patternAmount, 0, 0, 1);
+        PatternMotion = TripTimeline.Safe(motion, 0, 0, 1);
     }
 
     internal void RenderFrame()
     {
-        if (Disposed || Faulted || (Pixels <= 0.001f && !Diagnostic) || !Camera || Material is null || !Material) return;
+        if (Disposed || Faulted || (Pixels <= 0.001f && Closure <= 0 && !Diagnostic) || !Camera || Material is null || !Material) return;
         if (Screen.width < 1 || Screen.height < 1) return;
         try
         {
@@ -66,7 +70,10 @@ internal sealed class SurfaceRipples : IDisposable
             Material.SetFloat("_NoiseScale", Width / (float)Height);
             Material.SetFloat("_Blend", Pixels / Height);
             Material.SetFloat("_Amplitude", Elapsed);
-            Material.SetFloat("_DoesBounce", 0);
+            // Negative mode reuses the existing constant bindings, preserving
+            // the open-eye program and its optional positive-mode gaze mask.
+            Material.SetFloat("_DoesBounce", Closure > 0 ? -1 - PatternMotion : 0);
+            Material.SetVector("_PanSpeed", new Vector4(Closure, PatternAmount, 0, 0));
             Draw(Material, Capture!, Warped!, Width, Height);
             Present(Warped!);
             if (!Reported && Elapsed >= 10)

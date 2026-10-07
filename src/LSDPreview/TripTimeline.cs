@@ -12,6 +12,7 @@ internal sealed class TripTimeline
     internal float Envelope { get; private set; }
     internal TripPhase Phase { get; private set; }
     private bool Stopping;
+    internal bool IsStopping => Stopping;
     private float StopElapsed, StopEnvelope;
     private const float StopDuration = 2;
 

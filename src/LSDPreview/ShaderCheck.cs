@@ -71,6 +71,31 @@ internal static class ShaderCheck
             }
             if (changed < 1000 || moving < 1000 || outerMoving < 1000) throw new InvalidOperationException($"Authored draw check failed: changed {changed}, moving {moving}, outer motion {outerMoving}.");
             MelonLoader.MelonLogger.Msg($"LSD authored draw flow check PASSED: {identityErrors} identity errors, {changed} changed pixels, {moving} time-varying pixels ({outerMoving} outside center) at 1280x720/default bound, gaze mask disabled.");
+            material.SetFloat("_DoesBounce", -1.5f);
+            material.SetVector("_PanSpeed", new Vector4(1, 0.6f * ClosedEyeView.DefaultStrength, 0, 0));
+            var closedFirst = Render(0, 0);
+            var closedSecond = Render(0, 12);
+            var closedMoving = closedFirst.Where((c, i) => Math.Abs(c.r - closedSecond[i].r)
+                + Math.Abs(c.g - closedSecond[i].g) + Math.Abs(c.b - closedSecond[i].b) > 3).Count();
+            var maximum = closedSecond.Max(c => Math.Max(c.r, Math.Max(c.g, c.b)));
+            var darkPixels = closedSecond.Count(c => c.r < 8 && c.g < 8 && c.b < 8);
+            if (closedMoving < 1000 || maximum > 40 || darkPixels < closedSecond.Length / 4)
+                throw new InvalidOperationException($"Closed-eye pattern check failed: moving {closedMoving}, maximum {maximum}, dark pixels {darkPixels}.");
+            material.SetVector("_PanSpeed", new Vector4(1, 0, 0, 0));
+            var darkOnly = Render(0, 12);
+            if (darkOnly.Any(c => c.r > 2 || c.g > 2 || c.b > 3))
+                throw new InvalidOperationException("Zero closed-eye pattern strength must leave only darkness.");
+            material.SetFloat("_DoesBounce", -1);
+            material.SetVector("_PanSpeed", new Vector4(1, 1, 0, 0));
+            var stillFirst = Render(0, 0);
+            var stillSecond = Render(0, 12);
+            if (stillFirst.Where((c, i) => c.r != stillSecond[i].r || c.g != stillSecond[i].g || c.b != stillSecond[i].b).Any())
+                throw new InvalidOperationException("Zero motion must freeze closed-eye pattern animation.");
+            material.SetFloat("_DoesBounce", 0);
+            var reopened = Render(0, 12);
+            if (reopened.Where((c, i) => c.r != baseline[i].r || c.g != baseline[i].g || c.b != baseline[i].b).Any())
+                throw new InvalidOperationException("Reopening must restore the original zero-flow image exactly.");
+            MelonLoader.MelonLogger.Msg($"LSD closed-eye shader check PASSED: {closedMoving} moving pixels, peak channel {maximum}/255, {darkPixels} dark pixels; zero-strength darkness, zero-motion stillness and reopened identity.");
         }
         catch (Exception error) { ModSupport.WarnOnce("lsd:shader-check", error.GetBaseException().ToString()); }
         finally

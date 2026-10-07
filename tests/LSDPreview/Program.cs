@@ -266,4 +266,54 @@ for (var step = 0; step <= 1200; step++)
     if (wet > 0.85f) stronger++;
 }
 Check(low > 200 && stronger > 100, "Echo gain must swell sometimes without disappearing between swells.");
-Console.WriteLine($"Passed {assertions:N0} LSD timing, visibility, flow bounds, movement comfort, color ownership, character sizing and native echo-gain assertions.");
+// Closed eyes have stricter input rules than the continuing open-eye trip.
+for (var bits = 0; bits < 256; bits++)
+{
+    bool Flag(int bit) => (bits & (1 << bit)) != 0;
+    Check(ClosedEyeView.CanClose(Flag(0), Flag(1), Flag(2), Flag(3), Flag(4), Flag(5), Flag(6), Flag(7))
+        == (bits == ((1 << 0) | (1 << 3) | (1 << 6))),
+        "Closed eyes require an active non-stopping trip, focus and unobstructed gameplay input.");
+}
+var eyes = new ClosedEyeView();
+eyes.Step(ClosedEyeView.CloseSeconds / 2, true, true);
+Near(eyes.Closure, 0.5f, "Eye closure should fade through a smooth midpoint.");
+eyes.Step(ClosedEyeView.CloseSeconds / 2, true, true);
+Near(eyes.Closure, 1, "A sustained B hold should fully hide the scene.");
+eyes.Step(10, true, true);
+Near(eyes.Closure, 1, "Holding longer must not stack or exceed full closure.");
+eyes.Step(ClosedEyeView.OpenSeconds / 2, false, true);
+Near(eyes.Closure, 0.5f, "Releasing B should smoothly reopen the view.");
+eyes.Step(ClosedEyeView.OpenSeconds, false, true);
+Near(eyes.Closure, 0, "Release must restore the open-eye image completely.");
+eyes.Step(0.2f, true, true);
+var partialClosure = eyes.Closure;
+foreach (var invalid in new[] { -1f, 0, float.NaN, float.PositiveInfinity, float.NegativeInfinity })
+{
+    eyes.Step(invalid, true, true);
+    Near(eyes.Closure, partialClosure, "Invalid transition deltas must retain finite state.");
+}
+eyes.Step(float.NaN, true, false);
+Near(eyes.Closure, 0, "Menus, pause, focus loss or Stop must clear closure even with invalid frame time.");
+eyes.Step(10, true, true);
+Near(eyes.Closure, 0, "Returning from a blocked context with B still held must not obscure UI again.");
+eyes.Step(0.01f, false, true);
+eyes.Step(10, true, true);
+Near(eyes.Closure, 1, "A fresh hold after release should rearm closed eyes.");
+eyes.Reset();
+Near(eyes.Closure, 0, "Scene, death, F9, shutdown and replacement cleanup must clear closure.");
+eyes.Step(10, true, true);
+Near(eyes.Closure, 0, "Cleanup requires a fresh hold when the trip restarts.");
+eyes.Step(0.01f, false, true);
+eyes.Step(float.MaxValue, true, true);
+Near(eyes.Closure, 1, "A long valid frame must clamp to full closure.");
+eyes.Step(float.MaxValue, false, true);
+Near(eyes.Closure, 0, "A long release frame must clamp to open eyes.");
+foreach (var fps in new[] { 30, 60, 144 })
+{
+    var framedEyes = new ClosedEyeView();
+    for (var frame = 0; frame < fps; frame++) framedEyes.Step(1f / fps, true, true);
+    Near(framedEyes.Closure, 1, "Eye closure duration must be independent of frame rate.");
+    for (var frame = 0; frame < fps; frame++) framedEyes.Step(1f / fps, false, true);
+    Near(framedEyes.Closure, 0, "Eye reopening duration must be independent of frame rate.");
+}
+Console.WriteLine($"Passed {assertions:N0} LSD timing, visibility, flow bounds, movement comfort, color ownership, character sizing, native echo-gain and closed-eye input/transition assertions.");

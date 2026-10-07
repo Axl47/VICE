@@ -8,8 +8,8 @@ cbuffer UnityPerMaterial : register(b1)
     float _NoiseScale : packoffset(c0.x); // aspect ratio
     float _Blend : packoffset(c0.y);      // maximum displacement / screen height
     float _Amplitude : packoffset(c0.z);  // elapsed seconds
-    float2 _PanSpeed : packoffset(c1.x);  // inner and outer focus radii
-    float _DoesBounce : packoffset(c1.z); // enable clear center
+    float2 _PanSpeed : packoffset(c1.x);  // focus radii; negative mode: closure, pattern brightness
+    float _DoesBounce : packoffset(c1.z); // positive: clear center; negative: closed eyes, -1 - motion
 };
 Texture2D<float4> _BlitTexture : register(t0);
 SamplerState LinearClamp : register(s0);
@@ -29,6 +29,28 @@ Varyings Vert(uint vertexID : SV_VertexID)
     result.uv = float4(uv, 0, 0);
     result.unused = 0;
     return result;
+}
+
+float3 ClosedEyePatterns(float2 q, float t, float strength)
+{
+    // Localized soft forms drift through dark space, rather than tiling the
+    // entire image. Slow breathing expands the forms and changes their glow.
+    float breath = 0.5 + 0.5 * sin(t * 0.65);
+    q /= 0.91 + 0.09 * breath;
+    float2 a = q - float2(0.18 * sin(t * 0.11), 0.12 * cos(t * 0.09));
+    float r = length(a);
+    float angle = atan2(a.y, a.x);
+    float rings = pow(0.5 + 0.5 * sin(r * 32 - t * 0.42 + 0.5 * sin(angle * 3 + t * 0.13)), 6);
+    float spiral = pow(0.5 + 0.5 * cos(angle * 3 + r * 22 - t * 0.28), 8);
+    float halo = exp(-r * r * 6) * smoothstep(0.025, 0.11, r);
+    float2 b = q - float2(-0.30 * cos(t * 0.08), 0.20 * sin(t * 0.10));
+    float2 latticeQ = float2(b.x * 0.866 - b.y * 0.5, b.x * 0.5 + b.y * 0.866);
+    float lattice = pow(saturate((cos(latticeQ.x * 27 + t * 0.18)
+        + cos(latticeQ.y * 27 - t * 0.16)) * 0.5), 7) * exp(-dot(b, b) * 11);
+    float3 color = rings * halo * float3(0.12, 0.21, 0.30)
+        + spiral * halo * float3(0.24, 0.10, 0.19)
+        + lattice * float3(0.10, 0.23, 0.18);
+    return min(color, 0.36) * saturate(strength) * (0.72 + 0.28 * breath);
 }
 
 float4 Frag(Varyings input) : SV_TARGET
@@ -54,5 +76,15 @@ float4 Frag(Varyings input) : SV_TARGET
     // spending most of it on local movement rather than uniform radial zoom.
     float2 motion = 0.70 * flow + 0.20 * ripple + 0.10 * breathing;
     float2 offset = float2(motion.x / aspect, motion.y) * _Blend * focus * edge;
-    return _BlitTexture.SampleLevel(LinearClamp, saturate(uv + offset), 0);
+    float4 scene = _BlitTexture.SampleLevel(LinearClamp, saturate(uv + offset), 0);
+    if (_DoesBounce < 0)
+    {
+        float closure = saturate(_PanSpeed.x);
+        float3 patterns = ClosedEyePatterns(q, t * saturate(-_DoesBounce - 1), _PanSpeed.y);
+        // Patterns emerge after darkness begins; the fully closed view has no
+        // scene detail. Keep alpha and the zero-closure image exactly intact.
+        scene.rgb = lerp(scene.rgb, float3(0.003, 0.002, 0.006), closure)
+            + patterns * smoothstep(0.25, 1, closure);
+    }
+    return scene;
 }

@@ -1,8 +1,14 @@
-# LSD visual preview 0.11.2
+# LSD visual preview 0.12.0
 
 This module supplies the visual/audio treatment for the [Off Register workshop](lsd-workshop.md) and remains independently usable as a manual preview. It registers no product itself. Consuming a workshop tab starts a treatment; another tab refreshes it without stacking. **F8** starts a three-minute manual preview or requests a short fade-out. **F9** immediately clears it outside a workshop interaction. Inside workshop controls it saves the drawing or skips the current production stage for testing.
 
 ## What changed
+
+Version 0.12.0 implements the first [closed-eye patterns](future-closed-eye-patterns.md) pass. During an active manual or workshop-triggered treatment, **hold B** to close the eyes over 0.85 seconds and reveal soft, localized circles, spirals and lattices emerging from darkness. **Release B** to reopen over 0.45 seconds. The existing open-eye parameters, preferences migration and owned echo route remain unchanged.
+
+Patterns expand and brighten with slow breathing. Brightness follows the trip envelope, overall intensity and the new `ClosedEyeStrength=0.55`; animation speed follows `MotionStrength`. At zero motion the patterns stay still. Zero closed-eye strength keeps closure dark without patterns; zero overall intensity disables closure. Full closure replaces scene detail with a near-black background. It does not stop movement or change game input bindings.
+
+Phone, dialogue, typing, cursor-visible menus, camera UI, blocked look input, pause and focus loss immediately reopen the eyes. Release B before holding again after an interruption. F8 Stop also clears closure immediately while the existing treatment fades out; F9, expiration, loading, death, scene unload and shutdown discard closure state. Camera replacement disposes the previous GPU resources and retains the held-key transition. Audio receives no additional closed-eye processing in this first version.
 
 Version 0.11.2 reserves F9 for open workshop controls and preserves the treatment parameters. Version 0.11.1 adds the native workshop-consumption trigger and keeps all 0.11.0 treatment parameters unchanged. It recognizes only the workshop's stable tab IDs and clears/restarts the existing owned effect instance.
 
@@ -55,10 +61,11 @@ The original `TextBlurStrength` stays independent. `TextFocusStrength=0` removes
 
 ## Install and use
 
-1. Close the game and replace only `Mods/Personal.LSDPreview.dll` from `LSDPreview-0.11.1.zip`, or install both DLLs from the workshop package. Keep backups outside `Mods`.
+1. Close the game and replace only `Mods/Personal.LSDPreview.dll` from `LSDPreview-0.12.0.zip`. The preview also works with the existing workshop DLL. Keep backups outside `Mods`.
 2. Restart, load a save and press F8. Allow roughly 30 seconds for the rising phase to reach its peak.
 3. Stand still near a shop wall, window frame or sign and watch several breathing cycles. Then compare F9. Test music at the gas station/shop and footsteps on a quiet street.
 4. Open the phone, talk to an NPC, move and ride. Effects continue while gameplay runs; only a real pause suspends them. Loading, death, unconsciousness, player/product replacement or scene cleanup clears the preview.
+5. During the trip, hold B while standing still, then release it. Compare `ClosedEyeStrength=0.2` and `0.8`, and test phone, dialogue, typing, pause, movement and F8/F9 while B is held. After a UI interruption, release B before trying again.
 
 Preferences remain in `UserData/MelonPreferences.cfg`, section `[PersonalLSDPreview]`. Defaults revision 5 upgrades unchanged ripple/audio values once and retains custom values. To replay the approved strengths after that upgrade, set `RippleStrength=0.30`, `AudioStrength=0.35`, `TextFocusStrength=0` and keep `DefaultsRevision=5` so the deliberate settings are not upgraded again. Exact historical playback is documented in the [baseline](lsd-baseline-0.10.1.md).
 
@@ -76,6 +83,7 @@ Preferences remain in `UserData/MelonPreferences.cfg`, section `[PersonalLSDPrev
 | `OutlineStrength` | `0.70` | Defined edges and sharpening. |
 | `TextBlurStrength` | `0.375` | HUD/dialogue softness and phone glyph fringes. |
 | `TextFocusStrength` | `0.50` | Intermittent drifting glyph shadows/stroke softening; 0 retains earlier treatment. |
+| `ClosedEyeStrength` | `0.55` | Brightness of held-B closed-eye patterns; 0 gives darkness only. |
 | `PhoneEffects` | `true` | Additional phone colors and glyph treatment. |
 | `WorldVisuals` | `true` | Faded character figures. |
 | `GhostModelNPC` | `""` | Empty selects a nearby loaded NPC; otherwise ID/full name. |
@@ -87,6 +95,8 @@ The completed-frame vision pass also affects the phone's rendered image; `PhoneE
 
 Normal flow uses two full-resolution GPU textures (capture and warped output) and an owned material, drawn from a `WaitForEndOfFrame` coroutine after cameras and UI have rendered. It performs no CPU image readback, tile/material scan or texture-pattern projection. The source frame is rendered fresh before each capture, so the warp does not feed itself back. Textures resize with the screen; the coroutine exits and textures/materials are released on cleanup. The extra GPU texture/copy replaces the direct backbuffer draw. GPU cost in the loaded city remains a playtest measurement.
 
+Closed-eye patterns share that shader, material and texture pair. A separate branch runs only during closure; reopening restores the existing flow branch. It also renders when ripple strength is zero, with no extra pattern textures, UI canvases, source-material scanning or per-frame object discovery. Since the completed-frame pass includes HUD pixels, closure is immediately suppressed during UI interaction rather than obscuring interactive screens.
+
 Afterimages retain three bounded history images and corrected vertical sampling. Phone colors/glyph effects retain bounded trackers and restore values only while still owned. Color and outline effects use an owned Volume profile. No native meshes or source materials are modified by the character snapshots.
 
 The checked-in shader and Echo bundles let `scripts/Build-LSDPreview.ps1` build and package without a Unity editor or Python. The shader contains authored executable programs; the Echo bundle contains only four owned mixer/group/snapshot sets and their container, with no audio clips, meshes or textures. Build checks verify file and embedded-resource hashes. Regeneration uses `scripts/Build-LSDShader.py` or `scripts/Build-LSDEcho.py` with the local UnityPy tools and the installed game's serialization schema.
@@ -94,6 +104,8 @@ The checked-in shader and Echo bundles let `scripts/Build-LSDPreview.ps1` build 
 The build compiles against installed IL2CPP assemblies with warnings treated as errors. Pure checks cover timing, visibility/input combinations, flow bounds, movement comfort, color ownership, character size guards, echo wet gain and exact default 25% ratios against the baseline. Compiled guards reject normal-path source scans/replays, listener-history/PCM writes, stripped echo filters, mixer snapshot replacement, startup audio initialization and playback detours. They also reject wording, spacing or layout writes from the reading-focus layer. Diagnostic-only tone generation and image/audio readback are intentionally separate.
 
 ## Verification and playtest
+
+Version 0.12.0 built with zero warnings/errors and passed **133,262 pure assertions**, including all 256 closed-eye eligibility combinations, held/released transition timing, interruption rearming, invalid frame times, cleanup and frame-rate independence. Compiled held-B, existing audio/vision/text guards and embedded asset hashes passed. The optional `--lsd-render-check` diagnostic additionally verifies dark localized motion, zero-pattern darkness, zero-motion stillness and exact reopened zero-flow identity. These new GPU diagnostic checks and loaded-save appearance have not yet been run in the game; the earlier measurements below apply to their named versions.
 
 Normal startup must reach Menu and log the scene-loaded/main-loop heartbeat without starting effects. Explicit `--lsd-render-check` tests the normal shader binding/draw method against a controlled offscreen image, including motion outside the central half of the screen. It then compares the actual screen before/after drawing through two identical screenshot captures, including zero-strength identity. The former comparison between a captured texture and direct backbuffer `ReadPixels` mixed coordinate conventions and missed the visible flip; its orientation result is superseded. The screen check needs a visible game window: a hidden launch cannot establish visible motion. Explicit `--lsd-audio-check` sends two short owned diagnostic tones through the original music bus, first with echo off and then at default strength. It measures the delayed signal in final listener output and verifies original routing restoration. When both flags are supplied, the image check finishes before audio sampling begins. Normal launches run neither diagnostic; no save is loaded by either check.
 

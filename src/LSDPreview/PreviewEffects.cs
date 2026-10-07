@@ -76,7 +76,7 @@ internal sealed class PreviewEffects : IDisposable
 
     internal void RenderVision() { if (!Disposed) Ripples?.RenderFrame(); }
 
-    internal void Tick(float elapsed, float amount, float motion, bool worldVisuals)
+    internal void Tick(float elapsed, float amount, float motion, bool worldVisuals, float closedEyes = 0)
     {
         if (Disposed || !Camera || Volume is null || !Volume || Colors is null || !Colors
             || Chromatic is null || !Chromatic) return;
@@ -114,7 +114,8 @@ internal sealed class PreviewEffects : IDisposable
             if (Strength(LSDPreviewMod.TextBlurStrength) > 0 || Strength(LSDPreviewMod.TextFocusStrength) > 0)
                 TryLayer(ref Text, ref AttemptedText, () => new HudTextBlur(), "text");
         }
-        Ripples?.Tick(elapsed, amount, Strength(LSDPreviewMod.RippleStrength), motion, movement);
+        Ripples?.Tick(elapsed, amount, Strength(LSDPreviewMod.RippleStrength), motion, movement,
+            amount > 0 ? closedEyes : 0, amount * Strength(LSDPreviewMod.ClosedEyeStrength));
         PhoneColors?.Tick(elapsed, LSDPreviewMod.PhoneEffects.Value ? amount * Strength(LSDPreviewMod.MaterialColorStrength) : 0);
         Audio?.Tick(elapsed, amount * Strength(LSDPreviewMod.AudioStrength));
         Trails?.Tick(amount * Strength(LSDPreviewMod.AfterimageStrength) * motion);

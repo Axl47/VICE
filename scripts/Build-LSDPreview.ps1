@@ -34,7 +34,7 @@ foreach ($project in $projects) {
     if ($LASTEXITCODE -ne 0) { throw "LSD preview compilation failed: $project" }
 }
 & $DotnetPath run --project (Join-Path $repoRoot 'tests\LSDPreview\LSDPreview.Tests.csproj') -c Release --no-build --no-restore
-if ($LASTEXITCODE -ne 0) { throw 'LSD preview timing, visibility, displacement calibration, color ownership and audio checks failed.' }
+if ($LASTEXITCODE -ne 0) { throw 'LSD preview timing, visibility, displacement calibration, color ownership, audio and closed-eye checks failed.' }
 
 $builtDll = Join-Path $repoRoot 'src\LSDPreview\bin\Release\net6.0\Personal.LSDPreview.dll'
 # Runtime logs exposed both missing generic audio lookups and a stripped echo
@@ -125,9 +125,17 @@ try {
         throw 'The owned, independently timed reading-focus layer is missing.'
     }
     Write-Output 'Checked reading focus: owned glyph treatment; no text rewriting or layout/spacing changes.'
+    $eyeType = $definition.MainModule.Types | Where-Object { $_.FullName -eq 'PersonalMods.LSDPreview.ClosedEyeView' }
+    $updateMethod = $previewType.Methods | Where-Object { $_.Name -eq 'OnUpdate' }
+    $updateCalls = @($updateMethod.Body.Instructions | ForEach-Object { $_.Operand } | Where-Object { $_ -is [Mono.Cecil.MethodReference] })
+    if (-not $eyeType -or -not ($updateCalls | Where-Object { $_.Name -eq 'get_bKey' }) -or
+        -not ($updateCalls | Where-Object { $_.DeclaringType.FullName -eq 'PersonalMods.LSDPreview.ClosedEyeView' -and $_.Name -eq 'Step' })) {
+        throw 'The held-B closed-eye control and transition state are missing.'
+    }
+    Write-Output 'Checked closed eyes: held B input and guarded transition state; patterns share the owned completed-frame shader.'
 } finally { $definition.Dispose() }
 
-$packageRoot = Join-Path $repoRoot 'artifacts\LSDPreview-0.11.2'
+$packageRoot = Join-Path $repoRoot 'artifacts\LSDPreview-0.12.0'
 $modsDirectory = Join-Path $packageRoot 'Mods'
 New-Item -ItemType Directory -Path $modsDirectory -Force | Out-Null
 $dll = Join-Path $modsDirectory 'Personal.LSDPreview.dll'
@@ -138,6 +146,8 @@ $baselineGuide = Join-Path $packageRoot 'lsd-baseline-0.10.1.md'
 Copy-Item -LiteralPath (Join-Path $repoRoot 'docs\lsd-baseline-0.10.1.md') -Destination $baselineGuide -Force
 $alcoholGuide = Join-Path $packageRoot 'future-alcohol-preview.md'
 Copy-Item -LiteralPath (Join-Path $repoRoot 'docs\future-alcohol-preview.md') -Destination $alcoholGuide -Force
+$closedEyeGuide = Join-Path $packageRoot 'future-closed-eye-patterns.md'
+Copy-Item -LiteralPath (Join-Path $repoRoot 'docs\future-closed-eye-patterns.md') -Destination $closedEyeGuide -Force
 $baselinesDirectory = Join-Path $packageRoot 'baselines'
 New-Item -ItemType Directory -Path $baselinesDirectory -Force | Out-Null
 $baselinePreferences = Join-Path $baselinesDirectory 'lsd-0.10.1.cfg'
@@ -148,10 +158,11 @@ $hashFile = Join-Path $packageRoot 'SHA256SUMS.txt'
 $hashLines = @()
 foreach ($entry in @(@{ Path = $dll; Name = 'Mods/Personal.LSDPreview.dll' }, @{ Path = $guide; Name = 'README.md' },
     @{ Path = $baselineGuide; Name = 'lsd-baseline-0.10.1.md' }, @{ Path = $alcoholGuide; Name = 'future-alcohol-preview.md' },
+    @{ Path = $closedEyeGuide; Name = 'future-closed-eye-patterns.md' },
     @{ Path = $baselinePreferences; Name = 'baselines/lsd-0.10.1.cfg' }, @{ Path = $baselineHashes; Name = 'baselines/lsd-0.10.1.sha256' })) {
     $hashLines += (Get-FileHash -LiteralPath $entry.Path -Algorithm SHA256).Hash.ToLowerInvariant() + '  ' + $entry.Name
 }
 Set-Content -LiteralPath $hashFile -Value $hashLines -Encoding utf8
-$zip = Join-Path $repoRoot 'artifacts\LSDPreview-0.11.2.zip'
-Compress-Archive -LiteralPath $modsDirectory, $guide, $hashFile, $baselineGuide, $alcoholGuide, $baselinesDirectory -DestinationPath $zip -Force
+$zip = Join-Path $repoRoot 'artifacts\LSDPreview-0.12.0.zip'
+Compress-Archive -LiteralPath $modsDirectory, $guide, $hashFile, $baselineGuide, $alcoholGuide, $closedEyeGuide, $baselinesDirectory -DestinationPath $zip -Force
 Write-Output "Built and checked the separate LSD preview: $zip"
