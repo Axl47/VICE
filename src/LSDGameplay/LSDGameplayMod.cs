@@ -9,7 +9,7 @@ using UnityEngine.InputSystem;
 using Clock = Il2CppScheduleOne.GameTime.TimeManager;
 using Money = S1API.Money.Money;
 
-[assembly: MelonInfo(typeof(PersonalMods.LSDGameplay.LSDGameplayMod), "Personal LSD Workshop", "0.2.4", "Axl47")]
+[assembly: MelonInfo(typeof(PersonalMods.LSDGameplay.LSDGameplayMod), "Personal LSD Workshop", "0.2.5", "Axl47")]
 [assembly: MelonGame("TVGS", "Schedule I")]
 
 namespace PersonalMods.LSDGameplay;
@@ -69,7 +69,7 @@ public sealed class LSDGameplayMod : MelonMod
             Content.Register(); State.Validate();StudioAssets.UpdateArtwork(State);
             World=new WorkshopWorld(); Panel=new WorkshopPanel();Delivery=new DeliveryGuide();
             World.Load();WorkshopNetwork.Bind();Ready=true;
-            if(State.TutorialStep<10 && S1API.Quests.QuestManager.GetQuestByName("First edition") is null)
+            if(!TutorialProgress.Finished(State) && S1API.Quests.QuestManager.GetQuestByName("First edition") is null)
                 S1API.Quests.QuestManager.CreateQuest<StudioTutorial>();
             if (!WorkshopNetwork.Host) WorkshopNetwork.Submit(new StudioCommand());
             if (DiagnosticRequested && WorkshopNetwork.Host) Diagnostic=new SliceDiagnostic(this);
@@ -110,6 +110,7 @@ public sealed class LSDGameplayMod : MelonMod
         {
             if (DiagnosticRequested && !Ready) SliceDiagnostic.TryLoadFifthSlot();
             if (!Ready || !LoadManager.Instance || !LoadManager.Instance.IsGameLoaded || LoadManager.Instance.IsLoading) return;
+            if(Diagnostic?.TutorialChecking==true){Diagnostic.Tick();return;}
             if(Panel?.IsOpen!=true && Keyboard.current?.f9Key.wasPressedThisFrame==true && World?.Office
                 && World!.Office!.DoBoundsContainPoint(Player.Local.transform.position))
                 WorkshopNetwork.Submit(new StudioCommand{Action="testfinish"});
@@ -162,6 +163,7 @@ public sealed class LSDGameplayMod : MelonMod
                 Money.CreateOnlineTransaction("Off Register",-30,command.Quantity,"Prism Base · "+order.Id);
                 State.Orders.RemoveAll(o=>o.Stage==OrderStage.Delivered && State.Orders.Count>=64);
                 State.Orders.Add(order);State.Revision++;reply.Message=$"Paid ${30*command.Quantity}. Collect in thirty game minutes at {World.CollectionName}.";
+                TutorialProgress.RecordAction(State,"order");
                 committed=true;
                 World.Notify(reply.Message);
             }
@@ -190,6 +192,7 @@ public sealed class LSDGameplayMod : MelonMod
                 }
                 Acquire(machine,player.PlayerCode,command.Action);
                 var transaction=new InventoryTransaction(player);
+                var priorStage=machine.Stage;
                 switch (command.Action)
                 {
                     case "resume": break;
@@ -251,7 +254,7 @@ public sealed class LSDGameplayMod : MelonMod
                     default: throw new InvalidOperationException("Unknown studio action.");
                 }
                 State.Revision++;State.Validate();
-                reply.Inventory=transaction.Commit();committed=true;
+                reply.Inventory=transaction.Commit();committed=true;TutorialProgress.RecordAction(State,command.Action,priorStage);
             }
             State.Validate();StudioAssets.UpdateArtwork(State);reply.Success=true;
             reply.State=State.Serialize();World?.RefreshMachines(State);WorkshopNetwork.Publish();
