@@ -1,0 +1,604 @@
+{
+  "loadedSentrys": [
+    {
+      "startTime": 2230,
+      "endTime": 330,
+      "members": 1,
+      "intensityRequirement": 0,
+      "onlyIfCurfew": false,
+      "name": "Northtown Pharmacy Sentry",
+      "days": [
+        "thu",
+        "fri",
+        "sat",
+        "sun"
+      ],
+      "standPosition1": {
+        "x": -55.705,
+        "y": 0.0,
+        "z": 122.622
+      },
+      "pos1Rotation": {
+        "x": 0.0,
+        "y": 297.0,
+        "z": 0.0
+      },
+      "standPosition2": {
+        "x": -64.092,
+        "y": 0.0,
+        "z": 119.33
+      },
+      "pos2Rotation": {
+        "x": 0.0,
+        "y": 15.0,
+        "z": 0.0
+      }
+    },
+    {
+      "startTime": 2230,
+      "endTime": 230,
+      "members": 1,
+      "intensityRequirement": 8,
+      "onlyIfCurfew": false,
+      "name": "Northtown Thompsons Construction Sentry",
+      "days": [
+        "mon",
+        "tue",
+        "thu",
+        "sun"
+      ],
+      "standPosition1": {
+        "x": -24.938,
+        "y": 0.0,
+        "z": 111.801
+      },
+      "pos1Rotation": {
+        "x": 0.0,
+        "y": 68.0,
+        "z": 0.0
+      },
+      "standPosition2": {
+        "x": -12.397,
+        "y": 0.0,
+        "z": 110.276
+      },
+      "pos2Rotation": {
+        "x": 0.0,
+        "y": 303.0,
+        "z": 0.0
+      }
+    },
+    {
+      "startTime": 1630,
+      "endTime": 2300,
+      "members": 1,
+      "intensityRequirement": 2,
+      "onlyIfCurfew": false,
+      "name": "Westville Gas Mart Sentry",
+      "days": [
+        "mon",
+        "wed",
+        "fri",
+        "sun"
+      ],
+      "standPosition1": {
+        "x": -121.406,
+        "y": 0.0,
+        "z": 76.032
+      },
+      "pos1Rotation": {
+        "x": 0.0,
+        "y": 270.0,
+        "z": 0.0
+      },
+      "standPosition2": {
+        "x": -119.503,
+        "y": 0.0,
+        "z": 77.53
+      },
+      "pos2Rotation": {
+        "x": 0.0,
+        "y": 58.0,
+        "z": 0.0
+      }
+    },
+    {
+      "startTime": 2330,
+      "endTime": 350,
+      "members": 1,
+      "intensityRequirement": 1,
+      "onlyIfCurfew": false,
+      "name": "Westville Top Tattoo Sentry",
+      "days": [
+        "tue",
+        "thu",
+        "sat"
+      ],
+      "standPosition1": {
+        "x": -136.852,
+        "y": 0.0,
+        "z": 61.237
+      },
+      "pos1Rotation": {
+        "x": 0.0,
+        "y": 180.0,
+        "z": 0.0
+      },
+      "standPosition2": {
+        "x": -130.582,
+        "y": 0.0,
+        "z": 56.1
+      },
+      "pos2Rotation": {
+        "x": 0.0,
+        "y": 50.0,
+        "z": 0.0
+      }
+    },
+    {
+      "startTime": 2200,
+      "endTime": 300,
+      "members": 1,
+      "intensityRequirement": 2,
+      "onlyIfCurfew": false,
+      "name": "Downtown Crossing Sentry",
+      "days": [
+        "tue",
+        "wed",
+        "fri",
+        "sun"
+      ],
+      "standPosition1": {
+        "x": -22.658,
+        "y": 0.0,
+        "z": 95.611
+      },
+      "pos1Rotation": {
+        "x": 0.0,
+        "y": 121.0,
+        "z": 0.0
+      },
+      "standPosition2": {
+        "x": -25.98,
+        "y": 0.0,
+        "z": 94.942
+      },
+      "pos2Rotation": {
+        "x": 0.0,
+        "y": 238.0,
+        "z": 0.0
+      }
+    },
+    {
+      "startTime": 1530,
+      "endTime": 2130,
+      "members": 1,
+      "intensityRequirement": 3,
+      "onlyIfCurfew": false,
+      "name": "Downtown Casino Sentry",
+      "days": [
+        "wed",
+        "sat",
+        "sun"
+      ],
+      "standPosition1": {
+        "x": 9.413,
+        "y": 0.0,
+        "z": 83.326
+      },
+      "pos1Rotation": {
+        "x": 0.0,
+        "y": 174.0,
+        "z": 0.0
+      },
+      "standPosition2": {
+        "x": 11.55,
+        "y": 0.0,
+        "z": 78.241
+      },
+      "pos2Rotation": {
+        "x": 0.0,
+        "y": 301.0,
+        "z": 0.0
+      }
+    },
+    {
+      "startTime": 730,
+      "endTime": 1030,
+      "members": 1,
+      "intensityRequirement": 0,
+      "onlyIfCurfew": false,
+      "name": "Downtown Central Canal Sentry Morning",
+      "days": [
+        "wed",
+        "thu",
+        "sun"
+      ],
+      "standPosition1": {
+        "x": 0.04,
+        "y": 0.0,
+        "z": 12.03
+      },
+      "pos1Rotation": {
+        "x": 0.0,
+        "y": 122.0,
+        "z": 0.0
+      },
+      "standPosition2": {
+        "x": -3.18,
+        "y": 0.0,
+        "z": 10.94
+      },
+      "pos2Rotation": {
+        "x": 0.0,
+        "y": 211.0,
+        "z": 0.0
+      }
+    },
+    {
+      "startTime": 2330,
+      "endTime": 330,
+      "members": 1,
+      "intensityRequirement": 8,
+      "onlyIfCurfew": false,
+      "name": "Downtown Central Canal Sentry Night",
+      "days": [
+        "mon",
+        "fri",
+        "sat"
+      ],
+      "standPosition1": {
+        "x": 0.04,
+        "y": 0.0,
+        "z": 12.03
+      },
+      "pos1Rotation": {
+        "x": 0.0,
+        "y": 122.0,
+        "z": 0.0
+      },
+      "standPosition2": {
+        "x": -3.18,
+        "y": 0.0,
+        "z": 10.94
+      },
+      "pos2Rotation": {
+        "x": 0.0,
+        "y": 211.0,
+        "z": 0.0
+      }
+    },
+    {
+      "startTime": 2300,
+      "endTime": 500,
+      "members": 2,
+      "intensityRequirement": 6,
+      "onlyIfCurfew": false,
+      "name": "Downtown City Hall 1 Sentry",
+      "days": [
+        "tue",
+        "fri",
+        "sat"
+      ],
+      "standPosition1": {
+        "x": 37.292,
+        "y": 0.0,
+        "z": 18.91
+      },
+      "pos1Rotation": {
+        "x": 0.0,
+        "y": 249.0,
+        "z": 0.0
+      },
+      "standPosition2": {
+        "x": 43.949,
+        "y": 0.0,
+        "z": 36.313
+      },
+      "pos2Rotation": {
+        "x": 0.0,
+        "y": 5.0,
+        "z": 0.0
+      }
+    },
+    {
+      "startTime": 710,
+      "endTime": 1120,
+      "members": 1,
+      "intensityRequirement": 3,
+      "onlyIfCurfew": false,
+      "name": "Docks Warehouse 1 Sentry",
+      "days": [
+        "mon",
+        "wed",
+        "sat"
+      ],
+      "standPosition1": {
+        "x": -66.454,
+        "y": 0.0,
+        "z": 37.385
+      },
+      "pos1Rotation": {
+        "x": 0.0,
+        "y": 180.0,
+        "z": 0.0
+      },
+      "standPosition2": {
+        "x": -66.144,
+        "y": 0.0,
+        "z": 39.818
+      },
+      "pos2Rotation": {
+        "x": 0.0,
+        "y": 266.0,
+        "z": 0.0
+      }
+    },
+    {
+      "startTime": 1900,
+      "endTime": 2300,
+      "members": 1,
+      "intensityRequirement": 3,
+      "onlyIfCurfew": false,
+      "name": "Docks Warehouse 2 Sentry",
+      "days": [
+        "tue",
+        "thu",
+        "sat"
+      ],
+      "standPosition1": {
+        "x": -60.208,
+        "y": 0.0,
+        "z": -70.636
+      },
+      "pos1Rotation": {
+        "x": 0.0,
+        "y": 35.0,
+        "z": 0.0
+      },
+      "standPosition2": {
+        "x": -52.105,
+        "y": 0.0,
+        "z": -71.815
+      },
+      "pos2Rotation": {
+        "x": 0.0,
+        "y": 324.0,
+        "z": 0.0
+      }
+    },
+    {
+      "startTime": 1900,
+      "endTime": 130,
+      "members": 1,
+      "intensityRequirement": 4,
+      "onlyIfCurfew": false,
+      "name": "Docks Hyland Auto Sentry",
+      "days": [
+        "wed",
+        "fri",
+        "sun"
+      ],
+      "standPosition1": {
+        "x": 8.0,
+        "y": 0.0,
+        "z": -39.789
+      },
+      "pos1Rotation": {
+        "x": 0.0,
+        "y": 325.0,
+        "z": 0.0
+      },
+      "standPosition2": {
+        "x": 34.651,
+        "y": 0.0,
+        "z": -24.587
+      },
+      "pos2Rotation": {
+        "x": 0.0,
+        "y": 322.0,
+        "z": 0.0
+      }
+    },
+    {
+      "startTime": 2200,
+      "endTime": 500,
+      "members": 1,
+      "intensityRequirement": 5,
+      "onlyIfCurfew": false,
+      "name": "Suburbia Crossing Sentry",
+      "days": [
+        "mon",
+        "tue"
+      ],
+      "standPosition1": {
+        "x": 96.259,
+        "y": 0.0,
+        "z": -100.039
+      },
+      "pos1Rotation": {
+        "x": 0.0,
+        "y": 233.0,
+        "z": 0.0
+      },
+      "standPosition2": {
+        "x": 96.929,
+        "y": 0.0,
+        "z": -98.164
+      },
+      "pos2Rotation": {
+        "x": 0.0,
+        "y": 268.0,
+        "z": 0.0
+      }
+    },
+    {
+      "startTime": 1930,
+      "endTime": 200,
+      "members": 1,
+      "intensityRequirement": 3,
+      "onlyIfCurfew": false,
+      "name": "Suburbia Rays Realty Sentry",
+      "days": [
+        "fri",
+        "sat",
+        "sun"
+      ],
+      "standPosition1": {
+        "x": 87.5723,
+        "y": 0.0,
+        "z": -19.326
+      },
+      "pos1Rotation": {
+        "x": 0.0,
+        "y": 82.0,
+        "z": 0.0
+      },
+      "standPosition2": {
+        "x": 77.442,
+        "y": 0.0,
+        "z": -7.139
+      },
+      "pos2Rotation": {
+        "x": 0.0,
+        "y": 310.0,
+        "z": 0.0
+      }
+    },
+    {
+      "startTime": 2130,
+      "endTime": 500,
+      "members": 1,
+      "intensityRequirement": 5,
+      "onlyIfCurfew": false,
+      "name": "Suburbia Forest Path 1 Sentry",
+      "days": [
+        "mon",
+        "tue",
+        "wed",
+        "thu",
+        "fri"
+      ],
+      "standPosition1": {
+        "x": 45.693,
+        "y": 0.0,
+        "z": -58.359
+      },
+      "pos1Rotation": {
+        "x": 0.0,
+        "y": 312.0,
+        "z": 0.0
+      },
+      "standPosition2": {
+        "x": 36.645,
+        "y": 0.0,
+        "z": -53.103
+      },
+      "pos2Rotation": {
+        "x": 0.0,
+        "y": 142.0,
+        "z": 0.0
+      }
+    },
+    {
+      "startTime": 1800,
+      "endTime": 230,
+      "members": 1,
+      "intensityRequirement": 0,
+      "onlyIfCurfew": false,
+      "name": "Uptown Hyland Tower Sentry",
+      "days": [
+        "tue",
+        "fri"
+      ],
+      "standPosition1": {
+        "x": 63.316,
+        "y": 0.0,
+        "z": 56.894
+      },
+      "pos1Rotation": {
+        "x": 0.0,
+        "y": 178.0,
+        "z": 0.0
+      },
+      "standPosition2": {
+        "x": 64.294,
+        "y": 0.0,
+        "z": 70.148
+      },
+      "pos2Rotation": {
+        "x": 0.0,
+        "y": 331.0,
+        "z": 0.0
+      }
+    },
+    {
+      "startTime": 2030,
+      "endTime": 230,
+      "members": 1,
+      "intensityRequirement": 1,
+      "onlyIfCurfew": false,
+      "name": "Uptown Medical Sentry",
+      "days": [
+        "thu",
+        "fri",
+        "sun"
+      ],
+      "standPosition1": {
+        "x": 112.249,
+        "y": 0.0,
+        "z": 76.579
+      },
+      "pos1Rotation": {
+        "x": 0.0,
+        "y": 211.0,
+        "z": 0.0
+      },
+      "standPosition2": {
+        "x": 116.56,
+        "y": 0.0,
+        "z": 66.93
+      },
+      "pos2Rotation": {
+        "x": 0.0,
+        "y": 248.0,
+        "z": 0.0
+      }
+    },
+    {
+      "startTime": 2130,
+      "endTime": 330,
+      "members": 1,
+      "intensityRequirement": 1,
+      "onlyIfCurfew": false,
+      "name": "Uptown Courthouse Sentry",
+      "days": [
+        "mon",
+        "wed",
+        "thu",
+        "sat",
+        "sun"
+      ],
+      "standPosition1": {
+        "x": 71.019,
+        "y": 0.0,
+        "z": 19.875
+      },
+      "pos1Rotation": {
+        "x": 0.0,
+        "y": 232.0,
+        "z": 0.0
+      },
+      "standPosition2": {
+        "x": 73.483,
+        "y": 0.0,
+        "z": 15.629
+      },
+      "pos2Rotation": {
+        "x": 0.0,
+        "y": 142.0,
+        "z": 0.0
+      }
+    }
+  ]
+}

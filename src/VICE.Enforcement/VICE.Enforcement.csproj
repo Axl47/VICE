@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsGameMod>true</IsGameMod>
+    <UseViceCore>true</UseViceCore>
+    <AssemblyName>VICE.Enforcement</AssemblyName>
+    <Version>0.1.0</Version>
+    <DefineConstants>$(DefineConstants);IL2CPP;COMBINED_POLICE</DefineConstants>
+    <Nullable>annotations</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Defaults\**\*.json"><LogicalName>VICE.Enforcement.Defaults/%(RecursiveDir)%(Filename)%(Extension)</LogicalName></EmbeddedResource>
+    <Compile Remove="Upstream\Utils\AvatarUtility.cs" />
+    <ProjectReference Include="..\VICE.Core\VICE.Core.csproj" />
+    <Compile Include="..\BetterPolice\*.cs" Exclude="..\BetterPolice\RivalGang.cs;..\BetterPolice\GangTuning.cs" Link="BetterPolice\%(Filename)%(Extension)" />
+    <Reference Include="$(LoaderDir)\Newtonsoft.Json.dll"><Private>false</Private></Reference>
+  </ItemGroup>
+</Project>

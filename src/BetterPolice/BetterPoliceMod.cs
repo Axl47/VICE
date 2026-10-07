@@ -9,8 +9,10 @@ using MelonLoader;
 using PersonalMods;
 using UnityEngine;
 
+#if !COMBINED_POLICE
 [assembly: MelonInfo(typeof(PersonalMods.BetterPolice.BetterPoliceMod), "Personal Better Police", "0.2.0", "Axl47; based on Frostbyt3 / Babyhamsta")]
 [assembly: MelonGame("TVGS", "Schedule I")]
+#endif
 
 namespace PersonalMods.BetterPolice;
 
@@ -27,47 +29,67 @@ public sealed class BetterPoliceMod : MelonMod
     private static MelonPreferences_Entry<int> MaximumFlankers = null!;
     private static readonly Dictionary<string, float> NextRadio = new();
 
-    public override void OnInitializeMelon()
+    public override void OnInitializeMelon() => Initialize(HarmonyInstance);
+
+    internal void Initialize(HarmonyLib.Harmony harmony)
     {
+#if COMBINED_POLICE
+        var config = MelonPreferences.CreateCategory("VICEEnforcementPolice");
+#else
         var config = MelonPreferences.CreateCategory("PersonalBetterPolice");
-        Enabled = ModSupport.Entry(config, "Enabled", true, "Enable tougher police and configured rival gang aggression.");
-        ChaseMultiplier = ModSupport.Entry(config, "ChaseSpeedMultiplier", 1.3f, "Multiply each officer's original movement speed during a pursuit.");
-        FarChaseMultiplier = ModSupport.Entry(config, "DistantChaseSpeedMultiplier", 2f, "Maximum chase multiplier as the player gets farther away.");
-        DistanceMaximum = ModSupport.Entry(config, "DistanceForMaximumBoost", 100f, "Distance in meters where the maximum boost applies.");
-        VisionRange = ModSupport.Entry(config, "VisionRangeMultiplier", 10f, "Police vision range multiplier, matching the old personal config.");
-        HorizontalFov = ModSupport.Entry(config, "HorizontalFOV", 165f, "Police horizontal vision field in degrees.");
-        VerticalFov = ModSupport.Entry(config, "VerticalFOV", 80f, "Police vertical vision field in degrees.");
-        NoticeTime = ModSupport.Entry(config, "NoticeTimeMultiplier", 0.75f, "Multiply original notice time; lower values detect crime sooner.");
-        ArrestMultiplier = ModSupport.Entry(config, "ArrestTickMultiplier", 1.5f, "Speed up the game's arrest progress tick.");
-        NearAccuracy = ModSupport.Entry(config, "MinimumCloseRangeHitChance", 0.95f, "Minimum police weapon hit probability at close range.");
-        FarAccuracy = ModSupport.Entry(config, "MinimumFarRangeHitChance", 0.8f, "Minimum police weapon hit probability at long range.");
-        AimTime = ModSupport.Entry(config, "AimTimeMultiplier", 0.65f, "Multiply original police aiming delay.");
-        Flanking = ModSupport.Entry(config, "Flanking", true, "Coordinate rear pressure, front interception, alternative entrances and spaced support on the host.");
-        PlanInterval = ModSupport.Entry(config, "CoordinationIntervalSeconds", 1.5f, "Seconds between bounded squad route plans (0.75 to 5).");
-        FlankRadius = ModSupport.Entry(config, "FlankRadiusMeters", 18f, "Radius for probing reachable alternative approaches (10 to 40 meters).");
-        MaximumDetour = ModSupport.Entry(config, "MaximumDetourMultiplier", 3f, "Maximum detour factor relative to a direct reachable route (1.5 to 6).");
-        MaximumFlankers = ModSupport.Entry(config, "MaximumFlankingOfficers", 3, "Up to four front/side/rear flankers per pursued player; others maintain spaced support.");
-        Memory = ModSupport.Entry(config, "SquadSightMemorySeconds", 6f, "Share an observed position for this long after all officers lose sight (1 to 10 seconds).");
-        RadioNearby = ModSupport.Entry(config, "RadioNearby", true, "Call already active nearby police into a chase, on the host.");
-        RadioDistance = ModSupport.Entry(config, "RadioDistance", 100f, "Maximum distance of backup officers from the pursued player.");
-        MaximumBackup = ModSupport.Entry(config, "MaximumBackupOfficers", 10, "Maximum nearby officers called per radio request (0 to 20).");
+#endif
+#if COMBINED_POLICE
+        Enabled = Setting(config, "Enabled", true, "Enable Better Police pursuit, vision and weapon tuning inside VICE Enforcement.");
+#else
+        Enabled = Setting(config, "Enabled", true, "Enable tougher police and configured rival gang aggression.");
+#endif
+        ChaseMultiplier = Setting(config, "ChaseSpeedMultiplier", 1.3f, "Multiply each officer's original movement speed during a pursuit.");
+        FarChaseMultiplier = Setting(config, "DistantChaseSpeedMultiplier", 2f, "Maximum chase multiplier as the player gets farther away.");
+        DistanceMaximum = Setting(config, "DistanceForMaximumBoost", 100f, "Distance in meters where the maximum boost applies.");
+        VisionRange = Setting(config, "VisionRangeMultiplier", 10f, "Police vision range multiplier, matching the old personal config.");
+        HorizontalFov = Setting(config, "HorizontalFOV", 165f, "Police horizontal vision field in degrees.");
+        VerticalFov = Setting(config, "VerticalFOV", 80f, "Police vertical vision field in degrees.");
+        NoticeTime = Setting(config, "NoticeTimeMultiplier", 0.75f, "Multiply original notice time; lower values detect crime sooner.");
+        ArrestMultiplier = Setting(config, "ArrestTickMultiplier", 1.5f, "Speed up the game's arrest progress tick.");
+        NearAccuracy = Setting(config, "MinimumCloseRangeHitChance", 0.95f, "Minimum police weapon hit probability at close range.");
+        FarAccuracy = Setting(config, "MinimumFarRangeHitChance", 0.8f, "Minimum police weapon hit probability at long range.");
+        AimTime = Setting(config, "AimTimeMultiplier", 0.65f, "Multiply original police aiming delay.");
+        Flanking = Setting(config, "Flanking", true, "Coordinate rear pressure, front interception, alternative entrances and spaced support on the host.");
+        PlanInterval = Setting(config, "CoordinationIntervalSeconds", 1.5f, "Seconds between bounded squad route plans (0.75 to 5).");
+        FlankRadius = Setting(config, "FlankRadiusMeters", 18f, "Radius for probing reachable alternative approaches (10 to 40 meters).");
+        MaximumDetour = Setting(config, "MaximumDetourMultiplier", 3f, "Maximum detour factor relative to a direct reachable route (1.5 to 6).");
+        MaximumFlankers = Setting(config, "MaximumFlankingOfficers", 3, "Up to four front/side/rear flankers per pursued player; others maintain spaced support.");
+        Memory = Setting(config, "SquadSightMemorySeconds", 6f, "Share an observed position for this long after all officers lose sight (1 to 10 seconds).");
+        RadioNearby = Setting(config, "RadioNearby", true, "Call already active nearby police into a chase, on the host.");
+        RadioDistance = Setting(config, "RadioDistance", 100f, "Maximum distance of backup officers from the pursued player.");
+        MaximumBackup = Setting(config, "MaximumBackupOfficers", 10, "Maximum nearby officers called per radio request (0 to 20).");
         var self = typeof(BetterPoliceMod);
-        ModSupport.Patch(HarmonyInstance, typeof(PoliceOfficer), "Activate", self, postfix: nameof(OfficerReady));
-        ModSupport.Patch(HarmonyInstance, typeof(PoliceOfficer), "UpdateVision", self, postfix: nameof(OfficerReady));
-        ModSupport.Patch(HarmonyInstance, typeof(VisionCone), "IsPointWithinSight", self, postfix: nameof(WidenSight));
-        ModSupport.Patch(HarmonyInstance, typeof(PursuitBehaviour), "Activate", self, postfix: nameof(PursuitTick));
+        ModSupport.Patch(harmony, typeof(PoliceOfficer), "Activate", self, postfix: nameof(OfficerReady));
+        ModSupport.Patch(harmony, typeof(PoliceOfficer), "UpdateVision", self, postfix: nameof(OfficerReady));
+        ModSupport.Patch(harmony, typeof(VisionCone), "IsPointWithinSight", self, postfix: nameof(WidenSight));
+        ModSupport.Patch(harmony, typeof(PursuitBehaviour), "Activate", self, postfix: nameof(PursuitTick));
         // OnActiveTick is a shared seven-byte native thunk in this beta. Detouring it
         // also intercepts thousands of unrelated constructors, including exception handling.
-        ModSupport.Patch(HarmonyInstance, typeof(PursuitBehaviour), "BehaviourUpdate", self, postfix: nameof(PursuitTick));
-        ModSupport.Patch(HarmonyInstance, typeof(CombatBehaviour), "SetDestination", self, prefix: nameof(CoordinatedDestination),
+        ModSupport.Patch(harmony, typeof(PursuitBehaviour), "BehaviourUpdate", self, postfix: nameof(PursuitTick));
+        ModSupport.Patch(harmony, typeof(CombatBehaviour), "SetDestination", self, prefix: nameof(CoordinatedDestination),
             parameters: new[] { typeof(Vector3), typeof(bool), typeof(float) });
-        ModSupport.Patch(HarmonyInstance, typeof(PursuitBehaviour), "UpdateArrest", self, prefix: nameof(ArrestTick));
-        ModSupport.Patch(HarmonyInstance, typeof(PursuitBehaviour), "EndCombat", self, postfix: nameof(PursuitEnded));
-        ModSupport.Patch(HarmonyInstance, typeof(PursuitBehaviour), "Disable", self, postfix: nameof(PursuitEnded));
-        ModSupport.Patch(HarmonyInstance, typeof(PoliceOfficer), "Deactivate", self, prefix: nameof(OfficerLeaving));
-        RivalGang.Initialize(config, HarmonyInstance);
+        ModSupport.Patch(harmony, typeof(PursuitBehaviour), "UpdateArrest", self, prefix: nameof(ArrestTick));
+        ModSupport.Patch(harmony, typeof(PursuitBehaviour), "EndCombat", self, postfix: nameof(PursuitEnded));
+        ModSupport.Patch(harmony, typeof(PursuitBehaviour), "Disable", self, postfix: nameof(PursuitEnded));
+        ModSupport.Patch(harmony, typeof(PoliceOfficer), "Deactivate", self, prefix: nameof(OfficerLeaving));
+#if !COMBINED_POLICE
+        RivalGang.Initialize(config, harmony);
+#endif
     }
 
+    private static MelonPreferences_Entry<T> Setting<T>(MelonPreferences_Category category, string name, T value, string description)
+    {
+#if COMBINED_POLICE
+        return ModSupport.MigratedEntry(category, name, value, description, "PersonalBetterPolice");
+#else
+        return ModSupport.Entry(category, name, value, description);
+#endif
+    }
     private static float Bound(float value, float minimum, float maximum, float fallback)
         => float.IsFinite(value) ? Math.Clamp(value, minimum, maximum) : fallback;
 

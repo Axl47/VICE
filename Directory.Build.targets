@@ -6,7 +6,7 @@
     <Reference Include="$(LoaderDir)\Il2CppInterop.Runtime.dll"><Private>false</Private></Reference>
     <Reference Include="$(LoaderDir)\Il2CppInterop.Common.dll"><Private>false</Private></Reference>
     <Reference Include="$(LoaderDir)\UnityEngine.Il2CppAssetBundleManager.dll"><Private>false</Private></Reference>
-    <Compile Include="$(MSBuildThisFileDirectory)src\Shared\*.cs" Link="Shared\%(Filename)%(Extension)" />
+    <Compile Include="$(MSBuildThisFileDirectory)src\Shared\*.cs" Link="Shared\%(Filename)%(Extension)" Condition="'$(UseViceCore)' != 'true'" />
   </ItemGroup>
   <Target Name="CheckGameReferences" BeforeTargets="ResolveReferences" Condition="'$(IsGameMod)' == 'true'">
     <Error Condition="!Exists('$(InteropDir)\Assembly-CSharp.dll')" Text="Launch the IL2CPP beta with MelonLoader once to generate Assembly-CSharp.dll, then set GameDir if needed." />

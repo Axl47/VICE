@@ -1,6 +1,7 @@
 param(
     [string]$GameDir = 'C:\Program Files (x86)\Steam\steamapps\common\Schedule I',
-    [string]$SourceDir = ''
+    [string]$SourceDir = '',
+    [string[]]$ExcludeFiles = @()
 )
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path $PSScriptRoot -Parent
@@ -57,7 +58,7 @@ function Is-ReviewedAlias($key, $aliases) {
 $assembly = [Mono.Cecil.AssemblyDefinition]::ReadAssembly((Join-Path $GameDir 'MelonLoader\Il2CppAssemblies\Assembly-CSharp.dll'))
 try {
     $count = 0; $reviewed = [Collections.Generic.HashSet[string]]::new()
-    $sources = Get-ChildItem -LiteralPath $SourceDir -Recurse -Filter '*.cs' | Where-Object { $_.FullName -notmatch '\\(obj|bin)\\' }
+    $sources = Get-ChildItem -LiteralPath $SourceDir -Recurse -Filter '*.cs' | Where-Object { $_.FullName -notmatch '\\(obj|bin)\\' -and $_.Name -notin $ExcludeFiles }
     foreach ($file in $sources) {
         $source = Get-Content -LiteralPath $file.FullName -Raw
         foreach ($match in [regex]::Matches($source, 'ModSupport\.Patch\([^,]+,\s*typeof\(([^)]+)\),\s*"([^"]+)"')) {

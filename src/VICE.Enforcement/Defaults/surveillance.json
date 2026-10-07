@@ -1,0 +1,13 @@
+{
+  "UseUnidirectionalCameras": true,
+  "UseOmnidirectionalCameras": true,
+  "SurveilCrimeStatus": true,
+  "SurveilBaseCrimes": true,
+  "ActiveCamerasPerDay": 5,
+  "CameraActivationRange": 20,
+  "CameraNoticeSpeed": 2,
+  "CameraNoticeCooldown": 30,
+  "PayFinesFromBank": true,
+  "GrowPaymentsWithProgression": true,
+  "CrimePaymentMultiplier": 1
+}

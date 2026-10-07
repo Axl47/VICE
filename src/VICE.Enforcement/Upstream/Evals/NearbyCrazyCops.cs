@@ -1,0 +1,130 @@
+using System.Collections;
+using MelonLoader;
+using UnityEngine;
+
+using static NACops.BaseUtility;
+using static NACops.NACops;
+using static NACops.DebugModule;
+
+#if MONO
+using ScheduleOne.GameTime;
+using ScheduleOne.Money;
+using ScheduleOne.PlayerScripts;
+using ScheduleOne.Police;
+using ScheduleOne.VoiceOver;
+using ScheduleOne.DevUtilities;
+#else
+using Il2CppScheduleOne.GameTime;
+using Il2CppScheduleOne.Money;
+using Il2CppScheduleOne.PlayerScripts;
+using Il2CppScheduleOne.Police;
+using Il2CppScheduleOne.VoiceOver;
+using Il2CppScheduleOne.DevUtilities;
+#endif
+
+namespace NACops
+{
+
+    public static class NearbyCrazyCops
+    {
+        private static float minWait;
+        private static float maxWait;
+
+        private static float minRange;
+        private static float maxRange;
+
+        private static List<WaitForSeconds> randWaits;
+        private static WaitForSeconds currentAwait;
+
+        public static IEnumerator RunNearbyCrazyCops()
+        {
+            if (!networkManager.IsServer) yield break;
+
+            Log("Nearby Crazy Cop Starting");
+            (minWait, maxWait) = ThresholdUtils.Evaluate(thresholdConfig.NearbyCrazyFrequency, NetworkSingleton<TimeManager>.Instance.ElapsedDays);
+            randWaits = new()
+            {
+                new WaitForSeconds(UnityEngine.Random.Range(minWait, maxWait)),
+                new WaitForSeconds(UnityEngine.Random.Range(minWait, maxWait)),
+                new WaitForSeconds(UnityEngine.Random.Range(minWait, maxWait)),
+            };
+
+            for (; ; )
+            {
+                currentAwait = randWaits[UnityEngine.Random.Range(0, randWaits.Count)];
+                yield return currentAwait;
+                if (!registered) yield break;
+                if (!currentConfig.NearbyCrazyCops) continue;
+
+                Log("Nearby Crazy Cop Evaluate");
+                Player[] players = UnityEngine.Object.FindObjectsOfType<Player>(true);
+
+                // if threshold has changed update awaits now
+                float newMin;
+                float newMax;
+                (newMin, newMax) = ThresholdUtils.Evaluate(thresholdConfig.NearbyCrazyFrequency, NetworkSingleton<TimeManager>.Instance.ElapsedDays);
+                if (newMin != minWait || newMax != maxWait)
+                {
+                    randWaits.Clear();
+                    for (int i = 0; i < 3; i++)
+                        randWaits.Add(new WaitForSeconds(UnityEngine.Random.Range(newMin, newMax)));
+                }
+
+                (minRange, maxRange) = ThresholdUtils.Evaluate(thresholdConfig.NearbyCrazyRange, (int)MoneyManager.Instance.LifetimeEarnings);
+                float minDistance = UnityEngine.Random.Range(minRange, maxRange);
+
+                foreach (Player player in Player.PlayerList)
+                {
+                    player.CrimeData.CheckNearestOfficer();
+                    PoliceOfficer officer = player.CrimeData.NearestActivePoliceOfficer;
+                    if (officer == null) continue;
+                    if (!CanProceed(officer, player, minDistance, ignoreVehicle:true)) continue;
+
+                    if (officer.IsInVehicle && player.IsInVehicle)
+                    {
+                        officer.VehiclePursuitBehaviour.AssignTarget(player);
+                        officer.VehiclePursuitBehaviour.beginAsSighted = true;
+                        officer.VehiclePursuitBehaviour.Activate();
+                    }
+                    else if (!officer.IsInVehicle && !player.IsInVehicle)
+                    {
+                        coros.Add(MelonCoroutines.Start(GreedyBodySearchFind(officer, player, minDistance)));
+                    }
+                    break;
+                }
+            }
+        }
+
+        public static IEnumerator GreedyBodySearchFind(PoliceOfficer officer, Player player, float minDistance)
+        {
+            officer.ChatterVO.Play(EVOLineType.PoliceChatter);
+            officer.Movement.FacePoint(player.transform.position, lerpTime: 0.4f);
+            GUIDInUse.Add(officer.BakedGUID);
+
+            yield return Wait05;
+            if (!registered) yield break;
+
+            if (officer.Awareness.VisionCone.IsPlayerVisible(player) && !player.CrimeData.BodySearchPending)
+            {
+                Log("Begin bodysearch nearby crazy");
+                officer.BeginBodySearch(player.PlayerCode);
+                if (UnityEngine.Random.Range(0f, 1f) > 0.8f)
+                    coros.Add(MelonCoroutines.Start(GiveFalseCharges(severity: 2, player: player)));
+
+                if (GUIDInUse.Contains(officer.BakedGUID))
+                    GUIDInUse.Remove(officer.BakedGUID);
+                yield break;
+            }
+
+            officer.Movement.GetClosestReachablePoint(player.CenterPointTransform.position, out Vector3 pos);
+            if (pos != Vector3.zero && officer.Movement.CanMove && officer.Movement.CanGetTo(pos))
+                officer.Movement.SetDestination(pos);
+
+            if (GUIDInUse.Contains(officer.BakedGUID))
+                GUIDInUse.Remove(officer.BakedGUID);
+            yield break;
+        }
+
+    }
+   
+}

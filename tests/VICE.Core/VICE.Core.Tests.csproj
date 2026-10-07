@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\src\VICE.Core\SubscriptionScope.cs" Link="SubscriptionScope.cs" />
+    <Compile Include="..\..\src\VICE.Core\DefaultFiles.cs" Link="DefaultFiles.cs" />
+    <EmbeddedResource Include="Fixtures\*.json"><LogicalName>TestDefaults/%(Filename)%(Extension)</LogicalName></EmbeddedResource>
+  </ItemGroup>
+</Project>

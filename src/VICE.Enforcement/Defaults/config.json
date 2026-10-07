@@ -1,0 +1,19 @@
+{
+  "DebugMode": false,
+  "RaidsEnabled": true,
+  "ExtraOfficerPatrols": true,
+  "ExtraVehiclePatrols": true,
+  "ExtraOfficerSentries": true,
+  "CheckpointsEnabled": true,
+  "NoOpenCarryWeapons": true,
+  "PrivateInvestigator": true,
+  "WeedInvestigator": true,
+  "CorruptCops": true,
+  "SnitchingSamples": true,
+  "BuyBusts": true,
+  "MassSurveillance": true,
+  "NearbyCrazyCops": true,
+  "LethalCops": false,
+  "RacistCops": false,
+  "Enabled": true
+}

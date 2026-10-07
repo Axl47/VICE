@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>VICE.Core</AssemblyName>
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="$(LoaderDir)\MelonLoader.dll"><Private>false</Private></Reference>
+    <Reference Include="$(LoaderDir)\0Harmony.dll"><Private>false</Private></Reference>
+  </ItemGroup>
+</Project>

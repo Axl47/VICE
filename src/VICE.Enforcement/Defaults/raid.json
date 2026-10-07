@@ -1,0 +1,10 @@
+{
+  "TraverseToPropertySpeed": 0.47,
+  "ClearPropertySpeed": 0.38,
+  "MaxDestroyIters": 4,
+  "RaidCopsCount": 3,
+  "DaysUntilCanRaid": 8,
+  "PropertyHeatThreshold": 14,
+  "RaiderMaxHealth": 240.0,
+  "RaiderWeaponDmg": 65.0
+}
