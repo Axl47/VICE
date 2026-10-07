@@ -16,7 +16,6 @@ internal static class ShaderCheck
         Texture2D? input = null, readback = null;
         RenderTexture? source = null, target = null;
         var previous = RenderTexture.active;
-        var flip = Shader.GetGlobalFloat("_FlipY");
         var blit = Shader.GetGlobalTexture("_BlitTexture");
         try
         {
@@ -44,7 +43,7 @@ internal static class ShaderCheck
             {
                 material.SetFloat("_Blend", pixels / height);
                 material.SetFloat("_Amplitude", seconds);
-                SurfaceRipples.Draw(material, source, target, width, height, 0);
+                SurfaceRipples.Draw(material, source, target, width, height);
                 RenderTexture.active = target;
                 readback.ReadPixels(new Rect(0, 0, width, height), 0, 0, false); readback.Apply(false, false);
                 return readback.GetPixels32().ToArray();
@@ -57,21 +56,26 @@ internal static class ShaderCheck
                 throw new InvalidOperationException($"The normal shader draw changed {identityErrors} pixels at zero strength.");
             var first = Render(5.4f, 0);
             var second = Render(5.4f, 2.4f);
-            var changed = 0; var moving = 0;
+            var changed = 0; var moving = 0; var outerMoving = 0;
             for (var i = 0; i < baseline.Length; i++)
             {
                 bool Different(Color32 a, Color32 b) => Math.Abs(a.r - b.r) + Math.Abs(a.g - b.g) + Math.Abs(a.b - b.b) > 3;
                 if (Different(baseline[i], second[i])) changed++;
-                if (Different(first[i], second[i])) moving++;
+                if (Different(first[i], second[i]))
+                {
+                    moving++;
+                    var x = i % width; var y = i / width;
+                    if (x < width / 4 || x >= width * 3 / 4 || y < height / 4 || y >= height * 3 / 4) outerMoving++;
+                }
             }
-            if (changed < 1000 || moving < 1000) throw new InvalidOperationException($"Authored draw check failed: changed {changed}, moving {moving}.");
-            MelonLoader.MelonLogger.Msg($"LSD authored draw flow check PASSED: {identityErrors} identity errors, {changed} changed pixels, {moving} time-varying pixels at 1280x720/default bound, gaze mask disabled.");
+            if (changed < 1000 || moving < 1000 || outerMoving < 1000) throw new InvalidOperationException($"Authored draw check failed: changed {changed}, moving {moving}, outer motion {outerMoving}.");
+            MelonLoader.MelonLogger.Msg($"LSD authored draw flow check PASSED: {identityErrors} identity errors, {changed} changed pixels, {moving} time-varying pixels ({outerMoving} outside center) at 1280x720/default bound, gaze mask disabled.");
         }
         catch (Exception error) { ModSupport.WarnOnce("lsd:shader-check", error.GetBaseException().ToString()); }
         finally
         {
             RenderTexture.active = previous;
-            Shader.SetGlobalFloat("_FlipY", flip); Shader.SetGlobalTexture("_BlitTexture", blit);
+            Shader.SetGlobalTexture("_BlitTexture", blit);
             if (source) { source!.Release(); Object.Destroy(source); }
             if (target) { target!.Release(); Object.Destroy(target); }
             if (readback) Object.Destroy(readback);

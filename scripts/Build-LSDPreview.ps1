@@ -76,6 +76,14 @@ try {
     if ($flowCalls | Where-Object { $_.DeclaringType.FullName -eq 'UnityEngine.Rendering.RenderPipelineManager' }) {
         throw 'Normal flow must use the completed-frame coroutine rather than the removed render-event experiment.'
     }
+    if ($flowCalls | Where-Object { $_.DeclaringType.FullName -eq 'UnityEngine.Shader' -and $_.Name -eq 'SetGlobalFloat' }) {
+        throw 'Flow orientation must not depend on the shared camera-global _FlipY.'
+    }
+    $presentMethod = $flowType.Methods | Where-Object { $_.Name -eq 'Present' }
+    $presentCalls = @($presentMethod.Body.Instructions | ForEach-Object { $_.Operand } | Where-Object { $_ -is [Mono.Cecil.MethodReference] })
+    if (-not ($presentCalls | Where-Object { $_.DeclaringType.FullName -eq 'UnityEngine.Graphics' -and $_.Name -eq 'Blit' -and $_.Parameters.Count -eq 4 })) {
+        throw 'The screen-capture presentation needs its explicit texture-origin correction.'
+    }
     $frameIterator = $previewType.NestedTypes | Where-Object { $_.Name -like '*RenderCompletedFrames*' }
     $iteratorCalls = @($frameIterator.Methods | Where-Object { $_.HasBody } | ForEach-Object { $_.Body.Instructions } |
         ForEach-Object { $_.Operand } | Where-Object { $_ -is [Mono.Cecil.MethodReference] })
@@ -109,7 +117,7 @@ try {
     Write-Output 'Checked completed-frame flow: end-of-frame coroutine, GPU capture, explicit material binding and screen draw; no render-event dependency.'
 } finally { $definition.Dispose() }
 
-$packageRoot = Join-Path $repoRoot 'artifacts\LSDPreview-0.10.0'
+$packageRoot = Join-Path $repoRoot 'artifacts\LSDPreview-0.10.1'
 $modsDirectory = Join-Path $packageRoot 'Mods'
 New-Item -ItemType Directory -Path $modsDirectory -Force | Out-Null
 $dll = Join-Path $modsDirectory 'Personal.LSDPreview.dll'
@@ -122,6 +130,6 @@ foreach ($entry in @(@{ Path = $dll; Name = 'Mods/Personal.LSDPreview.dll' }, @{
     $hashLines += (Get-FileHash -LiteralPath $entry.Path -Algorithm SHA256).Hash.ToLowerInvariant() + '  ' + $entry.Name
 }
 Set-Content -LiteralPath $hashFile -Value $hashLines -Encoding utf8
-$zip = Join-Path $repoRoot 'artifacts\LSDPreview-0.10.0.zip'
+$zip = Join-Path $repoRoot 'artifacts\LSDPreview-0.10.1.zip'
 Compress-Archive -LiteralPath $modsDirectory, $guide, $hashFile -DestinationPath $zip -Force
 Write-Output "Built and checked the separate LSD preview: $zip"

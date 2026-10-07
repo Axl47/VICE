@@ -6,14 +6,14 @@ using Object = UnityEngine.Object;
 
 namespace PersonalMods.LSDPreview;
 
-// Warp the completed frame with the verified authored shader. A clear-center
-// mask and an early camera-color target no longer suppress the visible result.
+// Warp a completed-frame capture into an owned texture, then let Unity's
+// ordinary blit present it. The shader never draws directly to the backbuffer.
 internal sealed class SurfaceRipples : IDisposable
 {
     private readonly Camera Camera;
     private Il2CppAssetBundle? Bundle;
     private Material? Material;
-    private RenderTexture? Capture;
+    private RenderTexture? Capture, Warped;
     private float Pixels, Elapsed;
     private int Width, Height;
     private bool Disposed, Faulted, Reported;
@@ -58,20 +58,21 @@ internal sealed class SurfaceRipples : IDisposable
                 ReleaseCapture();
                 Width = Screen.width;
                 Height = Screen.height;
-                Capture = new RenderTexture(Width, Height, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Default)
-                { name = "Personal LSD completed frame", hideFlags = HideFlags.DontSave, filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp };
-                if (!Capture.Create()) throw new InvalidOperationException("The completed-frame texture could not be created.");
+                if ((long)Width * Height > 16777216) throw new InvalidOperationException("Screen dimensions exceed the flow texture budget.");
+                Capture = MakeTexture("Personal LSD completed frame");
+                Warped = MakeTexture("Personal LSD warped frame");
             }
             ScreenCapture.CaptureScreenshotIntoRenderTexture(Capture);
             Material.SetFloat("_NoiseScale", Width / (float)Height);
             Material.SetFloat("_Blend", Pixels / Height);
             Material.SetFloat("_Amplitude", Elapsed);
             Material.SetFloat("_DoesBounce", 0);
-            Draw(Material, Capture!, null, Width, Height, SystemInfo.graphicsUVStartsAtTop ? 1 : 0);
+            Draw(Material, Capture!, Warped!, Width, Height);
+            Present(Warped!);
             if (!Reported && Elapsed >= 10)
             {
                 Reported = true;
-                MelonLoader.MelonLogger.Msg($"LSD completed-frame flow rendered: {Width}x{Height}, bound {Pixels:F2}px, elapsed {Elapsed:F2}s, gaze mask off; radial breathing and flowing detail share the final image.");
+                MelonLoader.MelonLogger.Msg($"LSD completed-frame flow rendered: {Width}x{Height}, bound {Pixels:F2}px, elapsed {Elapsed:F2}s, gaze mask off; uneven flow/ripples, native screen presentation.");
             }
         }
         catch (Exception error)
@@ -81,37 +82,58 @@ internal sealed class SurfaceRipples : IDisposable
         }
     }
 
-    // The offscreen diagnostic calls this same binding/draw path. A null
-    // destination means the actual screen, after all cameras and UI rendered.
-    internal static void Draw(Material material, Texture source, RenderTexture? destination, int width, int height, float flip)
+    private RenderTexture MakeTexture(string name)
     {
-        var previousFlip = Shader.GetGlobalFloat("_FlipY");
+        var target = new RenderTexture(Width, Height, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Default)
+        { name = name, hideFlags = HideFlags.DontSave, filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp };
+        if (!target.Create()) { Object.Destroy(target); throw new InvalidOperationException("The completed-frame texture could not be created."); }
+        return target;
+    }
+
+    // Both runtime and offscreen diagnostics use this texture-to-texture draw.
+    internal static void Draw(Material material, Texture source, RenderTexture destination, int width, int height)
+    {
         var previousTexture = Shader.GetGlobalTexture("_BlitTexture");
         var previousTarget = RenderTexture.active;
         var previousSrgb = GL.sRGBWrite;
         try
         {
-            Graphics.SetRenderTarget(destination!);
+            Graphics.SetRenderTarget(destination);
             GL.Viewport(new Rect(0, 0, width, height));
-            GL.sRGBWrite = destination ? destination!.sRGB : QualitySettings.activeColorSpace == ColorSpace.Linear;
-            Shader.SetGlobalFloat("_FlipY", flip);
+            GL.sRGBWrite = destination.sRGB;
             Shader.SetGlobalTexture("_BlitTexture", source);
             if (!material.SetPass(0)) throw new InvalidOperationException("The completed-frame shader pass could not be bound.");
             Graphics.DrawProceduralNow(MeshTopology.Triangles, 3, 1);
         }
         finally
         {
-            Shader.SetGlobalFloat("_FlipY", previousFlip);
             Shader.SetGlobalTexture("_BlitTexture", previousTexture);
             GL.sRGBWrite = previousSrgb;
             RenderTexture.active = previousTarget;
         }
     }
 
+    internal static void Present(RenderTexture source)
+    {
+        var previous = RenderTexture.active;
+        var previousSrgb = GL.sRGBWrite;
+        try
+        {
+            GL.sRGBWrite = QualitySettings.activeColorSpace == ColorSpace.Linear;
+            // A screen capture has top-origin rows on Direct3D. Correct this
+            // at presentation once, independently of camera-global state.
+            if (SystemInfo.graphicsUVStartsAtTop)
+                Graphics.Blit(source, (RenderTexture)null!, new Vector2(1, -1), new Vector2(0, 1));
+            else Graphics.Blit(source, (RenderTexture)null!);
+        }
+        finally { GL.sRGBWrite = previousSrgb; RenderTexture.active = previous; }
+    }
+
     private void ReleaseCapture()
     {
         if (Capture) { Capture!.Release(); Object.Destroy(Capture); }
-        Capture = null;
+        if (Warped) { Warped!.Release(); Object.Destroy(Warped); }
+        Capture = Warped = null;
     }
 
     public void Dispose()

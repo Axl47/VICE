@@ -1,14 +1,16 @@
-# LSD visual preview 0.10.0
+# LSD visual preview 0.10.1
 
 This is a separate manual visual/audio experiment. It registers no product and changes no production, sales or save data. **F8** starts a three-minute preview or requests a short fade-out. **F9** immediately clears it.
 
 ## What changed
 
-The 0.9.0 playtest still showed little visible breathing or audible echo, despite positive material/source logs. Those logs did not establish what reached the display or speakers. This revision checks the final paths and fixes character sizing.
+The 0.10.0 playtest confirmed the direct audio echo and character sizing, but the completed screen was upside down and local ripples were difficult to see. This revision repairs screen presentation and reallocates the existing displacement budget toward uneven flow and small ripples. The confirmed audio implementation and settings are unchanged.
 
 ### Completed-frame breathing and ripples
 
-Flow now captures the completed rendered frame on the GPU and draws the authored flowing shader onto the final screen image. It no longer depends on an early camera-color target or the experimental gaze mask. The same slight radial expansion/contraction and flowing detail reach the whole image, including the phone when present in that frame. The center naturally moves less during radial breathing, while small flowing offsets remain possible there. This preserves phone layout and input targets; graphics move by only a few pixels at normal strength.
+Flow captures the completed rendered frame on the GPU, warps it into a second owned texture with explicit texture coordinates, and presents it with Unity's ordinary texture blit. Presentation explicitly reverses the captured texture's top-origin rows on Direct3D, once. The custom shader no longer draws directly to the backbuffer or reads the camera-global `_FlipY`. This separates texture processing from screen presentation. The frame includes the phone when present; its layout and input targets remain intact.
+
+The previous shader devoted 65% of its displacement budget to uniform radial breathing. The new field uses 70% uneven broad/detail flow, 20% small ripples around a slowly drifting origin, and 10% gentle radial breathing. Both horizontal and vertical texture details move across the image. These proportions sum to one and each field is bounded, preserving the existing pixel limit. They do not add visible geometric overlays or change scene materials. The separate, approved native zoom-like breathing is retained.
 
 At stationary default settings (`Intensity=0.60`, `RippleStrength=0.30`, `MotionStrength=0.50`), the flow's maximum vector displacement varies between **3.78 and 5.4 pixels**. The absolute flow bound remains 18 pixels. The bound is an upper limit, not the displacement at every pixel. Normal strength remains 30% of the corresponding full ripple range. `CenterClarityDegrees` is retained for compatibility and future experiments but does not mask the default path.
 
@@ -32,7 +34,7 @@ Only rendering geometry is copied. NPC logic, collisions, audio, particles, aura
 
 ## Install and use
 
-1. Close the game and replace only `Mods/Personal.LSDPreview.dll` from `LSDPreview-0.10.0.zip`. Keep backups outside `Mods`.
+1. Close the game and replace only `Mods/Personal.LSDPreview.dll` from `LSDPreview-0.10.1.zip`. Keep backups outside `Mods`.
 2. Restart, load a save and press F8. Allow roughly 30 seconds for the rising phase to reach its peak.
 3. Stand still near a shop wall, window frame or sign and watch several breathing cycles. Then compare F9. Test music at the gas station/shop and footsteps on a quiet street.
 4. Open the phone, talk to an NPC, move and ride. Effects continue while gameplay runs; only a real pause suspends them. Loading, death, unconsciousness, player/product replacement or scene cleanup clears the preview.
@@ -61,7 +63,7 @@ The completed-frame vision pass also affects the phone's rendered image; `PhoneE
 
 ## Resources and build
 
-Normal flow uses one full-resolution GPU capture and an owned material, drawn from a `WaitForEndOfFrame` coroutine after cameras and UI have rendered. It performs no CPU image readback, tile/material scan or texture-pattern projection. The source frame is rendered fresh before each capture, so the warp does not feed itself back. Captures resize with the screen; the coroutine exits and textures/materials are released on cleanup. GPU cost in the loaded city remains a playtest measurement.
+Normal flow uses two full-resolution GPU textures (capture and warped output) and an owned material, drawn from a `WaitForEndOfFrame` coroutine after cameras and UI have rendered. It performs no CPU image readback, tile/material scan or texture-pattern projection. The source frame is rendered fresh before each capture, so the warp does not feed itself back. Textures resize with the screen; the coroutine exits and textures/materials are released on cleanup. The extra GPU texture/copy replaces the direct backbuffer draw. GPU cost in the loaded city remains a playtest measurement.
 
 Afterimages retain three bounded history images and corrected vertical sampling. Phone colors/glyph effects retain bounded trackers and restore values only while still owned. Color and outline effects use an owned Volume profile. No native meshes or source materials are modified by the character snapshots.
 
@@ -71,11 +73,11 @@ The build compiles against installed IL2CPP assemblies with warnings treated as 
 
 ## Verification and playtest
 
-Normal startup must reach Menu and log the scene-loaded/main-loop heartbeat without starting effects. Explicit `--lsd-render-check` tests the normal shader binding/draw method against a controlled offscreen image, then compares the actual screen before/after drawing, including zero-strength identity. The screen check needs a visible game window: the hidden launch produced an empty capture and cannot establish visible motion. Explicit `--lsd-audio-check` sends two short owned diagnostic tones through the original music bus, first with echo off and then at default strength. It measures the delayed signal in final listener output and verifies original routing restoration. When both flags are supplied, the image check finishes before audio sampling begins. Normal launches run neither diagnostic; no save is loaded by either check.
+Normal startup must reach Menu and log the scene-loaded/main-loop heartbeat without starting effects. Explicit `--lsd-render-check` tests the normal shader binding/draw method against a controlled offscreen image, including motion outside the central half of the screen. It then compares the actual screen before/after drawing through two identical screenshot captures, including zero-strength identity. The former comparison between a captured texture and direct backbuffer `ReadPixels` mixed coordinate conventions and missed the visible flip; its orientation result is superseded. The screen check needs a visible game window: a hidden launch cannot establish visible motion. Explicit `--lsd-audio-check` sends two short owned diagnostic tones through the original music bus, first with echo off and then at default strength. It measures the delayed signal in final listener output and verifies original routing restoration. When both flags are supplied, the image check finishes before audio sampling begins. Normal launches run neither diagnostic; no save is loaded by either check.
 
-The visible menu check on October 6 at 20:40 passed with **zero changed pixels at zero strength**, then **706,052 of 3,686,400 final-screen pixels changed at default strength**. The same draw method also passed the controlled 1280×720 image test with zero identity errors and 320,363 pixels varying with animation time. These establish an actual screen draw, correct orientation/color at zero strength and animated shader output; city appearance and GPU cost still need a gameplay comparison.
+The visible 0.10.1 menu check on October 6 at 21:26 passed with **zero changed pixels at zero strength** using identical before/after screenshot captures, then **32,978 changed final-screen pixels at default strength**. The controlled 1280×720 test also passed with zero identity errors and 258,948 pixels varying with animation time, including **199,843 outside the central half-width/half-height rectangle**. This verifies the corrected presentation and local motion away from the center. City appearance and GPU cost remain gameplay checks.
 
-The following default-strength final-listener check measured nearly identical dry tone amplitudes (`0.088909`/`0.088941`) and a 220 ms tail rising from `0.000357` with echo off to `0.018971` with echo on. All three original audio output routes were restored. This establishes a delayed signal in the final mix, beyond the earlier copied-source probes. Sound quality and its balance against the particular shop track still need a gameplay comparison.
+The unchanged 0.10.0 audio implementation's default-strength final-listener check measured nearly identical dry tone amplitudes (`0.088909`/`0.088941`) and a 220 ms tail rising from `0.000357` with echo off to `0.018971` with echo on. All three original audio output routes were restored. The owner's subsequent gameplay report confirmed that the echo is audible and the current audio direction works well. No audio sources, mixer settings or echo code changed in 0.10.1.
 
 Loaded-save appearance remains a manual check: watch a stationary wall/sign, look at an NPC face, open the phone, then move/turn/ride and compare F9. Check that figures resemble adult NPC size, motion stays subtle, text/controls remain usable, colors do not become patchy and cleanup is immediate. Inspect the `LSD completed-frame flow rendered`, `LSD direct bus echo` and `LSD character size` lines if a layer is missing. Repeated F8/F9, pause/mute/resume, screen resizing and scene changes should not accumulate resources or effects.
 

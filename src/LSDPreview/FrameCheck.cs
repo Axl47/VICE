@@ -9,6 +9,7 @@ namespace PersonalMods.LSDPreview;
 internal sealed class FrameCheck : IDisposable
 {
     private SurfaceRipples? Flow;
+    private RenderTexture? After;
     private Texture2D? Readback;
     private int Phase, Frames;
     private float Started = Time.realtimeSinceStartup;
@@ -44,9 +45,14 @@ internal sealed class FrameCheck : IDisposable
             if (!Readback)
             {
                 Readback = new Texture2D(before.width, before.height, TextureFormat.RGBA32, false);
+                After = new RenderTexture(before.width, before.height, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Default);
+                if (!After.Create()) throw new InvalidOperationException("The final-frame comparison capture could not be created.");
             }
+            // Use identical capture APIs for both images. Direct screen
+            // ReadPixels has a different origin and hid the previous flip.
+            ScreenCapture.CaptureScreenshotIntoRenderTexture(After!);
             var previous = RenderTexture.active;
-            Color32[] Read(RenderTexture? target)
+            Color32[] Read(RenderTexture target)
             {
                 RenderTexture.active = target;
                 Readback!.ReadPixels(new Rect(0, 0, before.width, before.height), 0, 0, false);
@@ -54,7 +60,7 @@ internal sealed class FrameCheck : IDisposable
                 return Readback.GetPixels32().ToArray();
             }
             Color32[] first, second;
-            try { first = Read(before); second = Read(null); }
+            try { first = Read(before); second = Read(After!); }
             finally { RenderTexture.active = previous; }
             var changed = 0;
             for (var i = 0; i < first.Length; i++)
@@ -65,7 +71,7 @@ internal sealed class FrameCheck : IDisposable
                 MelonLoader.MelonLogger.Msg($"LSD completed-frame capture: {visible}/{first.Length} nonblack pixels.");
                 if (visible < 1000) throw new InvalidOperationException("The completed-frame input contains no visible screen image.");
                 MelonLoader.MelonLogger.Msg($"LSD completed-frame identity check: {changed}/{first.Length} changed pixels at zero displacement.");
-                if (changed > first.Length / 100) throw new InvalidOperationException("The completed-frame pass changed orientation or color at zero strength.");
+                if (changed > Math.Max(64, visible / 1000)) throw new InvalidOperationException("The completed-frame pass changed orientation or color at zero strength.");
                 Phase = 1; Frames = 0;
             }
             else
@@ -83,7 +89,8 @@ internal sealed class FrameCheck : IDisposable
         if (Disposed) return;
         Disposed = true;
         Flow?.Dispose(); Flow = null;
+        if (After) { After!.Release(); Object.Destroy(After); }
         if (Readback) Object.Destroy(Readback);
-        Readback = null;
+        After = null; Readback = null;
     }
 }
