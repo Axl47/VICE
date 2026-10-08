@@ -2,7 +2,7 @@
   <PropertyGroup>
     <IsGameMod>true</IsGameMod><UseViceCore>true</UseViceCore>
     <AssemblyName>VICE.Commerce</AssemblyName><RootNamespace>VICE.Commerce</RootNamespace>
-    <Version>0.1.0</Version><Authors>Axl47</Authors>
+    <Version>0.1.1</Version><Authors>Axl47</Authors>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../VICE.Core/VICE.Core.csproj" />

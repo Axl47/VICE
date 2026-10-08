@@ -24,7 +24,8 @@ internal sealed class PurchasingFeature
         var category = MelonPreferences.CreateCategory("PersonalGasPurchases");
         Enabled = ModSupport.Entry(category, "Enabled", true, "Show saved shopping lists in both gas-marts.");
         RememberLast = ModSupport.Entry(category, "RememberLastPurchase", true, "Remember the last successfully completed gas-mart purchase.");
-        Orders = new SavedOrders(Path.Combine(MelonEnvironment.UserDataDirectory, "PersonalGasPurchases", "orders.json"));
+        var data = VICE.Core.UserDataFolders.Prepare(MelonEnvironment.UserDataDirectory, "Commerce", "Purchasing", "PersonalGasPurchases", "PersonalGuestPurchases");
+        Orders = new SavedOrders(Path.Combine(data, "orders.json"));
         if (Orders.ReadError is not null) MelonLogger.Warning($"Saved orders could not be read: {Orders.ReadError}");
         var self = typeof(PurchasingFeature);
         ModSupport.Patch(harmony, typeof(ShopInterface), "Open", self, postfix: nameof(ShopOpened));

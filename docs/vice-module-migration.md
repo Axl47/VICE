@@ -1,8 +1,8 @@
 # VICE module migration
 
-Commerce, Arsenal, Lifestyle, and Interface each replace their personal predecessor DLLs with one MelonLoader entry point. Gameplay settings, custom item IDs, embedded weapon resource names, saved shopping lists, and TV state/media locations retain their existing identities.
+Commerce, Arsenal, Lifestyle, and Interface each replace their personal predecessor DLLs with one MelonLoader entry point. Gameplay settings, custom item IDs, embedded weapon resource names, saved shopping lists, and TV save-state identities are preserved. Commerce 0.1.1 and Lifestyle 0.1.2 move their personal user-data folders into the [shared VICE folder structure](vice-user-data.md).
 
-VICE Lifestyle 0.1.1 adds [on-demand multiplayer sharing of local TV videos](vice-lifestyle-video-sharing.md). Selecting an MP4 shares metadata; Play transfers that file through the host and waits for connected peers before starting playback. All peers must update Lifestyle together. The separate Personal.TV implementation retains its original behavior.
+VICE Lifestyle adds [on-demand multiplayer sharing of local TV videos](vice-lifestyle-video-sharing.md). Selecting an MP4 shares metadata; Play transfers that file through the host and waits for connected peers before starting playback. All peers must update Lifestyle together. The separate Personal.TV implementation retains its original behavior.
 
 | Module | Feature code | Predecessors |
 | --- | --- | --- |
@@ -29,7 +29,7 @@ Core remains independent of Unity/game-specific UI and item types. Weapon code, 
 
 `tests/VICE.Modules` inspects the built DLLs with Cecil. It verifies one Melon entry point per DLL, ordinary feature classes, the Core dependency, the absence of embedded personal support helpers or legacy assembly dependencies, expected lifecycle forwarding, hook teardown, and the weapon resource lookup. It also exercises Core's predecessor detection in an isolated test process.
 
-The installer fixture checks selective and full migration, retained police/syndicate/LSD/S1API files, preserved shopping/media data, installed hashes, and rejection of a corrupt package before any installation changes. Fixtures and DLL backups remain under ignored `artifacts` directories.
+The installer fixture checks selective and full DLL migration, retained police/syndicate/LSD/S1API files, preserved shopping/media data, installed hashes, and rejection of a corrupt package before any installation changes. Feature data migrates on module initialization; `tests/VICE.Core` covers folder moves, merges, collision preservation and repeated initialization. Fixtures and DLL backups remain under ignored `artifacts` directories.
 
 Compile/metadata checks do not execute Harmony in the game. Check the four modules on a copied save after installing: use each feature, leave and reload the save, and watch for duplicate events or missing custom items. TV multiplayer, perceived audio/video behavior, and live Relay remain separate playtests.
 

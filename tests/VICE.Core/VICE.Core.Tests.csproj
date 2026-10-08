@@ -3,6 +3,7 @@
   <ItemGroup>
     <Compile Include="..\..\src\VICE.Core\SubscriptionScope.cs" Link="SubscriptionScope.cs" />
     <Compile Include="..\..\src\VICE.Core\DefaultFiles.cs" Link="DefaultFiles.cs" />
+    <Compile Include="..\..\src\VICE.Core\UserDataFolders.cs" Link="UserDataFolders.cs" />
     <EmbeddedResource Include="Fixtures\*.json"><LogicalName>TestDefaults/%(Filename)%(Extension)</LogicalName></EmbeddedResource>
   </ItemGroup>
 </Project>

@@ -4,7 +4,7 @@ using VICE.Commerce.Trading;
 using VICE.Commerce.Warehouse;
 using VICE.Core;
 
-[assembly: MelonInfo(typeof(VICE.Commerce.CommerceMod), "VICE Commerce", "0.1.0", "Axl47; trading based on zocke18r, SFox and Virtunerd")]
+[assembly: MelonInfo(typeof(VICE.Commerce.CommerceMod), "VICE Commerce", "0.1.1", "Axl47; trading based on zocke18r, SFox and Virtunerd")]
 [assembly: MelonGame("TVGS", "Schedule I")]
 [assembly: MelonPlatformDomain(MelonPlatformDomainAttribute.CompatibleDomains.IL2CPP)]
 [assembly: HarmonyDontPatchAll]

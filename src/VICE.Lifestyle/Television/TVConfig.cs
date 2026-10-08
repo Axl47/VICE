@@ -10,7 +10,7 @@ internal static class TVConfig
     internal static string Root = "", Images = "", Videos = "";
     internal static void Initialize()
     {
-        Root = Path.Combine(MelonLoader.Utils.MelonEnvironment.UserDataDirectory, "PersonalTV");
+        Root = VICE.Core.UserDataFolders.Prepare(MelonLoader.Utils.MelonEnvironment.UserDataDirectory, "Lifestyle", "Television", "PersonalTV");
         Images = Path.Combine(Root, "Images"); Videos = Path.Combine(Root, "Videos");
         Directory.CreateDirectory(Images); Directory.CreateDirectory(Videos);
         Category = MelonPreferences.CreateCategory("PersonalTV");

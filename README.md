@@ -41,7 +41,7 @@ Core contains reusable services needed by modules. Gameplay hooks, custom items,
 - **Purchasing:** saves up to 32 named gas-mart shopping lists and remembers the last successful purchase. Load a list or use **Repeat last**, then complete the normal checkout. Availability, stock, current prices, money, and inventory capacity still apply. An unavailable list preserves the current cart.
 - **Warehouse:** keeps warehouse access available at all hours and before the normal unlock rank by default. Oscar sells the game's storage racks, closets, lockers, and cabinets at their existing prices. Extra existing storage item IDs can be configured.
 
-Preferences retain the `PersonalHighballer`, `PersonalGasPurchases`, and `PersonalWarehouse` categories in `UserData/MelonPreferences.cfg`. Shopping lists remain in `UserData/PersonalGasPurchases/orders.json`. Retaining these locations preserves existing configuration and lists without a migration pass.
+Preferences retain the `PersonalHighballer`, `PersonalGasPurchases`, and `PersonalWarehouse` categories in `UserData/MelonPreferences.cfg`. Commerce 0.1.1 stores shopping lists in `UserData/VICE/Commerce/Purchasing/orders.json` and automatically moves existing `PersonalGasPurchases` data there. See the [user-data migration guide](docs/vice-user-data.md).
 
 See the [saved-purchase playtest](docs/playtest.md), [compatibility notes](docs/compatibility.md).
 
@@ -68,9 +68,9 @@ The private weapon bundle is embedded in Arsenal using the existing resource ide
 
 **Casino** raises the Blackjack and Ride the Bus wager limits to $100,000 by default. Available cash and native payouts still apply. Slot machines retain their original behavior. Preferences remain under `PersonalCasino`.
 
-**Television** adds a $450 Wall Screen at Herbert's Bleuball's Boutique. Place it on a wall, interact with it, and select an image, direct HTTP(S) video URL, Relay episode, or local MP4. Playback controls include pause, seeking, volume, favorites, and a larger viewing mode. Local videos are single-player only; images and remote selections support the existing host-controlled multiplayer protocol.
+**Television** adds a $450 Wall Screen at Herbert's Bleuball's Boutique. Place it on a wall, interact with it, and select an image, direct HTTP(S) video URL, Relay episode, or local MP4. Playback controls include pause, seeking, volume, favorites, and a larger viewing mode. Local MP4 selections share metadata first; Play transfers the selected file through the host and waits for connected peers. See the [video sharing guide](docs/vice-lifestyle-video-sharing.md).
 
-Local images and videos remain under `UserData/PersonalTV/Images` and `UserData/PersonalTV/Videos`. TV preferences remain under `PersonalTV`, including the local Relay configuration. Screen state and images remain in each host save's `Modded/PersonalTV` folder. Playback grants and Relay tokens are excluded from saves. Existing furniture IDs and saved-media formats remain unchanged.
+Lifestyle 0.1.2 stores local images, videos and caches under `UserData/VICE/Lifestyle/Television`, automatically moving existing `PersonalTV` data on initialization. TV preferences remain under `PersonalTV`, including the local Relay configuration. Screen state and images remain in each host save's `Modded/PersonalTV` folder. Playback grants and Relay tokens are excluded from saves. Existing furniture IDs and saved-media formats remain unchanged.
 
 Every multiplayer participant needs matching Lifestyle and compatible S1API versions. Remove custom screens from saves before uninstalling their item definition. Live Relay and two-player synchronization require their own playtests; automated tests cover the media-state and Relay contracts.
 

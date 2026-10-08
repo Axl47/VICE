@@ -45,7 +45,7 @@ internal sealed class TelevisionFeature
         Subscriptions.Add(() => GameLifecycle.OnPreSceneChange-=ClearSession);
         Subscriptions.Add(() => GameLifecycle.OnSaveComplete-=SaveComplete);
         ModSupport.Patch(harmony,typeof(SaveManager),"Save",typeof(TelevisionFeature),prefix:nameof(SaveStarted),parameters:new[]{typeof(string)});
-        MelonLogger.Msg("Wall Screens ready. Buy a Wall Screen at Herbert's Bleuball's Boutique. Local media folders: UserData/PersonalTV/Images and Videos.");
+        MelonLogger.Msg("Wall Screens ready. Buy a Wall Screen at Herbert's Bleuball's Boutique. Local media folders: UserData/VICE/Lifestyle/Television/Images and Videos.");
     }
     private void Preload()
     {

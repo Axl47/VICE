@@ -1,6 +1,14 @@
 using System.Reflection;
 using VICE.Core;
 
+if (args.Length > 0 && args[0] == "--migrate-userdata")
+{
+    if (args.Length != 2) throw new ArgumentException("Pass the UserData directory to migrate.");
+    Console.WriteLine(UserDataFolders.Prepare(args[1], "Lifestyle", "Television", "PersonalTV"));
+    Console.WriteLine(UserDataFolders.Prepare(args[1], "Commerce", "Purchasing", "PersonalGasPurchases", "PersonalGuestPurchases"));
+    return;
+}
+
 var assertions = 0;
 void Check(bool result, string message)
 {
@@ -43,9 +51,10 @@ try
     File.WriteAllText(settings, "user configuration");
     DefaultFiles.Seed(Assembly.GetExecutingAssembly(), "TestDefaults/", root);
     Check(File.ReadAllText(settings) == "user configuration", "Relaunch must preserve the user's edits.");
+    UserDataMigrationTests.Run(Path.Combine(root, "UserData"), Check);
 }
 finally { Directory.Delete(root, true); }
-Console.WriteLine($"VICE Core lifecycle/default-file checks passed ({assertions} assertions).");
+Console.WriteLine($"VICE Core lifecycle/default-file/data-migration checks passed ({assertions} assertions).");
 
 sealed class Publisher
 {

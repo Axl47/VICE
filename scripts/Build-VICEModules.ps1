@@ -32,7 +32,7 @@ foreach ($module in @('Commerce', 'Arsenal', 'Lifestyle', 'Interface')) {
     if ($LASTEXITCODE -ne 0) { throw "VICE $module compilation failed." }
     & (Join-Path $PSScriptRoot 'Check-NativeTargets.ps1') -GameDir $GameDir -SourceDir (Join-Path $repoRoot "src\VICE.$module")
 }
-foreach ($test in @('Algorithms\Algorithms.csproj', 'GasPurchases\GasPurchases.Tests.csproj', 'MoreGuns\MoreGuns.Tests.csproj', 'VICE.Lifestyle\VICE.Lifestyle.Tests.csproj', 'VICE.Modules\VICE.Modules.Tests.csproj')) {
+foreach ($test in @('VICE.Core\VICE.Core.Tests.csproj', 'Algorithms\Algorithms.csproj', 'GasPurchases\GasPurchases.Tests.csproj', 'MoreGuns\MoreGuns.Tests.csproj', 'VICE.Lifestyle\VICE.Lifestyle.Tests.csproj', 'VICE.Modules\VICE.Modules.Tests.csproj')) {
     $project = Join-Path $repoRoot ('tests\' + $test)
     $arguments = @('build', $project, '-c', 'Release', '--nologo', '-m:1', '-v', 'minimal', '-warnaserror', "-p:GameDir=$GameDir")
     if ($NugetConfig) { $arguments += @('--configfile', $NugetConfig) }
