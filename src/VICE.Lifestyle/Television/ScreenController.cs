@@ -21,6 +21,17 @@ internal sealed class ScreenController : IDisposable
     internal bool CheckPlaying=>YouTube is not null?YouTube.HasMedia&&YouTubePlaying:Player&&NativeVideoState.IsPlaying(Player!);
     internal long CheckFrameSequence=>Companion?.Sequence??0;
     internal int CheckCompanionProcess=>Companion?.ProcessId??0;
+    internal bool CanToggleCaptions=>YouTube?.CanToggleCaptions==true;
+    internal IReadOnlyList<YouTubeChapter> Chapters {get;private set;}=Array.Empty<YouTubeChapter>();
+    internal string ChapterStatus {get;private set;}="Play YouTube to load chapters.";
+    private CancellationTokenSource? ChapterCancellation;
+    private Task<YouTubeChapterResult>? ChapterTask;
+    private string YouTubeVideoId="";
+    internal void ToggleCaptions(string videoId)
+    {
+        if(videoId!=YouTubeVideoId||!CanToggleCaptions)throw new InvalidOperationException("Wait for the YouTube video before toggling captions.");
+        YouTube!.ToggleCaptions();
+    }
     private readonly Material Material;
     private readonly Transform Face;
     private GameObject? Runtime;
@@ -124,6 +135,8 @@ internal sealed class ScreenController : IDisposable
         {
             if(!state.Playing){Status="YouTube selected · press Play";return;}
             Companion=new(TVConfig.YouTubeCompanionPath);YouTube=new(Companion,TVNetwork.Now);
+            YouTubeVideoId=state.Media.Source;ChapterStatus="Loading chapters…";
+            ChapterCancellation=new();ChapterTask=YouTubeChapters.Fetch(YouTubeVideoId,ChapterCancellation.Token);
             BrowserPixels=GCHandle.Alloc(Companion.Pixels,GCHandleType.Pinned);
             BrowserTexture=new Texture2D(YouTubeRules.Width,YouTubeRules.Height,TextureFormat.BGRA32,false);
             BrowserTexture.filterMode=FilterMode.Bilinear;
@@ -133,6 +146,10 @@ internal sealed class ScreenController : IDisposable
         var gain=YouTubeRules.Gain(state.Volume,TVConfig.PersonalVolume.Value,manager?manager.GetVolume(EAudioType.FX,true):1,distance);
         YouTube.Tick(state,TVNetwork.Now,gain);Status=YouTube.Status;YouTubePosition=state.Position;YouTubePlaying=state.Playing;
         if(YouTube.Failed){state.Playing=false;Fail(YouTube.Status);return;}
+        if(ChapterTask?.IsCompleted==true)
+        {
+            var result=ChapterTask.GetAwaiter().GetResult();Chapters=result.Chapters;ChapterStatus=result.Status;ChapterTask=null;
+        }
         if(Companion!.ReadFrame())
         {
             BrowserTexture!.LoadRawTextureData(BrowserPixels.AddrOfPinnedObject(),Companion.Pixels.Length);
@@ -163,6 +180,8 @@ internal sealed class ScreenController : IDisposable
     }
     private void Release()
     {
+        ChapterCancellation?.Cancel();ChapterCancellation?.Dispose();ChapterCancellation=null;ChapterTask=null;
+        Chapters=Array.Empty<YouTubeChapter>();ChapterStatus="Play YouTube to load chapters.";YouTubeVideoId="";
         YouTube?.Dispose();YouTube=null;Companion=null;YouTubePosition=0;YouTubePlaying=false;
         if(BrowserPixels.IsAllocated)BrowserPixels.Free();
         if(BrowserTexture)Object.Destroy(BrowserTexture);BrowserTexture=null;

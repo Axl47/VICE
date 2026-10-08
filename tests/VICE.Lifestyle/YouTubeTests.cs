@@ -36,10 +36,21 @@ internal static class YouTubeTests
         var bridge=new Bridge();using var playback=new YouTubePlayback(bridge,0);
         playback.Tick(state,1,0);
         check(bridge.Commands.Count==0,"Commands sent before the companion handshake.");
+        Reject(playback.ToggleCaptions,check,"Captions could toggle before the player was ready.");
         bridge.IsReady=true;playback.Tick(state,2,.5);
         check(bridge.Commands.Count(c=>Op(c)=="load")==1&&bridge.Commands.First(c=>Op(c)=="load").GetProperty("paused").GetBoolean()==false,"Initial playback request lost its intent.");
         bridge.Events.Enqueue(Report(id,1,13,false));playback.Tick(state,3,.5);
         check(playback.HasMedia&&state.Position==13&&state.Playing,"Browser position did not control the YouTube timeline.");
+        var previousCount=bridge.Commands.Count;
+        playback.ToggleCaptions();
+        var keys=bridge.Commands.Skip(previousCount).ToArray();
+        check(keys.Length==4&&Op(keys[0])=="focus"&&keys[0].GetProperty("focused").GetBoolean()
+            &&keys.Skip(1).All(c=>Op(c)=="key")&&keys.Skip(1).Select(c=>c.GetProperty("type").GetString()).SequenceEqual(new[]{"down","char","up"})
+            &&keys.Skip(1).Select(c=>c.GetProperty("code").GetInt32()).SequenceEqual(new[]{67,99,67})&&state.Playing&&state.Position==13,"Caption toggle did not send C without changing playback.");
+        bridge.Events.Enqueue(new(){Type="state",VideoId=id,Revision=1,Advertisement=true});playback.Tick(state,3.1,.5);
+        Reject(playback.ToggleCaptions,check,"Captions could toggle during an advertisement.");
+        bridge.Events.Enqueue(Report(id,1,13,false));playback.Tick(state,3.2,.5);
+        check(playback.CanToggleCaptions,"Captions remained disabled after an advertisement.");
         state.Playing=false;state.Revision++;
         bridge.Events.Enqueue(Report(id,1,14,false));playback.Tick(state,4,.5);
         check(!state.Playing&&state.Position==13&&bridge.Commands.Any(c=>Op(c)=="pause"),"Old browser report undid a user pause.");
@@ -54,6 +65,7 @@ internal static class YouTubeTests
         bridge.Events.Enqueue(Report("aaaaaaaaaaa",3,99,false));playback.Tick(state,9,.2);
         check(state.Position==30&&!state.Playing,"Another video's telemetry replaced the selected video.");
         bridge.Error="Disconnected";playback.Tick(state,10,.2);check(playback.Failed,"Disconnected companion was not reported.");
+        Reject(playback.ToggleCaptions,check,"Captions could toggle after the helper failed.");
         var waiting=new Bridge();using var timeout=new YouTubePlayback(waiting,0);timeout.Tick(state,46,0);check(timeout.Failed,"Companion startup had no deadline.");
     }
     private static string Op(JsonElement command)=>command.GetProperty("op").GetString()!;

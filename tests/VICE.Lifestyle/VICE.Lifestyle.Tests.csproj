@@ -6,10 +6,12 @@
     <Compile Include="../Networking/SynchronousPacketPayloadTests.cs" Link="SynchronousPacketPayloadTests.cs" />
     <Compile Include="../Networking/ReliableOutboxTests.cs" Link="ReliableOutboxTests.cs" />
     <None Include="Fixtures/relay-game-v1.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Fixtures/youtube-chapters.html" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../../src/VICE.Lifestyle/Television/MediaState.cs" Link="MediaState.cs" />
     <Compile Include="../../src/VICE.Lifestyle/Television/YouTubeRules.cs" Link="YouTubeRules.cs" />
     <Compile Include="../../src/VICE.Lifestyle/Television/YouTubeStatus.cs" Link="YouTubeStatus.cs" />
     <Compile Include="../../src/VICE.Lifestyle/Television/YouTubePlayback.cs" Link="YouTubePlayback.cs" />
+    <Compile Include="../../src/VICE.Lifestyle/Television/YouTubeChapters.cs" Link="YouTubeChapters.cs" />
     <Compile Include="../../src/VICE.Lifestyle/Television/ImageCache.cs" Link="ImageCache.cs" />
     <Compile Include="../../src/VICE.Lifestyle/Television/VideoCache.cs" Link="VideoCache.cs" />
     <Compile Include="../../src/VICE.Lifestyle/Television/TVVideoNetwork.cs" Link="TVVideoNetwork.cs" />

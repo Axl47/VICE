@@ -20,6 +20,16 @@ internal sealed class YouTubePlayback : IDisposable
     internal string Status { get; private set; } = "Preparing YouTube";
     internal bool HasMedia { get; private set; }
     internal bool Failed { get; private set; }
+    private bool Advertisement;
+    internal bool CanToggleCaptions => HasMedia && !Failed && !Advertisement && Bridge.IsReady && Bridge.Error.Length == 0;
+    internal void ToggleCaptions()
+    {
+        if (!CanToggleCaptions) throw new InvalidOperationException("Wait for the YouTube video before toggling captions.");
+        Bridge.Send(new { op = "focus", focused = true });
+        Bridge.Send(new { op = "key", type = "down", code = 67 });
+        Bridge.Send(new { op = "key", type = "char", code = 99 });
+        Bridge.Send(new { op = "key", type = "up", code = 67 });
+    }
     internal YouTubePlayback(IYouTubeBridge bridge, double now) { Bridge = bridge; Started = now; }
     internal void Tick(ScreenState state, double now, double gain)
     {
@@ -53,7 +63,8 @@ internal sealed class YouTubePlayback : IDisposable
             if (report.Type == "error") { Status = "YouTube could not play this video. Press Retry or choose another link."; continue; }
             // In-flight reports from before a pause/seek must not undo the user's command.
             if (report.Revision != CommandRevision || report.VideoId != state.Media.Source) continue;
-            if (report.Advertisement) { Status = "YouTube advertisement"; continue; }
+            Advertisement = report.Advertisement;
+            if (Advertisement) { Status = "YouTube advertisement"; continue; }
             if (!report.Ready) { Status = "Waiting for YouTube"; continue; }
             if (!HasMedia)
             {
