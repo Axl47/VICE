@@ -18,14 +18,6 @@ if ((Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash -ne $expecte
 $baseRoot = [IO.Path]::GetFullPath((Join-Path $gameRoot 'UserData\BaseBuilder'))
 $target = [IO.Path]::GetFullPath((Join-Path $baseRoot 'TvBrowser'))
 if (-not $target.StartsWith($gameRoot.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)) { throw 'Companion target escaped the game.' }
-if (Test-Path -LiteralPath $target) {
-    $helper = Join-Path $target 'BuildABase.TvBrowser.dll'
-    if ((Test-Path -LiteralPath $helper -PathType Leaf) -and (Get-FileHash -LiteralPath $helper).Hash -eq $expectedHelper) {
-        Write-Output "The inspected TV companion is already installed: $target"
-        return
-    }
-    throw 'A different TV companion installation exists. Preserve it before installing this version.'
-}
 $stage = [IO.Path]::GetFullPath((Join-Path $baseRoot ('TvBrowser.install-' + [Guid]::NewGuid().ToString('N'))))
 if (-not $stage.StartsWith($baseRoot + '\', [StringComparison]::OrdinalIgnoreCase)) { throw 'Staging escaped the companion directory.' }
 Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -34,6 +26,26 @@ try {
     $prefix = 'UserData/BaseBuilder/TvBrowser/'
     $entries = @($zip.Entries | Where-Object { $_.FullName.StartsWith($prefix, [StringComparison]::Ordinal) })
     if (-not $entries.Count -or $entries.Count -gt 1000 -or ($entries | Measure-Object Length -Sum).Sum -gt 700MB) { throw 'Invalid companion archive size.' }
+    function Confirm-Companion([string]$Directory) {
+        foreach ($entry in $entries) {
+            $relative = $entry.FullName.Substring($prefix.Length)
+            if (-not $relative -or $entry.FullName.EndsWith('/')) { continue }
+            $installedFile = Join-Path $Directory $relative
+            if (-not (Test-Path -LiteralPath $installedFile -PathType Leaf)) { throw "Incomplete companion installation: $relative is missing. Preserve the existing directory and rerun installation into an empty target." }
+            $entryStream = $entry.Open()
+            $hasher = [Security.Cryptography.SHA256]::Create()
+            try { $archiveHash = [BitConverter]::ToString($hasher.ComputeHash($entryStream)).Replace('-', '') }
+            finally { $entryStream.Dispose(); $hasher.Dispose() }
+            if ((Get-FileHash -LiteralPath $installedFile -Algorithm SHA256).Hash -ne $archiveHash) {
+                throw "Different or corrupted companion file: $relative. Preserve the existing directory and rerun installation into an empty target."
+            }
+        }
+    }
+    if (Test-Path -LiteralPath $target) {
+        Confirm-Companion $target
+        Write-Output "The complete inspected TV companion is already installed: $target"
+        return
+    }
     New-Item -ItemType Directory -Path $stage -Force | Out-Null
     foreach ($entry in $entries) {
         $relative = $entry.FullName.Substring($prefix.Length)
@@ -49,6 +61,7 @@ try {
     foreach ($required in @('BuildABase.TvBrowser.exe','libcef.dll','CefSharp.OffScreen.dll','licenses/CEF-LICENSE.txt','licenses/CefSharp-LICENSE.txt','licenses/Chromium-Credits.html')) {
         if (-not (Test-Path -LiteralPath (Join-Path $stage $required) -PathType Leaf)) { throw "Missing dependency: $required" }
     }
+    Confirm-Companion $stage
     if (Get-Process -Name 'Schedule I', 'ScheduleI', 'BuildABase.TvBrowser' -ErrorAction SilentlyContinue) { throw 'Game or companion started during extraction.' }
     # Both final paths were resolved and checked above; the construction mod DLL is never extracted.
     Move-Item -LiteralPath $stage -Destination $target

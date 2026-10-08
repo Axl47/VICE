@@ -12,6 +12,14 @@ This proof of concept uses the **Build-A-Base 0.4.26 IL2CPP TV companion** suppl
 ./scripts/Install-TVCompanion.ps1 -Archive 'C:\path\to\Build-A-Base-0.4.26.zip'
 ```
 
+From an extracted Lifestyle release, the installer is at the package root. Run this command from that root directory:
+
+```powershell
+./Install-TVCompanion.ps1 -Archive 'C:\path\to\Build-A-Base-0.4.26.zip'
+```
+
+Both new and existing installations are checked against every companion file in the pinned archive, including the executable, CEF dependencies and license files. An incomplete or altered existing installation produces an error rather than reporting success. Preserve or move that directory before rerunning into an empty target.
+
 The script accepts only the inspected archive, checks its SHA-256 and helper DLL, extracts only `UserData/BaseBuilder/TvBrowser`, preserves the bundled third-party license files, and refuses to replace a different existing companion. The extracted dependency is approximately 489 MiB (513,035,918 bytes). Lifestyle exports include this installer, but contain no companion binaries, decompiled source, or construction mod assets.
 
 The inspected archive SHA-256 is `FD0F421D396BEC8E8425486D4B8B6552E8EA0D0AD9443875582118C246B87712`; the helper DLL SHA-256 is `4D39A2EC63F1090E9C65C02F8A9DB457E518975113AE7C4CAFFD87594F3235AB`. This is a personal interoperability adapter; no author redistribution permission was established by the archive inspection.
@@ -36,7 +44,13 @@ The opt-in native diagnostic runs against a copied `artifacts/SaveGame_5` save. 
 
 The corrected native run passed all these checks, and visual inspection confirmed upright video. The run used `artifacts/youtube-oriented-check`; `result.txt` and the local MelonLoader log record `TV_CHECK_PASSED`. Automated validation passed 55 Core assertions, 179 Lifestyle checks, 41 module checks and 12 installer-fixture checks. The screenshots are unmodified captures from that run.
 
-Example developer invocation (this diagnostic intentionally rejects normal save paths):
+The separate local companion installer regression also passed six cases: fresh installation, a complete existing installation, a missing executable, a corrupted CEF DLL, a missing license file, and rejection of an unrecognized archive. It uses a disposable game-directory fixture under `artifacts`:
+
+```powershell
+./tests/VICE.Lifestyle/Test-TVCompanionInstaller.ps1 -Archive 'C:\path\to\Build-A-Base-0.4.26.zip'
+```
+
+Native game invocation (this diagnostic intentionally rejects normal save paths):
 
 ```text
 Schedule I.exe --tv-system-check=C:\...\artifacts\youtube-check --tv-check-save=C:\...\artifacts\youtube-check\SaveGame_5 --tv-check-youtube=https://www.youtube.com/watch?v=M7lc1UVf-VE
