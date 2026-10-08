@@ -3,7 +3,7 @@
     <IsGameMod>true</IsGameMod>
     <UseViceCore>true</UseViceCore>
     <AssemblyName>VICE.Enforcement</AssemblyName>
-    <Version>0.1.1</Version>
+    <Version>0.1.3</Version>
     <DefineConstants>$(DefineConstants);IL2CPP;COMBINED_POLICE</DefineConstants>
     <Nullable>annotations</Nullable>
   </PropertyGroup>

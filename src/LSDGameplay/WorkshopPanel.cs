@@ -23,6 +23,13 @@ internal sealed class WorkshopPanel : IDisposable
     private readonly GameInput.ExitDelegate ExitHandler;
     private BuildableItem? Equipment;
     private SheetView? Sheet;
+    private CabinetView? Cabinet;
+    private CabinetSequence? CabinetMotion;
+    private string CabinetAction="",CabinetSheet="";
+    private int CabinetArt;
+    private bool CheckCabinetAdvance;
+    private bool CheckExit;
+    private float CabinetHeartbeat;
     private string MachineId="";
     private int SelectedArt,Brush=2,Ink=3,LastX=-1,LastY=-1,Cuts;
     private bool Editing,Repeated,Busy,PreviousLook,PreviousMove,PreviousHotbar,PreviousEquipping,PreviousTyping,Stroke,RollerStarted;
@@ -31,6 +38,11 @@ internal sealed class WorkshopPanel : IDisposable
     private string Task="";
     private float Elapsed,Score,Stable,Progress,ControlX=0.28f,ControlY=0.68f,SubmittedAt,NextGuide,CutScore;
     private StudioCommand? Pending;
+    private StudioCommand? PendingRelease;
+    private string ReleaseAfterReply="";
+    private float ReleaseSubmittedAt;
+    private bool CameraOverrideInstalled;
+    private int ClosedFrame=-1;
     private long SeenRevision=-1;
     internal bool IsOpen {get;private set;}
     private (Vector2 Point,bool Held,bool Space)? CheckInput;
@@ -43,6 +55,19 @@ internal sealed class WorkshopPanel : IDisposable
     {if(Environment.GetCommandLineArgs().Contains("--lsd-slice-check"))CheckInput=(point,held,space);}
     internal void CheckProjection()=>Sheet!.VerifyProjection();
     internal SheetView CheckSheet=>Sheet!;
+    internal CabinetSequence? CheckCabinetSequence=>CabinetMotion;
+    internal CabinetView? CheckCabinetView=>Cabinet;
+    internal void CheckCabinetStep(){if(Environment.GetCommandLineArgs().Contains("--lsd-slice-check"))CheckCabinetAdvance=true;}
+    internal void CheckCabinetAction(string action)=>StartCabinet(action);
+    internal void CheckEscape(){if(Environment.GetCommandLineArgs().Contains("--lsd-slice-check"))CheckExit=true;}
+    internal string[] CheckButtons=>Controls.Select(c=>c.GetComponentInChildren<TextMeshProUGUI>().text).ToArray();
+    internal int CheckArt=>SelectedArt;
+    internal void CheckClick(string label)=>Controls.Single(c=>c.GetComponentInChildren<TextMeshProUGUI>().text==label).GetComponent<Button>().onClick.Invoke();
+    internal bool HandleNativeExit()
+    {
+        if(IsOpen){Close();return false;}
+        return ClosedFrame!=Time.frameCount;
+    }
 
     internal WorkshopPanel()
     {
@@ -62,19 +87,18 @@ internal sealed class WorkshopPanel : IDisposable
         }))??throw new InvalidOperationException("Could not bind workshop exit.");
         GameInput.RegisterExitListener(ExitHandler,10);Root.SetActive(false);
     }
-    internal void ShowIntroduction(){if(IsOpen)return;Equipment=null;MachineId="";Show();Refresh();}
+    internal void ShowIntroduction(){if(IsOpen || Busy || PendingRelease is not null)return;Equipment=null;MachineId="";Show();Refresh();}
     internal void OpenMachine(BuildableItem equipment)
     {
-        if(IsOpen)return;Equipment=equipment;MachineId=equipment.GUID.ToString();
+        if(IsOpen || Busy || PendingRelease is not null)return;Equipment=equipment;MachineId=equipment.GUID.ToString();
         var machine=LSDGameplayMod.Current!.State.Machines.FirstOrDefault(m=>m.Id==MachineId);
         if(machine is not null && machine.Stage!=MachineStage.Empty)SelectedArt=machine.ArtSlot;
         Show();
         try {
+            CameraOverrideInstalled=true;
             if(equipment.ItemInstance.ID==WorkshopRules.Bench)Sheet=new SheetView(equipment,SelectedArt);
             else {
-                var target=equipment.transform.position+Vector3.up*0.75f;
-                var position=target+equipment.transform.forward*1.1f+Vector3.up*0.35f;
-                PlayerCamera.Instance.OverrideTransform(position,Quaternion.LookRotation(target-position),0.25f,false);
+                Cabinet=LSDGameplayMod.Current!.World!.Cabinet(equipment);Cabinet.Frame();
             }
             Refresh();
         }catch{Close();throw;}
@@ -90,30 +114,64 @@ internal sealed class WorkshopPanel : IDisposable
     }
     internal void Close()
     {
-        if(!IsOpen)return;IsOpen=false;Task="";Editing=false;CheckInput=null;Root.SetActive(false);
+        if(!IsOpen)return;ClosedFrame=Time.frameCount;IsOpen=false;Task="";Editing=false;CheckInput=null;CheckExit=false;Root.SetActive(false);
         LSDGameplayMod.Current?.World?.ResetAnimation(Equipment);Sheet?.Dispose();Sheet=null;
+        Cabinet?.Reset();Cabinet=null;CabinetMotion=null;CabinetAction=CabinetSheet="";CheckCabinetAdvance=false;
+        LSDGameplayMod.Current?.World?.RefreshMachines(LSDGameplayMod.Current.State);
         var camera=PlayerCamera.Instance;
         if(camera){
             camera.RemoveActiveUIElement("OffRegister");
-            if(Equipment)camera.StopTransformOverride(0.25f,PreviousLook,true);
+            if(CameraOverrideInstalled)camera.StopTransformOverride(0.25f,PreviousLook,true);
             camera.SetCanLook(PreviousLook);if(camera.ActiveUIElementCount==0)camera.LockMouse(true);
         }
         if(PlayerMovement.Instance)PlayerMovement.Instance._canMove=PreviousMove;
         if(PlayerInventory.Instance){PlayerInventory.Instance.SetInventoryEnabled(PreviousHotbar);PlayerInventory.Instance.SetEquippingEnabled(PreviousEquipping);}
-        GameInput.IsTyping=PreviousTyping;Equipment=null;
-        if(MachineId.Length>0 && LSDGameplayMod.Current?.Ready==true && !Busy)
-            WorkshopNetwork.Submit(new StudioCommand{Action="release",Machine=MachineId});
+        CameraOverrideInstalled=false;GameInput.IsTyping=PreviousTyping;Equipment=null;
+        if(MachineId.Length>0 && LSDGameplayMod.Current?.Ready==true){
+            if(Busy)ReleaseAfterReply=MachineId;else ReleaseMachine(MachineId);
+        }
+    }
+    private void ReleaseMachine(string machine)
+    {
+        PendingRelease=new StudioCommand{Action="release",Machine=machine};ReleaseSubmittedAt=Time.realtimeSinceStartup;
+        WorkshopNetwork.Submit(PendingRelease);
     }
     internal void ShowMessage(string message){if(Message)Message.text=message;CollectiveCatalogue.UpdateStatus();}
     private void Send(StudioCommand command)
     {
         if(Busy)return;command.Machine=MachineId;Pending=command;Busy=true;SubmittedAt=Time.realtimeSinceStartup;WorkshopNetwork.Submit(command);
     }
+    private void StartCabinet(string action)
+    {
+        if(Busy || CabinetMotion is not null || Cabinet is null)return;
+        CabinetSheet="";CabinetArt=SelectedArt;
+        if(action=="dry"){
+            var slots=InventoryTransaction.RegularSlots();var selected=PlayerInventory.Instance.EquippedSlotIndex;
+            var items=slots.OrderByDescending(s=>selected>=0 && selected<slots.Length && s.Pointer==slots[selected].Pointer);
+            var wet=items.FirstOrDefault(s=>!s.IsRemovalLocked && s.ItemInstance is {} item && WorkshopRules.TrySheet(item.ID,out var dry,out _,out _) && !dry)?.ItemInstance;
+            if(wet is null){ShowMessage("Carry a wet printed sheet from the bench.");return;}
+            CabinetSheet=wet.ID;WorkshopRules.TrySheet(wet.ID,out _,out CabinetArt,out _);
+        }
+        CabinetAction=action;
+        Send(new(){Action="cabinetbegin",Name=CabinetSheet});
+    }
     internal void OnReply(StudioReply reply)
     {
+        if(PendingRelease is {} release && reply.Token==release.Token){PendingRelease=null;return;}
         var command=Pending;
         if(command is not null && reply.Token==command.Token){
             Busy=false;Pending=null;
+            if(ReleaseAfterReply.Length>0){
+                var machine=ReleaseAfterReply;ReleaseAfterReply="";ReleaseMachine(machine);
+            }
+            if(!IsOpen)return;
+            if(command.Action=="cabinetbegin"){
+                if(reply.Success && Cabinet is not null){CabinetMotion=new();CabinetHeartbeat=Time.realtimeSinceStartup;Cabinet.Begin(CabinetAction=="dry",CabinetArt);Cabinet.Animate(CabinetMotion);}
+                else CabinetAction=CabinetSheet="";
+            }
+            if(CabinetMotion?.ReadyToCommit==true && command.Action==CabinetAction){
+                CabinetMotion=null;CabinetAction=CabinetSheet="";Cabinet?.Reset();LSDGameplayMod.Current!.World!.RefreshMachines(LSDGameplayMod.Current.State);
+            }
             if(reply.Success && command.Action=="introduce"){Close();CollectiveCatalogue.OpenCatalogue();return;}
             if(reply.Success && command.Action=="draw"){Editing=false;SelectedArt=LSDGameplayMod.Current!.State.Artworks.Last().Slot;}
             if(reply.Success && command.Action=="testfinish")Task="";
@@ -142,6 +200,9 @@ internal sealed class WorkshopPanel : IDisposable
         if(machine is not null && stage!=MachineStage.Empty)SelectedArt=machine.ArtSlot;
         var art=state.Artworks.FirstOrDefault(a=>a.Slot==SelectedArt)??state.Artworks[0];SelectedArt=art.Slot;
         Title.text=Equipment?.ItemInstance.ID==WorkshopRules.Cabinet ? "DRYING CABINET":"BLOTTER BENCH · "+art.Name;
+        if(CabinetMotion is not null){
+            Status.text=Cabinet!.Instruction(CabinetMotion);Message.text="Space: next action · Esc: leave · The sheet transfers when the door closes.";return;
+        }
         if(Task.Length>0){
             Status.text=Task=="prepare" ? "Drag the red registration mark onto the green cross and hold it steady. Arrow keys also adjust the sheet."
                 :Task=="print" ? "Drag the roller from the lower edge to the upper edge. Space rolls it steadily as an alternative."
@@ -151,22 +212,21 @@ internal sealed class WorkshopPanel : IDisposable
         if(Editing){BuildDrawing();return;}
         Sheet?.SetArtwork(SelectedArt);Sheet?.ClearGuides();
         Status.text=stage switch{
-            MachineStage.Empty=>"Choose an edition, draw on the paper, or load your next batch.",
+            MachineStage.Empty=>"Choose an edition, draw on the paper, or create your next batch.",
             MachineStage.Preparing=>"Sheet loaded. Register it on the lightbox.",MachineStage.Printing=>"Sheet registered. Roll the artwork onto the paper.",
             MachineStage.WetOutput=>$"Wet sheet ready · {machine!.Yield} tabs. Collect it and load the cabinet.",
             MachineStage.Drying=>$"Drying · {Math.Max(0,machine!.DueMinute-LSDGameplayMod.Minute)} game minutes · F9 skips the wait for testing.",
             MachineStage.DryOutput=>"Dry sheet ready. Collect it and return to the cutter.",MachineStage.Cutting=>"Dry sheet loaded. Follow the cut guides.",
             _=>$"{machine!.Yield} tabs ready. Collect and package them."};
         if(Equipment?.ItemInstance.ID==WorkshopRules.Cabinet){
-            if(stage==MachineStage.Empty)Button("Load wet sheet",18,86,250,36,()=>Send(new(){Action="dry"}));
-            if(stage==MachineStage.DryOutput)Button("Collect dry sheet",18,86,250,36,()=>Send(new(){Action="collect"}));return;
+            if(stage==MachineStage.Empty){Status.text="Empty tray. Load a wet sheet, then close the cabinet to start drying.";Button("Load wet sheet",18,86,250,36,()=>StartCabinet("dry"));}
+            if(stage==MachineStage.DryOutput)Button("Collect dry sheet",18,86,250,36,()=>StartCabinet("collect"));return;
         }
         if(stage is MachineStage.Preparing or MachineStage.Printing or MachineStage.Cutting){Button("Continue at the sheet",18,86,250,36,()=>Send(new(){Action="resume"}));return;}
         if(stage is MachineStage.WetOutput or MachineStage.TabOutput){Button("Collect output",18,86,250,36,()=>Send(new(){Action="collect"}));return;}
-        Button("Edition ◀",18,86,130,36,()=>Select(-1));Button("Edition ▶",158,86,130,36,()=>Select(1));Button("Draw",298,86,120,36,StartDrawing);
-        Button("Load batch",428,86,160,36,()=>Send(new(){Action="start",ArtSlot=SelectedArt}));Button("Load dry sheet",598,86,175,36,()=>Send(new(){Action="cut"}));
-        foreach(var pair in new[]{(1,783f),(5,913f),(20,1043f)}){var count=pair.Item1;Button(count==20 ? "Sleeve · 20":"Pack · "+count,pair.Item2,86,120,36,()=>Send(new(){Action="pack",ArtSlot=SelectedArt,Quantity=count}));}
-        Message.text="Baggie: 1 tab · Jar: 5 · Edition sleeve: 20. All three also work in a packaging station.";
+        Button("Edition ▶",18,86,170,36,()=>Select(1));Button("Draw",198,86,140,36,StartDrawing);
+        Button("Create batch",348,86,180,36,()=>Send(new(){Action="start",ArtSlot=SelectedArt}));Button("Load dry sheet",538,86,190,36,()=>Send(new(){Action="cut"}));
+        Message.text="Package finished tabs at a packaging station: baggie · 1, jar · 5, edition sleeve · 20.";
     }
     private void Select(int direction)
     {var art=LSDGameplayMod.Current!.State.Artworks;var index=art.FindIndex(a=>a.Slot==SelectedArt);SelectedArt=art[(index+direction+art.Count)%art.Count].Slot;Refresh();}
@@ -188,14 +248,33 @@ internal sealed class WorkshopPanel : IDisposable
     private void Upload(){DrawingTexture.SetPixels32(new Il2CppStructArray<Color32>(Pixels.Select(p=>StudioAssets.Palette[p]).ToArray()));DrawingTexture.Apply();Sheet?.SetDrawing(DrawingTexture);}
     internal void Tick()
     {
-        if(!IsOpen)return;
-        if(!Player.Local || Player.Local.IsUnconscious || !Player.Local.Health.IsAlive || (Equipment && Vector3.Distance(Player.Local.transform.position,Equipment!.transform.position)>4)){Close();return;}
+        // Reliable requests still need retries after a panel is closed: the host can be saving or rate limiting.
         if(Busy && Time.realtimeSinceStartup-SubmittedAt>8){SubmittedAt=Time.realtimeSinceStartup;if(Pending is not null)WorkshopNetwork.Submit(Pending);}
+        if(PendingRelease is {} release && Time.realtimeSinceStartup-ReleaseSubmittedAt>8){ReleaseSubmittedAt=Time.realtimeSinceStartup;WorkshopNetwork.Submit(release);}
+        if(!IsOpen)return;
+        // Read Esc directly: native exit dispatch can be suppressed while this panel owns typing input.
+        if(CheckExit || Keyboard.current?.escapeKey.wasPressedThisFrame==true){Close();return;}
+        if(!Player.Local || Player.Local.IsUnconscious || !Player.Local.Health.IsAlive || (MachineId.Length>0 && !Equipment) || (Equipment && Vector3.Distance(Player.Local.transform.position,Equipment!.transform.position)>4)){Close();return;}
+        if(CabinetMotion is not null){CabinetTick();return;}
         if(Keyboard.current?.f9Key.wasPressedThisFrame==true){if(Editing)SaveDrawing();else Send(new(){Action="testfinish"});return;}
         if(Editing){DrawTick();return;}if(Task.Length>0){TaskTick();return;}
         if(SeenRevision!=LSDGameplayMod.Current!.State.Revision)Refresh();
         var machine=LSDGameplayMod.Current.State.Machines.FirstOrDefault(m=>m.Id==MachineId);
         if(machine?.Stage==MachineStage.Drying)Status.text=$"Drying · {Math.Max(0,machine.DueMinute-LSDGameplayMod.Minute)} game minutes · F9 skips the wait for testing.";
+    }
+    private void CabinetTick()
+    {
+        if(Busy || Cabinet is null || CabinetMotion is null || Time.timeScale<=0 || (!Application.isFocused && !Environment.GetCommandLineArgs().Contains("--lsd-slice-check")))return;
+        var motion=CabinetMotion;var step=motion.Step;
+        if(Cabinet.CameraReady && !motion.Moving && (CheckCabinetAdvance || Keyboard.current?.spaceKey.wasPressedThisFrame==true
+            || (Mouse.current?.leftButton.wasPressedThisFrame==true && Cabinet.Hit(step,Mouse.current.position.ReadValue()))))motion.Advance();
+        CheckCabinetAdvance=false;motion.Tick(Math.Min(Time.unscaledDeltaTime,0.1f));Cabinet.Animate(motion);
+        if(step!=motion.Step){
+            if(motion.Step==CabinetStep.TransferSheet || step==CabinetStep.TransferSheet)Cabinet.Frame(motion.Step==CabinetStep.TransferSheet);
+            Refresh();
+        }
+        if(motion.ReadyToCommit)Send(new(){Action=CabinetAction,Name=CabinetSheet});
+        else if(Time.realtimeSinceStartup-CabinetHeartbeat>20){CabinetHeartbeat=Time.realtimeSinceStartup;Send(new(){Action="cabinetkeepalive"});}
     }
     private void DrawTick()
     {

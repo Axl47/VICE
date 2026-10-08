@@ -11,6 +11,7 @@ using Il2CppInterop.Runtime.Attributes;
 using Il2CppInterop.Runtime.Injection;
 using Il2CppScheduleOne.PlayerScripts;
 using MelonLoader;
+using PersonalMods.Networking;
 
 namespace VICE.Lifestyle.Television;
 
@@ -24,14 +25,14 @@ public sealed class TVPacket : Il2CppSystem.Object
 
 internal static class TVNetwork
 {
-    private static readonly Dictionary<IntPtr,string> Payloads = new();
+    private static readonly SynchronousPacketPayload Wire = new(MediaRules.MaxWireChars);
     private static readonly Dictionary<string,double> Pings = new();
     private static readonly Dictionary<int,(double Start,int Count)> LastCommands = new();
     private static readonly JsonSerializerOptions WireJson=new(){Encoder=JavaScriptEncoder.UnsafeRelaxedJsonEscaping};
     private static readonly Dictionary<int,(ImageTransfer Transfer, TVCommand Command)> Uploads = new();
     private static readonly Dictionary<string,ImageTransfer> Downloads = new();
     private static readonly Dictionary<string,double> AssetRequests = new();
-    private static readonly Queue<(NetworkConnection? Connection,string Payload)> Outbox = new();
+    private static readonly ReliableOutbox<(NetworkConnection? Connection,string Payload,string? VideoHash)> Outbox = new();
     private static Il2CppSystem.Action<NetworkConnection,TVPacket>? HostHandler;
     private static Il2CppSystem.Action<TVPacket>? ClientHandler;
     private static Il2CppSystem.Action<Writer,TVPacket>? WriterHandler;
@@ -57,14 +58,13 @@ internal static class TVNetwork
         manager.ClientManager.RegisterBroadcast<TVPacket>(ClientHandler);
         Bound = manager.Pointer;
     }
-    private static void Write(Writer writer, TVPacket packet) => writer.WriteString(Payloads[packet.Pointer]);
+    private static void Write(Writer writer, TVPacket packet) => Wire.Write(writer.WriteString);
     private static TVPacket Read(Reader reader)
     {
-        var payload = reader.ReadString();
-        if (payload.Length > MediaRules.MaxWireChars) throw new InvalidDataException("TV packet exceeds its size limit.");
-        var packet = new TVPacket(); Payloads[packet.Pointer] = payload; return packet;
+        try { Wire.Read(reader.ReadString); }
+        catch (Exception error) { MelonLogger.Warning("Rejected TV packet: "+error.GetType().Name); }
+        return new TVPacket();
     }
-    private static string Take(TVPacket packet) { var text = Payloads[packet.Pointer]; Payloads.Remove(packet.Pointer); return text; }
     private static string Encode<T>(T value)
     {
         var text = JsonSerializer.Serialize(value,WireJson);
@@ -76,7 +76,7 @@ internal static class TVNetwork
         Bind();
         if (Host) { Handle(Player.Local, command, message => TelevisionFeature.Current?.Receive(message)); return; }
         if (command.Action == "sync") Pings[command.Token] = PlaybackClock.LocalNow;
-        Outbox.Enqueue((null, Encode(command)));
+        Outbox.Enqueue((null, Encode(command),command.Action.StartsWith("video",StringComparison.Ordinal)&&command.Action is not ("videoSelect" or "videoFailed")?command.Hash:null));
     }
     internal static void Tick()
     {
@@ -84,19 +84,25 @@ internal static class TVNetwork
         if (!Host && now >= NextSync) { NextSync = now + 5; Submit(new()); }
         for (var i = 0; i < 4 && Outbox.Count > 0; i++)
         {
-            var item = Outbox.Dequeue(); var packet = new TVPacket(); Payloads[packet.Pointer] = item.Payload;
-            try
+            if(!Outbox.SendNext(now,item=>
             {
-                if (Host && item.Connection is { } connection)
+                if (Host && item.Connection?.Authenticated != true) return;
+                Wire.Send(item.Payload,()=>
                 {
-                    if (!connection.Authenticated) continue;
-                    var manager = InstanceFinder.NetworkManager.ServerManager;
-                    var method = manager.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance).Single(m => m.Name == "Broadcast" && m.IsGenericMethodDefinition && m.GetParameters().Length == 4 && m.GetParameters()[0].ParameterType == typeof(NetworkConnection));
-                    method.MakeGenericMethod(typeof(TVPacket)).Invoke(manager, new object[] {connection,packet,true,Channel.Reliable});
-                }
-                else if (!Host) InstanceFinder.NetworkManager.ClientManager.Broadcast(packet, Channel.Reliable);
-            }
-            finally { Payloads.Remove(packet.Pointer); }
+                    if (Host && item.Connection is { } connection)
+                    {
+                        var manager = InstanceFinder.NetworkManager.ServerManager;
+                        var method = manager.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance).Single(m => m.Name == "Broadcast" && m.IsGenericMethodDefinition && m.GetParameters().Length == 4 && m.GetParameters()[0].ParameterType == typeof(NetworkConnection));
+                        method.MakeGenericMethod(typeof(TVPacket)).Invoke(manager, new object[] {connection,new TVPacket(),true,Channel.Reliable});
+                    }
+                    else if (!Host) InstanceFinder.NetworkManager.ClientManager.Broadcast(new TVPacket(), Channel.Reliable);
+                });
+            },(item,error)=>
+            {
+                MelonLogger.Warning("TV packet send failed after three attempts: "+error);
+                if(item.VideoHash is {Length:>0} hash) TVVideoNetwork.Fail(hash,"Video packet could not be sent. Press Play to retry.");
+                else TelevisionFeature.Current?.Notice(SafeError(error));
+            }))break;
         }
         foreach (var id in Uploads.Where(p => now - p.Value.Transfer.Started > 90).Select(p => p.Key).ToArray()) Uploads.Remove(id);
         foreach (var hash in Downloads.Where(p => now - p.Value.Started > 90).Select(p => p.Key).ToArray()) Downloads.Remove(hash);
@@ -105,7 +111,7 @@ internal static class TVNetwork
     }
     private static void ReceiveRequest(NetworkConnection connection, TVPacket packet)
     {
-        var payload = Take(packet);
+        if (!Wire.TryTake(out var payload)) return;
         var mod = TelevisionFeature.Current;
         if (!Host || !connection.Authenticated || mod?.Ready != true) return;
         var player = Player.PlayerList.ToArray().FirstOrDefault(p => p && p.PlayerLoaded && p.Owner.ClientId == connection.ClientId);
@@ -170,7 +176,8 @@ internal static class TVNetwork
     }
     internal static string SafeError(Exception error) => error is InvalidDataException or InvalidOperationException ? error.Message : "TV action failed. Check the mod setup or try again.";
     internal static void Send(NetworkConnection connection, TVMessage message)
-    { if (!connection.Authenticated) return; message.HostTime=Now; Outbox.Enqueue((connection,Encode(message))); }
+    { if (!connection.Authenticated) return; message.HostTime=Now; Outbox.Enqueue((connection,Encode(message),message.Type.StartsWith("video",StringComparison.Ordinal)?message.Hash:null)); }
+    internal static void CancelVideo(string hash)=>Outbox.RemoveWhere(item=>item.VideoHash==hash);
     internal static void Publish()
     {
         if (!Host || TelevisionFeature.Current?.Ready != true) return;
@@ -189,7 +196,7 @@ internal static class TVNetwork
     }
     private static void ReceiveMessage(TVPacket packet)
     {
-        var payload=Take(packet); if (Host || TelevisionFeature.Current?.Ready!=true) return;
+        if (!Wire.TryTake(out var payload) || Host || TelevisionFeature.Current?.Ready!=true) return;
         try
         {
             var message=JsonSerializer.Deserialize<TVMessage>(payload) ?? throw new InvalidDataException("Empty TV message.");
@@ -234,18 +241,23 @@ internal static class TVNetwork
             Send(connection,new(){Type="imageChunk",Hash=hash,Index=index,Data=bytes.Skip(index*MediaRules.ChunkBytes).Take(MediaRules.ChunkBytes).ToArray()});
     }
     internal static void Reset()
-    {TVVideoNetwork.Reset();Outbox.Clear();Uploads.Clear();Downloads.Clear();AssetRequests.Clear();Pings.Clear();LastCommands.Clear();Payloads.Clear();Clock.Reset();NextSync=0;}
+    {TVVideoNetwork.Reset();Outbox.Clear();Uploads.Clear();Downloads.Clear();AssetRequests.Clear();Pings.Clear();LastCommands.Clear();Wire.Reset();Clock.Reset();NextSync=0;}
     internal static void CheckWire<T>(T value)
     {
-        Bind();var payload=Encode(value);var packet=new TVPacket();Payloads[packet.Pointer]=payload;
+        Bind();var payload=Encode(value);
         var writer=WriterPool.GetWriter(InstanceFinder.NetworkManager);
         try
         {
-            GenericWriter<TVPacket>.Write.Invoke(writer,packet);
+            Wire.Send(payload,()=>writer.Write(new TVPacket()));
             var reader=ReaderPool.GetReader(writer.GetArraySegment(),InstanceFinder.NetworkManager,(Reader.DataSource)0);
-            try{var decoded=GenericReader<TVPacket>.Read.Invoke(reader);if(Take(decoded)!=payload)throw new InvalidDataException("Native TV broadcast serialization changed the payload.");}
+            try
+            {
+                reader.Read<TVPacket>();
+                if (!Wire.TryTake(out var decoded)||decoded!=payload||reader.Remaining!=0)
+                    throw new InvalidDataException("Native TV broadcast serialization changed the payload.");
+            }
             finally{reader.Store();}
         }
-        finally{Payloads.Remove(packet.Pointer);writer.Store();}
+        finally{writer.Store();}
     }
 }

@@ -2,7 +2,7 @@ using MelonLoader;
 using VICE.Interface.Hud;
 using VICE.Core;
 
-[assembly: MelonInfo(typeof(VICE.Interface.InterfaceMod), "VICE Interface", "0.1.0", "Axl47")]
+[assembly: MelonInfo(typeof(VICE.Interface.InterfaceMod), "VICE Interface", "0.1.1", "Axl47")]
 [assembly: MelonGame("TVGS", "Schedule I")]
 [assembly: MelonPlatformDomain(MelonPlatformDomainAttribute.CompatibleDomains.IL2CPP)]
 [assembly: HarmonyDontPatchAll]

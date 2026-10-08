@@ -1,4 +1,6 @@
-# VICE Enforcement 0.1.1
+# VICE Enforcement 0.1.3
+
+Version 0.1.3 uses FishNet's registered network manager during readiness polling, so guests no longer search the entire scene every frame. Host police settings and event behavior are preserved.
 
 The first police module in the **VICE** family combines the IL2CPP side of [XOWithSauce's NACops 2.1.3](https://github.com/XOWithSauce/schedule-nacops/tree/97cedcd9f06e16bf16f9460493b87bc2fe460560) with Personal Better Police 0.2.0's police changes. It targets the installed **Schedule I beta 0.4.7f11**, Unity 2022.3.62f2 and MelonLoader 0.7.3, x64 / .NET 6. The upstream release targeted 0.4.6f13. Source and IL2CPP release defaults are pinned to commit `97cedcd9f06e16bf16f9460493b87bc2fe460560`; its MIT notice is preserved in `src/VICE.Enforcement/LICENSE.NACops` and the package.
 
@@ -20,6 +22,8 @@ Core is a reusable dependency, with no gameplay hooks of its own. The other pers
 New NACops feature switches use `VICEEnforcement` in `UserData/MelonPreferences.cfg`. `Enabled=false` disables the whole module on the next launch. JSON settings and patrol data live in `UserData/VICE/Enforcement/`; packaged defaults are also embedded and seed only missing files. Existing files and heat data are preserved. The defaults contain 17 foot routes, 18 sentry entries and two vehicle routes.
 
 Better Police's settings migrate into `VICEEnforcementPolice`. The first launch uses values from `PersonalBetterPolice` as defaults, including your speed, FOV, accuracy, backup and flanking settings. Existing values in the new category take precedence on subsequent launches. The old category remains available for rollback. Its `Enabled` switch controls only the Better Police adjustments inside Enforcement.
+
+The personal chase tuning uses `ChaseSpeedMultiplier = 0.78` and `DistantChaseSpeedMultiplier = 1.2`, 40% below the previous 1.3/2.0 values across the pursuit distance curve. `NoticeTimeMultiplier = 1.875` makes detection take 2.5 times as long as the previous 0.75 setting, reducing detection speed by 60%. These are also the defaults when no existing or legacy preferences are present. Normal patrol movement and vision range are unchanged.
 
 Better Police owns movement multiplier, vision/notice timing, arrest ticks and native combat/search behavior. NACops' `OverrideMovement`, `OverrideVision`, `OverrideArresting` and `OverrideCombatBeh` are forced off in this combined build. NACops still controls officer weapon type/base damage/magazine/taser settings, health, building access and body-search configuration. Better Police applies its minimum accuracy and aiming multiplier to the configured weapon. This prevents two movement/vision/arrest systems from overwriting each other.
 

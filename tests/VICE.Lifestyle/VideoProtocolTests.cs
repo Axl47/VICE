@@ -7,15 +7,24 @@ internal static class VideoProtocolTests
 {
     internal static void Run(Action<bool,string> check, Action<Action,string> reject, string root)
     {
+        var transferId=Guid.NewGuid().ToString();
         var originals=Path.Combine(root,"originals");Directory.CreateDirectory(originals);
         var bytes=new byte[MediaRules.ChunkBytes*2+31];new Random(41).NextBytes(bytes);
         File.WriteAllBytes(Path.Combine(originals,"sample.mp4"),bytes);
         var media=VideoCache.Describe(originals,"sample.mp4",default);
         var selection=JsonSerializer.Serialize(new TVCommand{Action="videoSelect",Media=media});
         check(selection.Length<1024&&!selection.Contains(Convert.ToBase64String(bytes)),"Video selection contained video bytes instead of metadata.");
-        var wire=JsonSerializer.Serialize(new TVCommand{Action="videoChunk",Hash=media.Source,Data=bytes[..MediaRules.ChunkBytes]});
+        var wire=JsonSerializer.Serialize(new TVCommand{Action="videoChunk",TransferId=transferId,Hash=media.Source,Data=bytes[..MediaRules.ChunkBytes]});
         check(wire.Length<MediaRules.MaxWireChars&&JsonSerializer.Deserialize<TVCommand>(wire)!.Data!.SequenceEqual(bytes[..MediaRules.ChunkBytes]),"Video chunk violated existing wire size or JSON round-trip.");
         check(media.Source==ImageCache.Hash(bytes)&&media.VideoBytes==bytes.Length,"Video identity did not match selected file.");
+        var local=VideoCache.Select(originals,"sample.mp4",false,default);
+        check(local.Kind=="local"&&local.Source=="sample.mp4"&&local.VideoBytes==0,"Single-player selection entered the transfer protocol.");
+        var largePath=Path.Combine(originals,"large.mp4");
+        using(var large=File.Create(largePath))large.SetLength((long)int.MaxValue+17);
+        var largeLocal=VideoCache.Select(originals,"large.mp4",false,default);largeLocal.Validate();
+        check(largeLocal.Kind=="local"&&largeLocal.Source=="large.mp4","Local playback rejected a file larger than 512 MiB or overflowed a 32-bit length.");
+        reject(()=>VideoCache.Select(originals,"large.mp4",true,default),"The local-playback exemption removed the multiplayer transfer limit.");
+        File.Delete(largePath);
         reject(()=>new MediaSelection{Kind="video",Source=media.Source,VideoName="../sample.mp4",VideoBytes=100}.Validate(),"Video selection allowed path traversal.");
         reject(()=>new MediaSelection{Kind="video",Source=media.Source,VideoName="sample.mp4",VideoBytes=MediaRules.MaxVideoBytes+1}.Validate(),"Oversized video selection accepted.");
         var cache=new VideoCache(Path.Combine(root,"bounded"),bytes.Length*2);
@@ -42,6 +51,13 @@ internal static class VideoProtocolTests
             reject(()=>corrupt.Add(2,bytes[(MediaRules.ChunkBytes*2)..],3),"Corrupt video checksum accepted.");
         }
         check(!cache.Has(other),"Corrupt video entered the playable cache.");
+        using(var duplicate=cache.Begin(other,pinned,2))
+        {
+            duplicate.Add(0,bytes[..MediaRules.ChunkBytes],3);
+            check(!duplicate.Add(0,bytes[..MediaRules.ChunkBytes],4)&&duplicate.Received==MediaRules.ChunkBytes,"A retried packet duplicated video bytes.");
+            var changed=bytes[..MediaRules.ChunkBytes];changed[0]^=1;
+            reject(()=>duplicate.Add(0,changed,4),"A conflicting packet retry was accepted.");
+        }
         File.WriteAllBytes(cache.PathFor(other.Source),bytes);
         var incoming=media.Clone();incoming.Source=new string('b',64);
         using(var transfer=cache.Begin(incoming,pinned,2))check(cache.Has(media)&&!cache.Has(other),"Cache eviction removed a selected video instead of an unused one.");
@@ -86,22 +102,55 @@ internal static class VideoProtocolTests
         TVVideoNetwork.Tick();check(TVNetwork.Messages.Count==0,"Guest selection uploaded before Play.");
         TVVideoNetwork.Play(screen);TVVideoNetwork.Tick();
         check(TVNetwork.Messages.Any(m=>m.Message.Type=="videoUpload"&&m.Peer==first),"Host did not request the selected guest's video on Play.");
-        reject(()=>TVVideoNetwork.ReceiveRequest(second,new(){Action="videoBegin",Hash=media.Source,Length=media.VideoBytes}),"Unrelated peer supplied video upload bytes.");
-        TVVideoNetwork.ReceiveRequest(first,new(){Action="videoBegin",Hash=media.Source,Length=media.VideoBytes});
-        for(var index=0;index*MediaRules.ChunkBytes<bytes.Length;index++)TVVideoNetwork.ReceiveRequest(first,new(){Action="videoChunk",Hash=media.Source,Index=index,Data=bytes.Skip(index*MediaRules.ChunkBytes).Take(MediaRules.ChunkBytes).ToArray()});
+        reject(()=>TVVideoNetwork.ReceiveRequest(second,new(){Action="videoBegin",TransferId=transferId,Hash=media.Source,Length=media.VideoBytes}),"Unrelated peer supplied video upload bytes.");
+        TVVideoNetwork.ReceiveRequest(first,new(){Action="videoBegin",TransferId=transferId,Hash=media.Source,Length=media.VideoBytes});
+        for(var index=0;index*MediaRules.ChunkBytes<bytes.Length;index++)TVVideoNetwork.ReceiveRequest(first,new(){Action="videoChunk",TransferId=transferId,Hash=media.Source,Index=index,Data=bytes.Skip(index*MediaRules.ChunkBytes).Take(MediaRules.ChunkBytes).ToArray()});
         check(mod.Videos.Has(media),"Host did not verify and cache the guest upload.");
         TVVideoNetwork.ReceiveRequest(first,new(){Action="videoReady",Hash=media.Source});TVVideoNetwork.Tick();check(screen.Playing,"Guest video never became playable on host.");
         TVVideoNetwork.ReceiveRequest(first,new(){Action="videoFailed",Hash=media.Source});check(!screen.Playing&&!screen.VideoRequested&&screen.Status.Length>0,"Peer transfer failure did not pause sharing with a useful status.");
         TVVideoNetwork.Reset();TVNetwork.Messages.Clear();TVNetwork.Commands.Clear();
 
+        // A retry can happen before the next Unity tick. The failed partial must
+        // already be gone, or a new sender's chunk zero hits the old index.
+        screen.Playing=false;screen.VideoRequested=false;TVVideoNetwork.RegisterOwner(media,first);
+        TVVideoNetwork.Play(screen);
+        TVVideoNetwork.ReceiveRequest(first,new(){Action="videoBegin",TransferId=transferId,Hash=media.Source,Length=media.VideoBytes});
+        TVVideoNetwork.ReceiveRequest(first,new(){Action="videoChunk",TransferId=transferId,Hash=media.Source,Index=0,Data=bytes[..MediaRules.ChunkBytes]});
+        TVVideoNetwork.Fail(media.Source,"Retry regression test");
+        check(!Directory.EnumerateFiles(Path.Combine(root,"protocol"),"*.part").Any(),"Failed video retained a partial until a later frame, breaking an immediate retry.");
+        check(TVNetwork.CancelledVideos.Contains(media.Source),"Video failure did not discard queued chunks.");
+        var oldTransferId=transferId;transferId=Guid.NewGuid().ToString();
+        TVVideoNetwork.Play(screen);
+        TVVideoNetwork.ReceiveRequest(first,new(){Action="videoBegin",TransferId=transferId,Hash=media.Source,Length=media.VideoBytes});
+        TVVideoNetwork.ReceiveRequest(first,new(){Action="videoChunk",TransferId=oldTransferId,Hash=media.Source,Index=1,Data=bytes[MediaRules.ChunkBytes..(MediaRules.ChunkBytes*2)]});
+        TVVideoNetwork.ReceiveRequest(first,new(){Action="videoFailed",TransferId=oldTransferId,Hash=media.Source});
+        check(screen.VideoRequested,"Late chunks or failures from the previous upload cancelled a retry.");
+        for(var index=0;index*MediaRules.ChunkBytes<bytes.Length;index++)TVVideoNetwork.ReceiveRequest(first,new(){Action="videoChunk",TransferId=transferId,Hash=media.Source,Index=index,Data=bytes.Skip(index*MediaRules.ChunkBytes).Take(MediaRules.ChunkBytes).ToArray()});
+        check(mod.Videos.Has(media),"Immediate retry did not restart at chunk zero.");
+        TVVideoNetwork.ReceiveRequest(first,new(){Action="videoBegin",TransferId=Guid.NewGuid().ToString(),Hash=media.Source,Length=media.VideoBytes});
+        check(screen.VideoRequested&&!Directory.EnumerateFiles(Path.Combine(root,"protocol"),"*.part").Any(),"Repeated begin restarted an already verified cached video.");
+        TVVideoNetwork.Reset();TVNetwork.Messages.Clear();TVNetwork.Commands.Clear();
+
         TVNetwork.Host=false;screen.VideoRequested=false;
         TVVideoNetwork.Tick();check(TVNetwork.Commands.Count==0,"Client requested selected video before Play.");
         screen.VideoRequested=true;TVVideoNetwork.Tick();check(TVNetwork.Commands.Any(c=>c.Action=="videoNeed"),"Client did not request video after Play.");
-        TVVideoNetwork.ReceiveMessage(new(){Type="videoBegin",Hash=media.Source,Length=media.VideoBytes});
-        TVVideoNetwork.ReceiveMessage(new(){Type="videoChunk",Hash=media.Source,Index=0,Data=bytes[..MediaRules.ChunkBytes]});
+        TVVideoNetwork.ReceiveMessage(new(){Type="videoBegin",TransferId=transferId,Hash=media.Source,Length=media.VideoBytes});
+        TVVideoNetwork.ReceiveMessage(new(){Type="videoChunk",TransferId=transferId,Hash=media.Source,Index=0,Data=bytes[..MediaRules.ChunkBytes]});
+        var sharedScreen=screen.Clone();sharedScreen.Id=Guid.NewGuid().ToString();mod.Document.Screens.Add(sharedScreen);
+        var previous=screen.Clone();screen.MediaGeneration++;
+        TVVideoNetwork.ObserveSnapshot(previous,screen);
+        check(Directory.EnumerateFiles(Path.Combine(root,"protocol"),"*.part").Any(),"Retry on one screen cancelled a transfer still needed by another screen.");
+        mod.Document.Screens.Remove(sharedScreen);previous=screen.Clone();screen.MediaGeneration++;
+        TVVideoNetwork.ObserveSnapshot(previous,screen);
+        check(!Directory.EnumerateFiles(Path.Combine(root,"protocol"),"*.part").Any(),"Host Retry snapshot retained the guest's previous partial transfer.");
+        var oldDownload=transferId;transferId=Guid.NewGuid().ToString();
+        TVVideoNetwork.ReceiveMessage(new(){Type="videoBegin",TransferId=transferId,Hash=media.Source,Length=media.VideoBytes});
+        TVVideoNetwork.ReceiveMessage(new(){Type="videoChunk",TransferId=oldDownload,Hash=media.Source,Index=1,Data=bytes[MediaRules.ChunkBytes..(MediaRules.ChunkBytes*2)]});
+        TVVideoNetwork.ReceiveMessage(new(){Type="videoChunk",TransferId=transferId,Hash=media.Source,Index=0,Data=bytes[..MediaRules.ChunkBytes]});
+        check(TVVideoNetwork.Progress(media.Source).Contains("49%"),"A late chunk from an older download interfered with a new transfer.");
         screen.VideoRequested=false;TVVideoNetwork.Tick();check(!Directory.EnumerateFiles(Path.Combine(root,"protocol"),"*.part").Any(),"Pause left a client download running.");
-        screen.VideoRequested=true;TVVideoNetwork.Tick();TVVideoNetwork.ReceiveMessage(new(){Type="videoBegin",Hash=media.Source,Length=media.VideoBytes});
-        for(var index=0;index*MediaRules.ChunkBytes<bytes.Length;index++)TVVideoNetwork.ReceiveMessage(new(){Type="videoChunk",Hash=media.Source,Index=index,Data=bytes.Skip(index*MediaRules.ChunkBytes).Take(MediaRules.ChunkBytes).ToArray()});
+        screen.VideoRequested=true;TVVideoNetwork.Tick();TVVideoNetwork.ReceiveMessage(new(){Type="videoBegin",TransferId=transferId,Hash=media.Source,Length=media.VideoBytes});
+        for(var index=0;index*MediaRules.ChunkBytes<bytes.Length;index++)TVVideoNetwork.ReceiveMessage(new(){Type="videoChunk",TransferId=transferId,Hash=media.Source,Index=index,Data=bytes.Skip(index*MediaRules.ChunkBytes).Take(MediaRules.ChunkBytes).ToArray()});
         TVVideoNetwork.Tick();check(mod.Videos.Has(media)&&TVNetwork.Commands.Any(c=>c.Action=="videoReady"),"Client declared no readiness after verified download.");
         TVVideoNetwork.Reset();check(!Directory.EnumerateFiles(Path.Combine(root,"protocol")).Any(),"Protocol reset retained video downloads.");
         TVNetwork.Messages.Clear();TVNetwork.Commands.Clear();TelevisionFeature.Current=null;
@@ -127,6 +176,9 @@ namespace VICE.Lifestyle.Television
         internal static bool Host;
         internal static double Now=>PlaybackClock.LocalNow;
         internal static int QueuedMessages=>0;
+        internal static int PeerCount=>InstanceFinder.NetworkManager.ServerManager.Clients.Count+1;
+        internal static readonly HashSet<string> CancelledVideos=new();
+        internal static void CancelVideo(string hash)=>CancelledVideos.Add(hash);
         internal static readonly List<(NetworkConnection Peer,TVMessage Message)> Messages=new();
         internal static readonly List<TVCommand> Commands=new();
         internal static void Submit(TVCommand command)=>Commands.Add(command);

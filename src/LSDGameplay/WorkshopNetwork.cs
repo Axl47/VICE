@@ -10,6 +10,7 @@ using Il2CppInterop.Runtime.Attributes;
 using Il2CppInterop.Runtime.Injection;
 using Il2CppScheduleOne.PlayerScripts;
 using MelonLoader;
+using PersonalMods.Networking;
 
 namespace PersonalMods.LSDGameplay;
 
@@ -46,7 +47,8 @@ public sealed class StudioPacket : Il2CppSystem.Object
 
 internal static class WorkshopNetwork
 {
-    private static readonly Dictionary<IntPtr,string> Payloads=new();
+    private static readonly SynchronousPacketPayload Wire=new(WorkshopRules.MaximumPayload+8192);
+    private static readonly InitialStateSync InitialSync=new();
     private static readonly Dictionary<string,StudioReply> Completed=new();
     private static readonly HashSet<string> Applied=new();
     private static readonly Dictionary<int,float> LastRequest=new();
@@ -71,26 +73,25 @@ internal static class WorkshopNetwork
         ManagerPointer=manager.Pointer;
     }
 
-    internal static void Reset() { Completed.Clear();Applied.Clear();LastRequest.Clear();Payloads.Clear(); }
-    private static void Write(Writer writer,StudioPacket packet)=>writer.WriteString(Payloads[packet.Pointer]);
+    internal static void Reset() { Completed.Clear();Applied.Clear();LastRequest.Clear();Wire.Reset();InitialSync.Reset(); }
+    internal static void Tick()
+    {
+        if (!Host && Player.Local && Player.Local.PlayerLoaded && InitialSync.Take(UnityEngine.Time.realtimeSinceStartup))
+            Submit(new StudioCommand());
+    }
+    private static void Write(Writer writer,StudioPacket packet)=>Wire.Write(writer.WriteString);
     private static StudioPacket Read(Reader reader)
     {
-        var payload=reader.ReadString();
-        if (payload.Length>WorkshopRules.MaximumPayload+8192) throw new InvalidDataException("Studio packet exceeds its size limit.");
-        var packet=new StudioPacket();Payloads[packet.Pointer]=payload;return packet;
-    }
-    private static string Take(StudioPacket packet)
-    {
-        var payload=Payloads[packet.Pointer];Payloads.Remove(packet.Pointer);return payload;
+        try { Wire.Read(reader.ReadString); }
+        catch (Exception error) { MelonLogger.Warning("Rejected studio packet: "+error.GetType().Name); }
+        return new StudioPacket();
     }
 
     internal static void Submit(StudioCommand command)
     {
         Bind();
         if (Host) { Accept(Execute(Player.Local,command)); return; }
-        var packet=new StudioPacket();Payloads[packet.Pointer]=JsonSerializer.Serialize(command);
-        try { InstanceFinder.NetworkManager.ClientManager.Broadcast(packet,Channel.Reliable); }
-        finally { Payloads.Remove(packet.Pointer); }
+        Wire.Send(JsonSerializer.Serialize(command),()=>InstanceFinder.NetworkManager.ClientManager.Broadcast(new StudioPacket(),Channel.Reliable));
     }
 
     private static StudioReply Execute(Player player,StudioCommand command)
@@ -105,16 +106,18 @@ internal static class WorkshopNetwork
 
     private static void ReceiveRequest(NetworkConnection connection,StudioPacket packet)
     {
-        var payload=Take(packet);
+        if (!Wire.TryTake(out var payload)) return;
         if (!Host || !connection.Authenticated || LSDGameplayMod.Current?.Ready!=true) return;
         var player=Player.PlayerList.ToArray().FirstOrDefault(p=>p && p.Owner.ClientId==connection.ClientId && p.PlayerLoaded);
         if (player is null || !player) return;
         try
         {
             var now=UnityEngine.Time.realtimeSinceStartup;
-            if (LastRequest.TryGetValue(connection.ClientId,out var last) && now-last<0.10f) return;
-            LastRequest[connection.ClientId]=now;
             var command=JsonSerializer.Deserialize<StudioCommand>(payload) ?? throw new InvalidDataException("Empty workshop request.");
+            if(command.Action!="release"){
+                if (LastRequest.TryGetValue(connection.ClientId,out var last) && now-last<0.10f) return;
+                LastRequest[connection.ClientId]=now;
+            }
             Send(connection,Execute(player,command));
         }
         catch (Exception error) { MelonLogger.Warning("Rejected studio request: "+error.Message); }
@@ -122,15 +125,13 @@ internal static class WorkshopNetwork
 
     private static void Send(NetworkConnection connection,StudioReply reply)
     {
-        var packet=new StudioPacket();Payloads[packet.Pointer]=JsonSerializer.Serialize(reply);
-        try
+        Wire.Send(JsonSerializer.Serialize(reply),()=>
         {
             var manager=InstanceFinder.NetworkManager.ServerManager;
             var method=manager.GetType().GetMethods(BindingFlags.Public|BindingFlags.Instance).Single(m=>m.Name=="Broadcast" && m.IsGenericMethodDefinition
                 && m.GetParameters().Length==4 && m.GetParameters()[0].ParameterType==typeof(NetworkConnection));
-            method.MakeGenericMethod(typeof(StudioPacket)).Invoke(manager,new object[] { connection,packet,true,Channel.Reliable });
-        }
-        finally { Payloads.Remove(packet.Pointer); }
+            method.MakeGenericMethod(typeof(StudioPacket)).Invoke(manager,new object[] { connection,new StudioPacket(),true,Channel.Reliable });
+        });
     }
 
     internal static void Publish()
@@ -144,7 +145,7 @@ internal static class WorkshopNetwork
 
     private static void ReceiveReply(StudioPacket packet)
     {
-        var payload=Take(packet);
+        if (!Wire.TryTake(out var payload)) return;
         if (Host || LSDGameplayMod.Current?.Ready!=true) return;
         try { Accept(JsonSerializer.Deserialize<StudioReply>(payload) ?? throw new InvalidDataException("Empty workshop reply.")); }
         catch (Exception error) { LSDGameplayMod.Current?.ShowMessage(error.Message); }
@@ -154,7 +155,30 @@ internal static class WorkshopNetwork
     {
         if (reply.Token.Length>0 && !Applied.Add(reply.Token)) return;
         if (!Host && reply.Inventory.Count>0) InventoryTransaction.ApplyRemote(reply.Inventory);
-        if (!Host && reply.State.Length>0) LSDGameplayMod.Current!.ReceiveState(WorkshopState.Deserialize(reply.State));
+        if (!Host && reply.Success && reply.State.Length>0)
+        {
+            LSDGameplayMod.Current!.ReceiveState(WorkshopState.Deserialize(reply.State), InitialSync.Awaiting);
+            InitialSync.Received();
+        }
         LSDGameplayMod.Current?.Reply(reply);
+    }
+
+    internal static void CheckWire<T>(T value)
+    {
+        Bind();var payload=JsonSerializer.Serialize(value);
+        var writer=WriterPool.GetWriter(InstanceFinder.NetworkManager);
+        try
+        {
+            Wire.Send(payload,()=>writer.Write(new StudioPacket()));
+            var reader=ReaderPool.GetReader(writer.GetArraySegment(),InstanceFinder.NetworkManager,(Reader.DataSource)0);
+            try
+            {
+                reader.Read<StudioPacket>();
+                if (!Wire.TryTake(out var decoded)||decoded!=payload||reader.Remaining!=0)
+                    throw new InvalidDataException("Native studio broadcast serialization changed the payload.");
+            }
+            finally { reader.Store(); }
+        }
+        finally { writer.Store(); }
     }
 }

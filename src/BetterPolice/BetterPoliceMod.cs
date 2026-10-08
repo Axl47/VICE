@@ -18,6 +18,13 @@ namespace PersonalMods.BetterPolice;
 
 public sealed class BetterPoliceMod : MelonMod
 {
+#if COMBINED_POLICE
+    private const float DefaultChaseMultiplier = 0.78f, DefaultFarChaseMultiplier = 1.2f, DefaultNoticeTime = 1.875f;
+    private const float MinimumChaseMultiplier = 0.1f;
+#else
+    private const float DefaultChaseMultiplier = 1.3f, DefaultFarChaseMultiplier = 2f, DefaultNoticeTime = 0.75f;
+    private const float MinimumChaseMultiplier = 1f;
+#endif
     private static MelonPreferences_Entry<bool> Enabled = null!, Flanking = null!, RadioNearby = null!;
     private static MelonPreferences_Entry<float> ChaseMultiplier = null!, FarChaseMultiplier = null!, DistanceMaximum = null!, VisionRange = null!, HorizontalFov = null!, VerticalFov = null!, NoticeTime = null!, ArrestMultiplier = null!, NearAccuracy = null!, FarAccuracy = null!, AimTime = null!, RadioDistance = null!;
     private static MelonPreferences_Entry<int> MaximumBackup = null!;
@@ -43,13 +50,13 @@ public sealed class BetterPoliceMod : MelonMod
 #else
         Enabled = Setting(config, "Enabled", true, "Enable tougher police and configured rival gang aggression.");
 #endif
-        ChaseMultiplier = Setting(config, "ChaseSpeedMultiplier", 1.3f, "Multiply each officer's original movement speed during a pursuit.");
-        FarChaseMultiplier = Setting(config, "DistantChaseSpeedMultiplier", 2f, "Maximum chase multiplier as the player gets farther away.");
+        ChaseMultiplier = Setting(config, "ChaseSpeedMultiplier", DefaultChaseMultiplier, "Multiply each officer's original movement speed during a pursuit.");
+        FarChaseMultiplier = Setting(config, "DistantChaseSpeedMultiplier", DefaultFarChaseMultiplier, "Maximum chase multiplier as the player gets farther away.");
         DistanceMaximum = Setting(config, "DistanceForMaximumBoost", 100f, "Distance in meters where the maximum boost applies.");
         VisionRange = Setting(config, "VisionRangeMultiplier", 10f, "Police vision range multiplier, matching the old personal config.");
         HorizontalFov = Setting(config, "HorizontalFOV", 165f, "Police horizontal vision field in degrees.");
         VerticalFov = Setting(config, "VerticalFOV", 80f, "Police vertical vision field in degrees.");
-        NoticeTime = Setting(config, "NoticeTimeMultiplier", 0.75f, "Multiply original notice time; lower values detect crime sooner.");
+        NoticeTime = Setting(config, "NoticeTimeMultiplier", DefaultNoticeTime, "Multiply original notice time; higher values take longer to detect crime.");
         ArrestMultiplier = Setting(config, "ArrestTickMultiplier", 1.5f, "Speed up the game's arrest progress tick.");
         NearAccuracy = Setting(config, "MinimumCloseRangeHitChance", 0.95f, "Minimum police weapon hit probability at close range.");
         FarAccuracy = Setting(config, "MinimumFarRangeHitChance", 0.8f, "Minimum police weapon hit probability at long range.");
@@ -104,12 +111,12 @@ public sealed class BetterPoliceMod : MelonMod
             // Default states are templates. Changing both templates and their copies would multiply twice.
             if (cone.stateSettings is not null)
                 foreach (var states in cone.stateSettings.Values)
-                    foreach (var state in states.Values) ShortenNotice(state);
+                    foreach (var state in states.Values) AdjustNoticeTiming(state);
         }
         catch (Exception error) { ModSupport.WarnOnce("police:vision", $"Police vision adjustment failed: {error.Message}"); }
     }
 
-    private static void ShortenNotice(VisionCone.StateContainer state)
+    private static void AdjustNoticeTiming(VisionCone.StateContainer state)
     {
         if (state is null) return;
         if (!Notices.TryGetValue(state.Pointer, out var original))
@@ -117,7 +124,7 @@ public sealed class BetterPoliceMod : MelonMod
             original = (state, state.NoticeTimeMultiplier);
             Notices.Add(state.Pointer, original);
         }
-        state.NoticeTimeMultiplier = Math.Max(0.1f, original.Time * Bound(NoticeTime.Value, 0.1f, 2f, 0.75f));
+        state.NoticeTimeMultiplier = Math.Max(0.1f, original.Time * Bound(NoticeTime.Value, 0.1f, 2f, DefaultNoticeTime));
     }
 
     private static void WidenSight(VisionCone __instance, Vector3 point, bool ignoreLoS, LandVehicle vehicleToIgnore, ref bool __result)
@@ -162,8 +169,8 @@ public sealed class BetterPoliceMod : MelonMod
                 Speeds.Add(__instance.Npc.Pointer, original);
             }
             var distance = Vector3.Distance(__instance.Npc.transform.position, __instance.TargetPlayer.transform.position);
-            var near = Bound(ChaseMultiplier.Value, 1f, 4f, 1.3f);
-            var far = Math.Max(near, Bound(FarChaseMultiplier.Value, 1f, 4f, 2f));
+            var near = Bound(ChaseMultiplier.Value, MinimumChaseMultiplier, 4f, DefaultChaseMultiplier);
+            var far = Math.Max(near, Bound(FarChaseMultiplier.Value, MinimumChaseMultiplier, 4f, DefaultFarChaseMultiplier));
             var factor = Mathf.Lerp(near, far, Mathf.Clamp01(distance / Bound(DistanceMaximum.Value, 10f, 500f, 100f)));
             speed.SetSpeedMultiplier(original.Original * factor);
             TuneWeapon(__instance.currentWeapon?.TryCast<AvatarRangedWeapon>());

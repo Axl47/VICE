@@ -2,6 +2,7 @@
   <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework></PropertyGroup>
   <ItemGroup>
     <Compile Include="../../src/VICE.Core/ModuleCompatibility.cs" Link="ModuleCompatibility.cs" />
+    <Compile Include="../../src/VICE.Interface/Hud/RefreshBudget.cs" Link="RefreshBudget.cs" />
     <Reference Include="$(LoaderDir)/Mono.Cecil.dll"><Private>true</Private></Reference>
   </ItemGroup>
 </Project>

@@ -13,6 +13,7 @@ public sealed class TVCommand
     public string Operation { get; set; } = "";
     public int Season { get; set; }
     public string Hash { get; set; } = "";
+    public string TransferId { get; set; } = "";
     public int Length { get; set; }
     public int Index { get; set; }
     public byte[]? Data { get; set; }
@@ -30,6 +31,7 @@ public sealed class TVMessage
     public List<string> AllIds { get; set; } = new();
     public List<MediaSelection> Favorites { get; set; } = new();
     public string Hash { get; set; } = "";
+    public string TransferId { get; set; } = "";
     public int Length { get; set; }
     public int Index { get; set; }
     public byte[]? Data { get; set; }

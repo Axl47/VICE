@@ -1,6 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup><IsGameMod>true</IsGameMod><AssemblyName>Personal.LSDGameplay</AssemblyName><Version>0.2.3</Version></PropertyGroup>
+  <PropertyGroup><IsGameMod>true</IsGameMod><AssemblyName>Personal.LSDGameplay</AssemblyName><Version>0.2.10</Version></PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Networking/SynchronousPacketPayload.cs" Link="Networking/SynchronousPacketPayload.cs" />
+    <Compile Include="../Networking/ReplicatedFurnitureVisuals.cs" Link="Networking/ReplicatedFurnitureVisuals.cs" />
+    <Compile Include="../Networking/InitialStateSync.cs" Link="Networking/InitialStateSync.cs" />
     <Reference Include="$(GameDir)\Mods\S1API.Il2Cpp.MelonLoader.dll"><Private>false</Private></Reference>
     <EmbeddedResource Include="Assets/studio.bundle" LogicalName="Personal.LSDGameplay.Studio.bundle" />
     <EmbeddedResource Include="Assets/Icons/*.png" LogicalName="Personal.LSDGameplay.Icons.%(Filename).png" />

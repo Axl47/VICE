@@ -1,0 +1,65 @@
+{
+    "schema": 2,
+    "bundle": {
+        "path": "src/LSDGameplay/Assets/studio.bundle",
+        "sha256": "78f3113b954a526822b7effb6f7bad008854a730521c9a926ca3c30b0eeffd2e"
+    },
+    "sources": [
+        {
+            "path": "assets/LSDStudio/Assets/Models/Bench.fbx",
+            "sha256": "756446b44a82b79df936f378c49b850dbf9c5a4835d001bdd4b2286253a4a77d"
+        },
+        {
+            "path": "assets/LSDStudio/Assets/Models/Cabinet.fbx",
+            "sha256": "60c7272b99f4c845946a0b9c02c60200b24aebfaa6a5cb26bd29f03f296d3f6a"
+        },
+        {
+            "path": "assets/LSDStudio/Assets/Models/Parcel.fbx",
+            "sha256": "962387e17046cd7fe2c8d7cf2ec7b9d19ee6d65f047626dba5e683bbe25fb4d8"
+        },
+        {
+            "path": "assets/LSDStudio/Assets/Models/Sheet.fbx",
+            "sha256": "4702d838426ad96d9425a684d45783ad3028244080a70477770b4566aeefb729"
+        },
+        {
+            "path": "assets/LSDStudio/Assets/Models/Tab.fbx",
+            "sha256": "add5b013ce64a67ccdc35dd59cf33ca59873803e3911742162cf77df90592b2c"
+        },
+        {
+            "path": "assets/LSDStudio/Assets/Models/Packet.fbx",
+            "sha256": "a9b9c1a234766341d2ebf6cfc57ac63d881e29ac4d79027d33a9b30d6a23f791"
+        },
+        {
+            "path": "src/LSDGameplay/Assets/Icons/Bench.png",
+            "sha256": "b311fadd4301da64d71197588691773c397490192995e0d142037a6d47398fd6"
+        },
+        {
+            "path": "src/LSDGameplay/Assets/Icons/Cabinet.png",
+            "sha256": "b673d6c108f140456741be715295b0d9f956228c07b7b9f44f7189f042485cf3"
+        },
+        {
+            "path": "src/LSDGameplay/Assets/Icons/Ink.png",
+            "sha256": "f7e3ab718c5ac3c1f474a38decfa4f3abbf2ef6bf818d6da4ea492ef211368bc"
+        },
+        {
+            "path": "src/LSDGameplay/Assets/Icons/Paper.png",
+            "sha256": "66a47e26631f18f3dae1b41ce4904d7271faa5e0247aa8134fb2f5f832fa5c2b"
+        },
+        {
+            "path": "src/LSDGameplay/Assets/Icons/Prism.png",
+            "sha256": "3f97acca69fd5170b0040acd7b2022aae90ec1eb57d612ddfa75175d01a916c9"
+        },
+        {
+            "path": "src/LSDGameplay/Assets/Icons/Sleeve.png",
+            "sha256": "c65f6c6b03391096ea51f83d1840c8f2a938e15199ac5dbfe869486dd08dcbb3"
+        },
+        {
+            "path": "scripts/Build-LSDStudio.py",
+            "sha256": "fdff81030a0d7cddef9930ac7db4d5d4ce03e63cf14580a072090e6205a36cce"
+        },
+        {
+            "path": "assets/LSDStudio/Assets/Editor/BuildStudio.cs",
+            "sha256": "6fd2f9280920d31237f331c69916c1b384d41659168745929516a38fd3f78b81"
+        }
+    ]
+}

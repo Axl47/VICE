@@ -33,6 +33,9 @@ try{
     if(-not($mod.CustomAttributes | Where-Object {$_.AttributeType.Name -eq 'HarmonyDontPatchAllAttribute'})){throw 'Automatic PatchAll must remain disabled.'}
     if($mod.MainModule.Types | Where-Object {$_.Name -in @('RivalGang','GangTuning')}){throw 'Cartel changes must not be compiled into Enforcement.'}
     $count=0
+    $update=($mod.MainModule.Types | Where-Object Name -eq 'EnforcementMod').Methods | Where-Object Name -eq 'OnUpdate'
+    if($update.Body.Instructions | Where-Object { $_.Operand -is [Mono.Cecil.MethodReference] -and $_.Operand.Name -eq 'FindObjectOfType' }){throw 'Enforcement update must not scan the scene on guests.'}
+    if(-not ($update.Body.Instructions | Where-Object { $_.Operand -is [Mono.Cecil.MethodReference] -and $_.Operand.DeclaringType.FullName -eq 'Il2CppFishNet.InstanceFinder' -and $_.Operand.Name -eq 'get_NetworkManager' })){throw 'Enforcement must use the registered native network manager.'}
     function Check-PatchType($type){
         foreach($attribute in ($type.CustomAttributes | Where-Object {$_.AttributeType.FullName -eq 'HarmonyLib.HarmonyPatch'})){
             if($type.Name -eq 'PursuitBehaviour_UpdateArrest_Patch'){continue} # Deliberately excluded by EnforcementMod.

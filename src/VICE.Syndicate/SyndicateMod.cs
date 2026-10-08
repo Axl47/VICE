@@ -54,7 +54,7 @@ namespace VICE.Syndicate
         public const string Description = "Cartel - Modded and configurable";
         public const string Author = "Axl47";
         public const string Company = null;
-        public const string Version = "0.1.1";
+        public const string Version = "0.1.2";
         public const string DownloadLink = null;
     }
 
@@ -69,6 +69,7 @@ namespace VICE.Syndicate
         public static bool registered = false;
         private LoadManager subscribedLoader;
         private UnityEngine.Events.UnityAction loadCompleteCallback;
+        private bool clientSession;
         internal static VICE.Core.SubscriptionScope SaveSubscriptions = new();
         public static bool isSaving = false;
 
@@ -167,9 +168,13 @@ namespace VICE.Syndicate
             }
             if (loader && loader.IsGameLoaded && Il2CppScheduleOne.PlayerScripts.Player.Local)
             {
-                if (!registered) OnLoadCompleteCb();
+                if (!registered && !clientSession) OnLoadCompleteCb();
             }
-            else if (registered) ExitPreTask();
+            else
+            {
+                if (registered) ExitPreTask();
+                clientSession = false;
+            }
             if (!registered || currentConfig == null) return;
             if (currentConfig.debugMode)
             {
@@ -189,6 +194,7 @@ namespace VICE.Syndicate
             if (buildIndex != 1)
             {
                 if (registered) ExitPreTask();
+                clientSession = false;
                 DetachLoader();
                 return;
             }
@@ -208,6 +214,7 @@ namespace VICE.Syndicate
         public override void OnDeinitializeMelon()
         {
             if (registered) ExitPreTask();
+            clientSession = false;
             DetachLoader();
         }
 
@@ -235,11 +242,23 @@ namespace VICE.Syndicate
 
         private void OnLoadCompleteCb()
         {
-            if (registered) return;
+            if (registered || clientSession) return;
             // The native callback can run before the loaded flag/local player is
             // published. OnUpdate starts setup once both are available.
             var loader = LoadManager.Instance;
             if (!loader || !loader.IsGameLoaded || !Il2CppScheduleOne.PlayerScripts.Player.Local) return;
+            var network = Il2CppFishNet.InstanceFinder.NetworkManager;
+            if (!network) return;
+            // Guests receive the host's networked world. They have no local save
+            // slot and must not load persistent state or start event simulations.
+            if (!network.IsServer)
+            {
+                influenceConfig ??= ConfigLoader.LoadInfluenceConfig();
+                clientSession = true;
+                MelonLogger.Msg("Syndicate guest ready; persistent state and events are owned by the host.");
+                return;
+            }
+            if (loader.ActiveSaveInfo == null) return;
             SaveSubscriptions.Dispose();
             SaveSubscriptions = new();
             registered = true;
@@ -251,6 +270,8 @@ namespace VICE.Syndicate
         public static IEnumerator Setup()
         {
             yield return new WaitUntil((Il2CppSystem.Func<bool>)(() => LoadManager.Instance.IsGameLoaded && Il2CppScheduleOne.PlayerScripts.Player.Local));
+            var network = Il2CppFishNet.InstanceFinder.NetworkManager;
+            if (!network || !network.IsServer || LoadManager.Instance.ActiveSaveInfo == null) yield break;
             currentConfig = ConfigLoader.Load();
             influenceConfig = ConfigLoader.LoadInfluenceConfig();
             cartelStolenItems = ConfigLoader.LoadStolenItems();

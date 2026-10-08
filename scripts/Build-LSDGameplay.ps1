@@ -12,10 +12,12 @@ if ($DotnetPath -eq 'dotnet' -and (Test-Path -LiteralPath $portableSdk)) { $Dotn
 $env:DOTNET_CLI_HOME = Join-Path $repoRoot '.tools\cli-home'
 $env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'
 if ($RebuildArt) {
-    & $BlenderPath --background --python (Join-Path $PSScriptRoot 'Build-LSDStudio.py')
+    & $BlenderPath --background --python-exit-code 1 --python (Join-Path $PSScriptRoot 'Build-LSDStudio.py')
     if ($LASTEXITCODE -ne 0) { throw 'Blender studio generation failed.' }
-    & $BlenderPath --background --python (Join-Path $PSScriptRoot 'Render-LSDIcons.py')
+    & $BlenderPath --background --python-exit-code 1 --python (Join-Path $PSScriptRoot 'Render-LSDIcons.py')
     if ($LASTEXITCODE -ne 0) { throw 'Blender icon rendering failed.' }
+    & $BlenderPath --background --python-exit-code 1 --python (Join-Path $PSScriptRoot 'Check-LSDStudio.py')
+    if ($LASTEXITCODE -ne 0) { throw 'Studio model contract checks failed.' }
     $unityLog = Join-Path $repoRoot 'artifacts\lsd-studio-unity.log'
     New-Item -ItemType Directory -Path (Split-Path $unityLog -Parent) -Force | Out-Null
     $unityArguments = @('-batchmode','-nographics','-quit','-projectPath',('"'+(Join-Path $repoRoot 'assets\LSDStudio')+'"'),
@@ -27,6 +29,14 @@ if ($RebuildArt) {
     }
 }
 if (-not (Test-Path -LiteralPath (Join-Path $repoRoot 'src\LSDGameplay\Assets\studio.bundle'))) { throw 'Studio assets missing. Build with -RebuildArt.' }
+$contractPath=Join-Path $repoRoot 'src\LSDGameplay\Assets\studio.contract.json'
+if(-not (Test-Path -LiteralPath $contractPath)){throw 'Current studio asset contract missing. Rebuild with -RebuildArt; prototype bundles are no longer accepted.'}
+$contract=Get-Content -LiteralPath $contractPath -Raw | ConvertFrom-Json
+if($contract.schema -ne 2){throw 'Obsolete studio asset contract. Rebuild with -RebuildArt.'}
+foreach($entry in @($contract.bundle)+@($contract.sources)){
+    $asset=Join-Path $repoRoot $entry.path
+    if(-not (Test-Path -LiteralPath $asset) -or (Get-FileHash -LiteralPath $asset -Algorithm SHA256).Hash.ToLowerInvariant() -ne $entry.sha256){throw "Studio asset changed or is obsolete: $($entry.path). Rebuild with -RebuildArt."}
+}
 $nuget = Join-Path $repoRoot 'NuGet.local.config'
 foreach ($project in @('src\LSDGameplay\LSDGameplay.csproj','tests\LSDGameplay\LSDGameplay.Tests.csproj')) {
     $arguments = @('build',(Join-Path $repoRoot $project),'-c','Release','--nologo','-warnaserror',"-p:GameDir=$GameDir")
@@ -38,7 +48,9 @@ foreach ($project in @('src\LSDGameplay\LSDGameplay.csproj','tests\LSDGameplay\L
 if ($LASTEXITCODE -ne 0) { throw 'Workshop persistence/rule checks failed.' }
 & (Join-Path $PSScriptRoot 'Build-LSDPreview.ps1') -GameDir $GameDir -DotnetPath $DotnetPath
 if (-not $?) { throw 'Integrated visual treatment checks failed.' }
-$package = Join-Path $repoRoot 'artifacts\LSDGameplay-0.2.3'
+[xml]$workshopProject=Get-Content -LiteralPath (Join-Path $repoRoot 'src\LSDGameplay\LSDGameplay.csproj') -Raw
+$workshopVersion=[string]$workshopProject.Project.PropertyGroup.Version
+$package = Join-Path $repoRoot "artifacts\LSDGameplay-$workshopVersion"
 $mods = Join-Path $package 'Mods'
 New-Item -ItemType Directory -Path $mods -Force | Out-Null
 foreach ($project in @('LSDGameplay','LSDPreview')) {
@@ -48,6 +60,6 @@ Copy-Item -LiteralPath (Join-Path $repoRoot 'docs\lsd-workshop.md') -Destination
 $hashes = Get-ChildItem -LiteralPath $mods -File | ForEach-Object { (Get-FileHash -LiteralPath $_.FullName).Hash.ToLowerInvariant()+'  Mods/'+$_.Name }
 $hashes += (Get-FileHash -LiteralPath (Join-Path $package 'README.md')).Hash.ToLowerInvariant()+'  README.md'
 Set-Content -LiteralPath (Join-Path $package 'SHA256SUMS.txt') -Value $hashes -Encoding utf8
-$zip = Join-Path $repoRoot 'artifacts\LSDGameplay-0.2.3.zip'
+$zip = Join-Path $repoRoot "artifacts\LSDGameplay-$workshopVersion.zip"
 Compress-Archive -LiteralPath $mods,(Join-Path $package 'README.md'),(Join-Path $package 'SHA256SUMS.txt') -DestinationPath $zip -Force
 Write-Output "Built workshop and checked visual treatment: $zip"

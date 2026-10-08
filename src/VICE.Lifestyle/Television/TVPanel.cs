@@ -130,7 +130,7 @@ internal sealed class TVPanel : IDisposable
     private void LocalFiles(bool video)
     {
         var directory=video?TVConfig.Videos:TVConfig.Images;
-        Heading=video?"Local MP4 · select first, then Play to share · up to 512 MiB":"Images · PNG or JPEG · shared with other players";
+        Heading=video?(TVNetwork.PeerCount>1?"Local MP4 · Play to share · up to 512 MiB":"Local MP4 · Play locally · no sharing size limit"):"Images · PNG or JPEG · shared with other players";
         var files=Directory.EnumerateFiles(directory,"*",SearchOption.TopDirectoryOnly)
             .Where(f=>video?Path.GetExtension(f).Equals(".mp4",StringComparison.OrdinalIgnoreCase):new[]{".png",".jpg",".jpeg"}.Contains(Path.GetExtension(f).ToLowerInvariant()))
             .Select(Path.GetFileName).Where(f=>f is not null).Take(1000).OrderBy(f=>f,StringComparer.OrdinalIgnoreCase).ToArray();

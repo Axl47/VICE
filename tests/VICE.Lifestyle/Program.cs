@@ -6,6 +6,8 @@ using VICE.Lifestyle.Television;
 var checks=0;
 void Check(bool condition,string message){if(!condition)throw new Exception(message);checks++;}
 void Reject(Action action,string message){try{action();}catch(InvalidDataException){checks++;return;}throw new Exception(message);}
+SynchronousPacketPayloadTests.Run(Check);
+ReliableOutboxTests.Run(Check);
 var image=Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aMs4AAAAASUVORK5CYII=");
 var hash=ImageCache.Hash(image);
 var id=Guid.NewGuid().ToString();
@@ -40,7 +42,7 @@ try
     var tampered=(byte[])image.Clone();tampered[^1]^=1;Reject(()=>new ImageTransfer(hash,image.Length,0).Add(0,tampered,1),"Corrupt transfer accepted.");
     VideoProtocolTests.Run(Check,Reject,Path.Combine(taskRoot,"videos"));
 }
-finally{if(Directory.Exists(taskRoot))Directory.Delete(taskRoot,true);}
+finally{TVVideoNetwork.Reset();if(Directory.Exists(taskRoot))Directory.Delete(taskRoot,true);}
 var clock=new PlaybackClock();clock.Observe(500,100,102);Check(Math.Abs((clock.Now-PlaybackClock.LocalNow)-399)<.01,"Clock did not use ping midpoint.");
 clock.Observe(800,100,109);Check(Math.Abs((clock.Now-PlaybackClock.LocalNow)-399)<.01,"Higher-latency clock sample displaced better sample.");
 Reject(()=>new RelayClient("http://public.example","token"),"Cleartext remote Relay accepted.");

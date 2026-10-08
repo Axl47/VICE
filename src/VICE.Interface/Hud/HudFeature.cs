@@ -1,4 +1,5 @@
 using Il2CppScheduleOne.UI;
+using Il2CppScheduleOne.Map;
 using Il2CppScheduleOne.UI.Compass;
 using Il2CppScheduleOne.UI.Phone.Map;
 using MelonLoader;
@@ -33,6 +34,8 @@ internal sealed class HudFeature
         ModSupport.Patch(harmony, typeof(QuestHUDUI), "UpdateMainLabel", self, postfix: nameof(DealUpdated));
         ModSupport.Patch(harmony, typeof(MapApp), "SetOpen", self, postfix: nameof(MapOpened));
         ModSupport.Patch(harmony, typeof(CompassManager), "Update", self, postfix: nameof(CompassUpdated));
+        ModSupport.Patch(harmony, typeof(POI), "OnEnable", typeof(MapPinRegistry), postfix: nameof(MapPinRegistry.Added));
+        ModSupport.Patch(harmony, typeof(POI), "OnDisable", typeof(MapPinRegistry), prefix: nameof(MapPinRegistry.Removed));
     }
 
     private static void DealUpdated(QuestHUDUI __instance)
@@ -122,6 +125,7 @@ internal sealed class HudFeature
         Minimap?.Dispose();
         Minimap = null;
         NextMinimapAttempt = 0;
+        MapPinRegistry.Clear();
     }
 
     public void OnSceneWasUnloaded(int buildIndex, string sceneName) { if (sceneName == "Main") Cleanup(); }

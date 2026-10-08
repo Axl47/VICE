@@ -1,5 +1,7 @@
 # UI Enhancements 0.2.4
 
+The current VICE Interface 0.1.1 implementation retains these features while reducing multiplayer HUD overhead. Map POIs are seeded once per scene and tracked through native enable/disable callbacks; regular reconciliation no longer scans the scene. Marker appearance/layout refreshes at most five times per second, with cached visibility ancestors and canvas groups. Customer positions refresh at most ten times per second. Player positions, map scrolling and facing remain tied to rendering frames. Snapshot arrays are reused between marker membership changes instead of allocated each frame.
+
 This independent module adds a square player-centered minimap, total/per-unit payments to tracked deals, map portrait pins for unlocked customers and compass markers for other multiplayer players. All four features default on. It reads existing contract/NPC/player data and creates local presentation objects; it does not change transactions, progression or saves.
 
 ## Minimap

@@ -4,6 +4,7 @@ using Il2CppScheduleOne.Persistence;
 using Il2CppScheduleOne.PlayerScripts;
 using MelonLoader;
 using S1API.Lifecycle;
+using S1API.Building;
 
 
 namespace VICE.Lifestyle.Television;
@@ -40,12 +41,20 @@ internal sealed class TelevisionFeature
         TVWorld.Install(harmony);
         GameLifecycle.OnPreLoad+=Preload;GameLifecycle.OnLoadComplete+=Loaded;GameLifecycle.OnPreSceneChange+=ClearSession;
         GameLifecycle.OnSaveComplete+=SaveComplete;
+        BuildEvents.OnBuildableItemInitialized+=RestoreFurniture;
+        Subscriptions.Add(() => BuildEvents.OnBuildableItemInitialized-=RestoreFurniture);
         Subscriptions.Add(() => GameLifecycle.OnPreLoad-=Preload);
         Subscriptions.Add(() => GameLifecycle.OnLoadComplete-=Loaded);
         Subscriptions.Add(() => GameLifecycle.OnPreSceneChange-=ClearSession);
         Subscriptions.Add(() => GameLifecycle.OnSaveComplete-=SaveComplete);
         ModSupport.Patch(harmony,typeof(SaveManager),"Save",typeof(TelevisionFeature),prefix:nameof(SaveStarted),parameters:new[]{typeof(string)});
         MelonLogger.Msg("Wall Screens ready. Buy a Wall Screen at Herbert's Bleuball's Boutique. Local media folders: UserData/VICE/Lifestyle/Television/Images and Videos.");
+    }
+    private static void RestoreFurniture(BuildEventArgs args)
+    {
+        if (args.ItemId!=TVContent.ItemId || !args.GameObject) return;
+        try { PersonalMods.Networking.ReplicatedFurnitureVisuals.Ensure(args.GameObject.GetComponent<Il2CppScheduleOne.EntityFramework.BuildableItem>()); }
+        catch (Exception error) { ModSupport.WarnOnce("tv:furniture-visuals", "TV furniture visuals could not be restored: "+error); }
     }
     private void Preload()
     {
@@ -125,7 +134,7 @@ internal sealed class TelevisionFeature
                 if(media.Kind=="local"&&(TVNetwork.PeerCount>1||!File.Exists(Path.Combine(TVConfig.Videos,media.Source))||(File.GetAttributes(Path.Combine(TVConfig.Videos,media.Source))&FileAttributes.ReparsePoint)!=0))throw new InvalidOperationException("Local videos require single-player and a regular file in the designated Videos folder.");
                 if(media.Kind=="relay")using(var setup=TVConfig.Relay()){}
                 Stop(state);state.Media=media.Clone();state.Remember=media.Kind=="image"||command.Remember;state.Position=0;state.Anchor=now;state.Duration=0;
-                state.Playing=media.Kind is "url" or "local";
+                state.Playing=media.Kind=="url";
                 if(media.Kind=="relay")StartRelay(state,false);
                 break;
             case "toggle": case "play": case "pause":
@@ -150,7 +159,7 @@ internal sealed class TelevisionFeature
                 if(command.Index<0||command.Index>=Document.Favorites.Count)throw new InvalidDataException("Unknown favorite.");Document.Favorites.RemoveAt(command.Index);break;
             case "stop":Stop(state);break;
             case "retry":
-                if(state.Media.Kind=="video"){state.MediaGeneration++;World?.Screens.GetValueOrDefault(state.Id)?.Retry();TVVideoNetwork.Play(state);}
+                if(state.Media.Kind=="video"){TVVideoNetwork.Pause(state);state.MediaGeneration++;World?.Screens.GetValueOrDefault(state.Id)?.Retry();TVVideoNetwork.Play(state);}
                 else if(state.Media.Kind=="relay")StartRelay(state,state.PlaybackId.Length>0);
                 else{state.MediaGeneration++;World?.Screens.GetValueOrDefault(state.Id)?.Retry();}break;
             default:throw new InvalidDataException("Unknown TV control.");
@@ -162,14 +171,14 @@ internal sealed class TelevisionFeature
     internal void SelectLocalVideo(string screen,string name)
     {
         if(VideoJobs.Count>=4)throw new InvalidOperationException("Wait for the current video scan to finish.");
-        var key="select:"+Guid.NewGuid();VideoJobs.Add(key);var token=Lifetime.Token;
+        var key="select:"+Guid.NewGuid();VideoJobs.Add(key);var token=Lifetime.Token;var multiplayer=TVNetwork.PeerCount>1;
         Notice("Checking selected video…");
         _=Task.Run(()=>
         {
             try
             {
-                var media=VideoCache.Describe(TVConfig.Videos,name,token);
-                MainThread.Enqueue(()=>{if(token.IsCancellationRequested)return;VideoJobs.Remove(key);TVVideoNetwork.RegisterLocal(media);TVNetwork.Submit(new(){Action="videoSelect",Screen=screen,Media=media});Notice("Video selected. Press Play to share it.");});
+                var media=VideoCache.Select(TVConfig.Videos,name,multiplayer,token);
+                MainThread.Enqueue(()=>{if(token.IsCancellationRequested)return;VideoJobs.Remove(key);if(media.Kind=="video")TVVideoNetwork.RegisterLocal(media);TVNetwork.Submit(new(){Action=media.Kind=="video"?"videoSelect":"select",Screen=screen,Media=media});Notice(media.Kind=="video"?"Video selected. Press Play to share it.":"Video selected. Press Play for local playback.");});
             }
             catch(Exception error){MainThread.Enqueue(()=>{if(token.IsCancellationRequested)return;VideoJobs.Remove(key);Notice(TVNetwork.SafeError(error));});}
         });
@@ -278,7 +287,7 @@ internal sealed class TelevisionFeature
             foreach(var state in message.Screens)
             {
                 state.Validate();var old=Document.Screens.FirstOrDefault(s=>s.Id==state.Id);
-                if(old is null)Document.Screens.Add(state);else if(state.Revision>=old.Revision){Document.Screens.Remove(old);Document.Screens.Add(state);}
+                if(old is null)Document.Screens.Add(state);else if(state.Revision>=old.Revision){Document.Screens.Remove(old);Document.Screens.Add(state);TVVideoNetwork.ObserveSnapshot(old,state);}
             }
             Document.Screens.RemoveAll(s=>!message.AllIds.Contains(s.Id));
         }

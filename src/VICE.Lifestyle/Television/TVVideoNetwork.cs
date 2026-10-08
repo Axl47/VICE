@@ -5,8 +5,8 @@ namespace VICE.Lifestyle.Television;
 
 internal static class TVVideoNetwork
 {
-    private sealed record Sending(NetworkConnection? Peer, VideoSender File);
-    private sealed record Incoming(int Owner, VideoTransfer File);
+    private sealed record Sending(NetworkConnection? Peer, VideoSender File, string TransferId);
+    private sealed record Incoming(int Owner, VideoTransfer File, string TransferId);
     private sealed class Buffering
     {
         internal readonly double Started = PlaybackClock.LocalNow;
@@ -18,6 +18,7 @@ internal static class TVVideoNetwork
     private static readonly List<Sending> Senders = new();
     private static readonly Dictionary<string, Buffering> Pending = new();
     private static readonly Dictionary<string, double> Requests = new();
+    private static readonly Dictionary<string, string> SentTransfers = new();
     private static double NextChunk;
     private static int Cursor;
     private static TelevisionFeature Mod => TelevisionFeature.Current!;
@@ -48,8 +49,32 @@ internal static class TVVideoNetwork
     internal static void Pause(ScreenState screen)
     {
         Pending.Remove(screen.Id); screen.Reanchor(TVNetwork.Now); screen.Playing = false; screen.VideoRequested = false; screen.Status = "Paused";
+        if (Active(screen.Media.Source) is null) Cancel(screen.Media.Source);
     }
-    internal static void Forget(string screen) => Pending.Remove(screen);
+    internal static void Forget(string screen)
+    {
+        Pending.Remove(screen);
+        var state = Mod.Document.Screens.FirstOrDefault(s => s.Id == screen);
+        if (state?.Media.Kind == "video" && !Mod.Document.Screens.Any(s => s.Id != screen && s.VideoRequested && s.Media.Source == state.Media.Source)) Cancel(state.Media.Source);
+    }
+    internal static void ObserveSnapshot(ScreenState old, ScreenState current)
+    {
+        if (old.Media.Kind != "video") return;
+        if (old.Media.Source == current.Media.Source && old.MediaGeneration != current.MediaGeneration)
+        {
+            if (!Mod.Document.Screens.Any(s => s.Id != current.Id && s.Media.Kind == "video" && s.VideoRequested && s.Media.Source == old.Media.Source)) Cancel(old.Media.Source);
+        }
+        else if (Active(old.Media.Source) is null) Cancel(old.Media.Source);
+    }
+    private static string SendKey(int peer, string hash) => "send:" + peer + ":" + hash;
+    private static void Cancel(string hash)
+    {
+        if (Downloads.Remove(hash, out var incoming)) incoming.File.Dispose();
+        foreach (var sending in Senders.Where(s => s.File.Hash == hash).ToArray()) { sending.File.Dispose(); Senders.Remove(sending); }
+        foreach (var key in Requests.Keys.Where(k => k == hash || k == "ready:" + hash || k.StartsWith("send:", StringComparison.Ordinal) && k.EndsWith(":" + hash, StringComparison.Ordinal)).ToArray()) Requests.Remove(key);
+        foreach (var key in SentTransfers.Keys.Where(k => k.EndsWith(":" + hash, StringComparison.Ordinal)).ToArray()) SentTransfers.Remove(key);
+        TVNetwork.CancelVideo(hash);
+    }
     internal static void Tick()
     {
         var now = PlaybackClock.LocalNow;
@@ -57,8 +82,8 @@ internal static class TVVideoNetwork
             if (Active(hash) is null || now - Downloads[hash].File.LastActivity > 60)
             {
                 var stalled = Active(hash) is not null;
-                Downloads[hash].File.Dispose(); Downloads.Remove(hash); Requests.Remove(hash);
                 if (stalled) Fail(hash, "Video transfer stalled. Press Play to retry.");
+                else Cancel(hash);
             }
         foreach (var sending in Senders.ToArray())
             if (Active(sending.File.Hash) is null || sending.Peer is { Authenticated: false })
@@ -96,7 +121,8 @@ internal static class TVVideoNetwork
                 var screen = Mod.Document.Screens.FirstOrDefault(s => s.Id == id);
                 if (screen is null || !screen.VideoRequested) { Pending.Remove(id); continue; }
                 var pending = Pending[id];
-                if (now - pending.Started > 1800) { Fail(screen.Media.Source, "Video sharing timed out. Press Play to try again."); continue; }
+                var timeout = Math.Max(1800, screen.Media.VideoBytes / (1024.0 * 1024) * (TVNetwork.PeerCount + 1) * 2);
+                if (now - pending.Started > timeout) { Fail(screen.Media.Source, "Video sharing timed out. Press Play to try again."); continue; }
                 if (PathFor(screen.Media) is null) continue;
                 var peers = new List<int>();
                 foreach (var pair in InstanceFinder.NetworkManager.ServerManager.Clients)
@@ -109,18 +135,23 @@ internal static class TVVideoNetwork
         }
         if (now < NextChunk || TVNetwork.QueuedMessages > 4 || Senders.Count == 0) return;
         // Global 1 MiB/s ceiling and a small queue keep controls responsive.
-        NextChunk = now + MediaRules.ChunkBytes / (1024.0 * 1024);
-        Cursor %= Senders.Count; var next = Senders[Cursor]; Cursor++;
-        try
+        var interval = MediaRules.ChunkBytes / (1024.0 * 1024);
+        NextChunk = Math.Max(NextChunk, now - interval * 3);
+        for (var burst = 0; burst < 4 && now >= NextChunk && TVNetwork.QueuedMessages <= 4 && Senders.Count > 0; burst++)
         {
-            var index = next.File.Index; var bytes = next.File.Next();
-            if (TVNetwork.Host) TVNetwork.Send(next.Peer!, new() { Type = "videoChunk", Hash = next.File.Hash, Index = index, Data = bytes });
-            else TVNetwork.Submit(new() { Action = "videoChunk", Hash = next.File.Hash, Index = index, Data = bytes });
-            if (next.File.Complete) { next.File.Dispose(); Senders.Remove(next); }
-        }
-        catch (Exception error)
-        {
-            next.File.Dispose(); Senders.Remove(next); Fail(next.File.Hash, TVNetwork.SafeError(error));
+            NextChunk += interval;
+            Cursor %= Senders.Count; var next = Senders[Cursor]; Cursor++;
+            try
+            {
+                var index = next.File.Index; var bytes = next.File.Next();
+                if (TVNetwork.Host) TVNetwork.Send(next.Peer!, new() { Type = "videoChunk", Hash = next.File.Hash, TransferId = next.TransferId, Index = index, Data = bytes });
+                else TVNetwork.Submit(new() { Action = "videoChunk", Hash = next.File.Hash, TransferId = next.TransferId, Index = index, Data = bytes });
+                if (next.File.Complete) { next.File.Dispose(); Senders.Remove(next); }
+            }
+            catch (Exception error)
+            {
+                next.File.Dispose(); Senders.Remove(next); Fail(next.File.Hash, TVNetwork.SafeError(error));
+            }
         }
     }
     private static NetworkConnection? Peer(int id) => InstanceFinder.NetworkManager.ServerManager.Clients.TryGetValue(id, out var peer) && peer.Authenticated ? peer : null;
@@ -143,12 +174,14 @@ internal static class TVVideoNetwork
                 if (PathFor(media) is { } path) SendFile(peer, media, path);
                 break;
             case "videoBegin":
-                Begin(peer.ClientId, media);
+                Begin(peer.ClientId, media, command.TransferId);
                 break;
             case "videoChunk":
-                if (Downloads.TryGetValue(command.Hash, out var incoming) && incoming.Owner == peer.ClientId) Add(command.Hash, command.Index, command.Data);
+                if (Downloads.TryGetValue(command.Hash, out var incoming) && incoming.Owner == peer.ClientId && incoming.TransferId == command.TransferId) Add(command.Hash, command.Index, command.Data);
                 break;
             case "videoFailed":
+                if (command.TransferId.Length > 0 && !(Downloads.TryGetValue(command.Hash, out var failed) && failed.Owner == peer.ClientId && failed.TransferId == command.TransferId)
+                    && SentTransfers.GetValueOrDefault(SendKey(peer.ClientId, command.Hash)) != command.TransferId) break;
                 Fail(command.Hash, "A player could not receive or share this video. Press Play to retry or reselect the file.");
                 break;
         }
@@ -171,29 +204,38 @@ internal static class TVVideoNetwork
                 break;
             case "videoBegin":
                 if (message.Length != media.VideoBytes) throw new InvalidDataException("Unexpected video length.");
-                Begin(-1, media);
+                Begin(-1, media, message.TransferId);
                 break;
-            case "videoChunk": Add(message.Hash, message.Index, message.Data); break;
+            case "videoChunk":
+                if (Downloads.TryGetValue(message.Hash, out var incoming) && incoming.TransferId == message.TransferId) Add(message.Hash, message.Index, message.Data);
+                break;
         }
         }
-        catch (Exception error) { Fail(message.Hash, TVNetwork.SafeError(error)); }
+        catch (Exception error) { Fail(message.Hash, TVNetwork.SafeError(error), message.TransferId); }
         return true;
     }
     private static void SendFile(NetworkConnection? peer, MediaSelection media, string path)
     {
         if (Senders.Any(s => s.Peer?.ClientId == peer?.ClientId && s.File.Hash == media.Source)) return;
-        var key = "send:" + (peer?.ClientId ?? -1) + ":" + media.Source;
+        var key = SendKey(peer?.ClientId ?? -1, media.Source);
         if (Requests.TryGetValue(key, out var last) && PlaybackClock.LocalNow - last < 15) return;
         if (Senders.Count >= 8) return;
-        var sender = new VideoSender(path, media); Senders.Add(new(peer, sender)); Requests[key] = PlaybackClock.LocalNow;
-        if (TVNetwork.Host) TVNetwork.Send(peer!, new() { Type = "videoBegin", Hash = media.Source, Length = media.VideoBytes });
-        else TVNetwork.Submit(new() { Action = "videoBegin", Hash = media.Source, Length = media.VideoBytes });
+        var sender = new VideoSender(path, media); var transferId = Guid.NewGuid().ToString();
+        Senders.Add(new(peer, sender, transferId)); Requests[key] = PlaybackClock.LocalNow; SentTransfers[key] = transferId;
+        if (TVNetwork.Host) TVNetwork.Send(peer!, new() { Type = "videoBegin", Hash = media.Source, TransferId = transferId, Length = media.VideoBytes });
+        else TVNetwork.Submit(new() { Action = "videoBegin", Hash = media.Source, TransferId = transferId, Length = media.VideoBytes });
     }
-    private static void Begin(int owner, MediaSelection media)
+    private static void Begin(int owner, MediaSelection media, string transferId)
     {
-        if (Downloads.ContainsKey(media.Source)) return;
+        if (!Guid.TryParse(transferId, out _)) throw new InvalidDataException("Invalid video transfer identity.");
+        if (Mod.Videos.Has(media)) { Requests.Remove("ready:" + media.Source); return; }
+        if (Downloads.TryGetValue(media.Source, out var previous))
+        {
+            if (previous.TransferId == transferId) return;
+            previous.File.Dispose(); Downloads.Remove(media.Source);
+        }
         if (Downloads.Count >= 4) throw new InvalidOperationException("Too many incoming videos. Try again shortly.");
-        Downloads.Add(media.Source, new(owner, Mod.Videos.Begin(media, Pinned(), PlaybackClock.LocalNow)));
+        Downloads.Add(media.Source, new(owner, Mod.Videos.Begin(media, Pinned(), PlaybackClock.LocalNow), transferId));
     }
     private static void Add(string hash, int index, byte[]? bytes)
     {
@@ -205,25 +247,27 @@ internal static class TVVideoNetwork
         }
         catch (Exception error)
         {
-            incoming.File.Dispose(); Downloads.Remove(hash); Requests.Remove(hash); Fail(hash, TVNetwork.SafeError(error));
+            Fail(hash, TVNetwork.SafeError(error));
         }
     }
-    internal static void Fail(string hash, string text)
+    internal static void Fail(string hash, string text, string? failedTransferId = null)
     {
+        var transferId = !string.IsNullOrEmpty(failedTransferId) ? failedTransferId : Downloads.TryGetValue(hash, out var incoming) ? incoming.TransferId : SentTransfers.GetValueOrDefault(SendKey(-1, hash)) ?? "";
+        Cancel(hash);
         if (TVNetwork.Host)
             foreach (var screen in Mod.Document.Screens.Where(s => s.Media.Source == hash))
             { Pause(screen); screen.Status = text; Mod.VideoChanged(screen); }
         else
         {
             Mod.Notice(text);
-            TVNetwork.Submit(new() { Action = "videoFailed", Hash = hash });
+            TVNetwork.Submit(new() { Action = "videoFailed", Hash = hash, TransferId = transferId });
         }
     }
     internal static void Reset()
     {
         foreach (var download in Downloads.Values) download.File.Dispose();
         foreach (var sender in Senders) sender.File.Dispose();
-        Downloads.Clear(); Senders.Clear(); Pending.Clear(); Owners.Clear(); LocalFiles.Clear(); Requests.Clear(); NextChunk = 0; Cursor = 0;
+        Downloads.Clear(); Senders.Clear(); Pending.Clear(); Owners.Clear(); LocalFiles.Clear(); Requests.Clear(); SentTransfers.Clear(); NextChunk = 0; Cursor = 0;
         TelevisionFeature.Current?.Videos?.Clear();
     }
 }

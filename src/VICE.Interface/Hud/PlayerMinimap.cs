@@ -21,6 +21,9 @@ internal sealed class PlayerMinimap : IDisposable
     private readonly Image MapImage, ArrowImage, ViewportFill;
     private readonly RectMask2D ViewportMask;
     private readonly Dictionary<IntPtr, MinimapPin> Pins = new();
+    private KeyValuePair<IntPtr, MinimapPin>[] PinSnapshot = Array.Empty<KeyValuePair<IntPtr, MinimapPin>>();
+    private readonly RefreshBudget ArtworkRefresh = new(0.2f);
+    private Vector2 CachedAnchor;
     private MinimapPin? LocalPlayerPin;
     private Texture2D? BorderTexture;
     private Sprite? BorderSprite;
@@ -98,14 +101,18 @@ internal sealed class PlayerMinimap : IDisposable
         var scale = size / (range * factor);
         Content.localScale = new(scale, scale, 1);
 
-        if (resumed) NextRefresh = 0;
+        if (resumed) { NextRefresh = 0; ArtworkRefresh.Reset(); }
         if (Time.realtimeSinceStartup >= NextRefresh) RefreshPins(player);
         // Native POIs use GetMapPosition as their anchoredPosition. Account for
         // their prefab anchors as well as the map image's own pivot/hierarchy.
-        var anchor = MapAnchor();
+        if (ArtworkRefresh.Take(Time.realtimeSinceStartup))
+        {
+            CachedAnchor = MapAnchor();
+            UpdateArtwork();
+        }
+        var anchor = CachedAnchor;
         Content.anchoredPosition = -(center + anchor) * scale;
-        UpdateArtwork();
-        foreach (var pair in Pins.ToArray())
+        foreach (var pair in PinSnapshot)
         {
             try
             {
@@ -113,12 +120,13 @@ internal sealed class PlayerMinimap : IDisposable
                 if (!pin.IsAlive) { Remove(pair.Key); continue; }
                 var position = projection.GetMapPosition(pin.Poi.transform.position);
                 if (!Finite(position)) { pin.Root.gameObject.SetActive(false); continue; }
-                var projected = position + AnchorReference(pin.Poi.UI);
+                var projected = position + pin.AnchorOffset;
                 var offset = projected - (center + anchor);
                 var halfWidth = range * factor * 0.5f + pin.Radius;
                 var onMap = Math.Abs(offset.x) <= halfWidth && Math.Abs(offset.y) <= halfWidth;
-                pin.Root.gameObject.SetActive(onMap && pin.Poi.isActiveAndEnabled && pin.Poi.UI.gameObject.activeSelf);
-                if (!onMap) continue; // Faraway icons need no per-frame visual/geometry copies.
+                var active = onMap && pin.Poi.isActiveAndEnabled && pin.Poi.UI.gameObject.activeSelf;
+                pin.Root.gameObject.SetActive(active);
+                if (!active) continue; // Hidden icons need no visual/geometry copies.
                 pin.Root.anchoredPosition = projected;
                 pin.Sync(IconScale);
             }
@@ -177,7 +185,7 @@ internal sealed class PlayerMinimap : IDisposable
         if (Player.PlayerList is not null)
             foreach (var peer in Player.PlayerList)
                 if (peer && peer.PoI) playerPois.Add(peer.PoI.Pointer);
-        foreach (var poi in Object.FindObjectsOfType<POI>())
+        foreach (var poi in MapPinRegistry.Current)
         {
             if (!poi || !poi.isActiveAndEnabled || !poi.UI || !poi.IconContainer || !poi.UI.IsChildOf(Map.PoIContainer)
                 || (player.PoI && poi.Pointer == player.PoI.Pointer) || !seen.Add(poi.Pointer)) continue;
@@ -187,6 +195,7 @@ internal sealed class PlayerMinimap : IDisposable
             catch (Exception error) { ModSupport.WarnOnce("ui:minimap-create", $"A minimap icon could not be created: {error.Message}"); }
         }
         foreach (var key in Pins.Keys.Where(key => !seen.Contains(key)).ToArray()) Remove(key);
+        PinSnapshot = Pins.ToArray();
     }
 
     private void UpdatePlayerArrow(Player player, float mapScale)
@@ -304,6 +313,7 @@ internal sealed class PlayerMinimap : IDisposable
         Disposed = true;
         foreach (var pin in Pins.Values) pin.Dispose();
         Pins.Clear();
+        PinSnapshot = Array.Empty<KeyValuePair<IntPtr, MinimapPin>>();
         LocalPlayerPin?.Dispose(); LocalPlayerPin = null;
         if (Frame) { Frame.gameObject.SetActive(false); Object.Destroy(Frame.gameObject); }
         DestroyBorder();
@@ -314,7 +324,10 @@ internal sealed class PlayerMinimap : IDisposable
         internal readonly POI Poi;
         internal readonly RectTransform Root;
         internal float Radius { get; private set; }
-        private readonly List<(Graphic Source, Graphic Copy)> Graphics = new();
+        internal Vector2 AnchorOffset { get; private set; }
+        private readonly List<(Graphic Source, Graphic Copy, Transform[] Nodes, CanvasGroup[] Groups)> Graphics = new();
+        private readonly RefreshBudget VisualRefresh = new(0.2f);
+        private float DisplayScale = 1;
         private readonly Dictionary<IntPtr, (RectTransform Source, RectTransform Copy)> PlayerRects = new();
         private RectTransform? FacingRoot;
         private readonly bool IsPlayer;
@@ -367,7 +380,7 @@ internal sealed class PlayerMinimap : IDisposable
                         copy.type = source.type; copy.preserveAspect = source.preserveAspect;
                         copy.fillMethod = source.fillMethod; copy.fillOrigin = source.fillOrigin;
                         copy.fillClockwise = source.fillClockwise;
-                        pin.Graphics.Add((source, copy));
+                        pin.AddGraphic(source, copy);
                     }
                     else if (graphic.TryCast<RawImage>() is { } raw)
                     {
@@ -375,7 +388,7 @@ internal sealed class PlayerMinimap : IDisposable
                             : Rect(root, "Map portrait", Vector2.zero, Vector2.zero);
                         var copy = rect.gameObject.AddComponent<RawImage>();
                         copy.raycastTarget = false;
-                        pin.Graphics.Add((raw, copy));
+                        pin.AddGraphic(raw, copy);
                     }
                 }
                 pin.Sync(IconScale);
@@ -386,9 +399,6 @@ internal sealed class PlayerMinimap : IDisposable
 
         internal void Sync(float iconScale, Vector3? viewDirection = null)
         {
-            Radius = 0;
-            HasVisibleArtwork = false;
-            var area = false;
             if (IsPlayer)
             {
                 var facing = viewDirection ?? Poi.transform.forward;
@@ -397,21 +407,27 @@ internal sealed class PlayerMinimap : IDisposable
                 if (float.IsFinite(facing.x) && float.IsFinite(facing.z)
                     && facing.x * facing.x + facing.z * facing.z > 0.000001f)
                     Heading = Mathf.Atan2(-facing.x, facing.z) * Mathf.Rad2Deg;
-                SyncPlayerLayout();
+                if (FacingRoot) FacingRoot!.localRotation = Quaternion.Euler(0, 0, Heading);
             }
-            foreach (var (source, copy) in Graphics)
+            // Root scale is restored each frame because the local glyph's caller
+            // applies the current map zoom after Sync. Heavy style/layout work is
+            // independent of smooth facing and position updates.
+            Root.localScale = new(DisplayScale, DisplayScale, 1);
+            if (!VisualRefresh.Take(Time.realtimeSinceStartup)) return;
+            AnchorOffset = AnchorReference(Poi.UI);
+            Radius = 0;
+            HasVisibleArtwork = false;
+            var area = false;
+            if (IsPlayer) SyncPlayerLayout();
+            foreach (var (source, copy, nodes, groups) in Graphics)
             {
                 if (!source || !copy) continue;
                 var visible = source.enabled;
                 var opacity = 1f;
                 // activeInHierarchy includes the closed phone panel; only local
                 // icon/UI visibility should affect an independent HUD copy.
-                for (var node = source.transform; node && node.Pointer != Poi.UI.parent.Pointer; node = node.parent)
-                {
-                    if (!node.gameObject.activeSelf) visible = false;
-                    var group = node.GetComponent<CanvasGroup>();
-                    if (group) opacity *= group.alpha;
-                }
+                foreach (var node in nodes) if (!node || !node.gameObject.activeSelf) visible = false;
+                foreach (var group in groups) if (group) opacity *= group.alpha;
                 // A disabled parent Graphic must not hide its child graphics:
                 // player copies now share the native transform hierarchy.
                 if (IsPlayer) copy.enabled = visible;
@@ -446,8 +462,23 @@ internal sealed class PlayerMinimap : IDisposable
             }
             // Enlarge symbols, not geographical search-zone footprints.
             var scale = area && !IsPlayer ? 1 : iconScale;
+            DisplayScale = scale;
             Root.localScale = new(scale, scale, 1);
             Radius *= scale;
+        }
+
+        private void AddGraphic(Graphic source, Graphic copy)
+        {
+            var nodes = new List<Transform>();
+            var groups = new List<CanvasGroup>();
+            var boundary = Poi.UI.parent;
+            for (var node = source.transform; node && node.Pointer != boundary.Pointer; node = node.parent)
+            {
+                nodes.Add(node);
+                var group = node.GetComponent<CanvasGroup>();
+                if (group) groups.Add(group);
+            }
+            Graphics.Add((source, copy, nodes.ToArray(), groups.ToArray()));
         }
 
         private void SyncPlayerLayout()

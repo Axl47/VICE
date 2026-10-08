@@ -1,6 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><TargetFramework>net8.0</TargetFramework><OutputType>Exe</OutputType><AssemblyName>VICE.Lifestyle.Tests</AssemblyName><PlatformTarget>AnyCPU</PlatformTarget></PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../src/Networking/SynchronousPacketPayload.cs" Link="SynchronousPacketPayload.cs" />
+    <Compile Include="../../src/Networking/ReliableOutbox.cs" Link="ReliableOutbox.cs" />
+    <Compile Include="../Networking/SynchronousPacketPayloadTests.cs" Link="SynchronousPacketPayloadTests.cs" />
+    <Compile Include="../Networking/ReliableOutboxTests.cs" Link="ReliableOutboxTests.cs" />
     <None Include="Fixtures/relay-game-v1.json" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../../src/VICE.Lifestyle/Television/MediaState.cs" Link="MediaState.cs" />
     <Compile Include="../../src/VICE.Lifestyle/Television/ImageCache.cs" Link="ImageCache.cs" />

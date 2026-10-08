@@ -11,6 +11,7 @@ internal sealed class KnownCustomerMap : IDisposable
 {
     private readonly MapApp Map;
     private readonly Dictionary<IntPtr, CustomerMarker> Markers = new();
+    private readonly RefreshBudget PositionRefresh = new(0.1f);
     private GameObject? Root;
     private float NextRefresh;
     private bool Disposed;
@@ -51,6 +52,7 @@ internal sealed class KnownCustomerMap : IDisposable
         }
         foreach (var key in Markers.Keys.Where(key => !seen.Contains(key)).ToArray()) Remove(key);
         NextRefresh = Time.realtimeSinceStartup + 1f;
+        PositionRefresh.Take(Time.realtimeSinceStartup);
         UpdatePositions();
     }
 
@@ -60,7 +62,7 @@ internal sealed class KnownCustomerMap : IDisposable
         if (!Enabled || !Map || !Map.PoIContainer) { Clear(); return; }
         if (!Map.isOpen && !PlayerMinimap.Ready) return;
         if (Time.realtimeSinceStartup >= NextRefresh) Refresh();
-        else UpdatePositions();
+        else if (PositionRefresh.Take(Time.realtimeSinceStartup)) UpdatePositions();
     }
 
     private void UpdatePositions()
@@ -95,6 +97,7 @@ internal sealed class KnownCustomerMap : IDisposable
         if (Root) Object.Destroy(Root);
         Root = null;
         NextRefresh = 0;
+        PositionRefresh.Reset();
     }
 
     public void Dispose() { if (Disposed) return; Clear(); Disposed = true; }

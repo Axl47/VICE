@@ -80,6 +80,7 @@ internal sealed class TVWorld : IDisposable
             foreach(var item in property.BuildableItems.ToArray())
             {
                 if(!item||!item.Initialized||item.isGhost||item.IsDestroyed||item.ItemInstance?.ID!=TVContent.ItemId)continue;
+                PersonalMods.Networking.ReplicatedFurnitureVisuals.Ensure(item);
                 var id=item.GUID.ToString();found.Add(id);
                 if(Screens.ContainsKey(id))continue;
                 if(TVNetwork.Host)TelevisionFeature.Current!.EnsureScreen(id);

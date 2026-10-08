@@ -7,7 +7,7 @@ using PersonalMods.BetterPolice;
 using NACops;
 using UnityEngine;
 
-[assembly: MelonInfo(typeof(VICE.Enforcement.EnforcementMod), "VICE.Enforcement", "0.1.1", "Axl47; based on XOWithSauce / Frostbyt3 / Babyhamsta")]
+[assembly: MelonInfo(typeof(VICE.Enforcement.EnforcementMod), "VICE.Enforcement", "0.1.3", "Axl47; based on XOWithSauce / Frostbyt3 / Babyhamsta")]
 [assembly: MelonGame("TVGS", "Schedule I")]
 [assembly: MelonPlatformDomain(MelonPlatformDomainAttribute.CompatibleDomains.IL2CPP)]
 [assembly: HarmonyDontPatchAll]
@@ -45,7 +45,7 @@ public sealed class EnforcementMod : global::NACops.NACops
         }
         police.Initialize(HarmonyInstance);
         initialized = true;
-        MelonLogger.Msg("VICE Enforcement 0.1.1 initialized with VICE Core; police only. Host controls NACops events.");
+        MelonLogger.Msg("VICE Enforcement 0.1.3 initialized with VICE Core; police only. Host controls NACops events.");
     }
 
     internal static void ApplyPersonalPolicy()
@@ -70,7 +70,7 @@ public sealed class EnforcementMod : global::NACops.NACops
             return;
         }
         if (registered) return;
-        var network = UnityEngine.Object.FindObjectOfType<NetworkManager>(true);
+        var network = Il2CppFishNet.InstanceFinder.NetworkManager;
         if (!network || !network.IsServer) return;
         registered = true;
         coros.Add(MelonCoroutines.Start(Setup()));

@@ -16,6 +16,21 @@ Check(!ModuleCompatibility.CanInitialize("Test", "vice.tests.legacy"), "Predeces
 Check(MelonLoader.MelonLogger.LastError.Contains("Vice.Tests.Legacy"), "Conflict errors must identify the predecessor.");
 Check(ModuleCompatibility.CanInitialize("Test", "Vice.Tests.Other"), "Unrelated assemblies must not block a module.");
 
+// Bound native UI work at different render rates and avoid catch-up bursts.
+foreach (var fps in new[] { 30, 60, 144, 240 })
+{
+    var budget = new VICE.Interface.Hud.RefreshBudget(0.2f);
+    var refreshes = 0;
+    for (var frame = 0; frame < fps * 10; frame++) if (budget.Take((float)frame / fps)) refreshes++;
+    Check(refreshes >= 44 && refreshes <= 51, $"UI refreshes remain bounded at {fps} FPS: {refreshes}.");
+    Check(budget.Take(100), "Returning after a hidden interval refreshes once.");
+    Check(!budget.Take(100) && !budget.Take(100.01f), "Returning does not trigger catch-up work.");
+    budget.Reset();
+    Check(budget.Take(100.01f), "Visibility reset refreshes immediately.");
+    Check(!budget.Take(float.NaN) && !budget.Take(float.PositiveInfinity), "Invalid clocks cannot poison the schedule.");
+    Check(budget.Take(101), "The schedule recovers after invalid clocks.");
+}
+
 if (args.Length < 1) throw new ArgumentException("Pass the repository directory and optional module names to inspect built DLLs.");
 var repository = Path.GetFullPath(args[0]);
 var callbacks = new Dictionary<string, (string Callback, string Feature, string Method)[]>
@@ -89,6 +104,16 @@ foreach (var (module, expected) in callbacks.Where(pair => selected.Contains(pai
         module + " must release its own Harmony hooks.");
     if (module == "Arsenal") Check(assembly.MainModule.Resources.Any(resource => resource.Name == "Personal.MoreGuns.bundle"),
         "Arsenal must preserve the embedded private weapon bundle lookup.");
+    if (module == "Interface")
+    {
+        var minimap = assembly.MainModule.Types.Single(type => type.Name == "PlayerMinimap");
+        Check(!minimap.Methods.SelectMany(method => method.Body?.Instructions ?? Enumerable.Empty<Mono.Cecil.Cil.Instruction>())
+            .Any(instruction => instruction.Operand is MethodReference called && called.Name == "FindObjectsOfType"),
+            "Minimap updates and reconciliation must not search the scene.");
+        var registry = assembly.MainModule.Types.Single(type => type.Name == "MapPinRegistry");
+        Check(registry.Methods.Any(method => method.Name == "Added") && registry.Methods.Any(method => method.Name == "Removed"),
+            "Runtime POI creation/removal must update the cached registry.");
+    }
 }
 Console.WriteLine($"VICE module registration/lifecycle/Core checks passed ({checks} assertions).");
 

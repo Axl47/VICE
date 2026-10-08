@@ -31,6 +31,7 @@ internal sealed class WorkshopWorld : IDisposable
     private readonly Dictionary<string,BuildableItem> Machines=new();
     private readonly Dictionary<IntPtr,(Vector3 Position,Quaternion Rotation)> PartOrigins=new();
     private readonly Dictionary<int,Material> Lamps=new();
+    private readonly Dictionary<string,CabinetView> Cabinets=new();
     private float NextScan;
     internal string CollectionName=>CollectionShop ? CollectionShop!.ShopName+" delivery pallet" : "Hardware store delivery pallet unavailable";
 
@@ -97,6 +98,12 @@ internal sealed class WorkshopWorld : IDisposable
         __instance.ActiveProductAlignments=new Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray<Transform>(points);
     }
     internal BuildableItem? FindMachine(string id)=>Machines.TryGetValue(id,out var item) && item ? item : null;
+    internal CabinetView Cabinet(BuildableItem item)
+    {
+        var id=item.GUID.ToString();
+        if(!Cabinets.TryGetValue(id,out var view)){view=new CabinetView(item);Cabinets[id]=view;}
+        return view;
+    }
 
     internal void Tick()
     {
@@ -137,11 +144,13 @@ internal sealed class WorkshopWorld : IDisposable
         foreach (var item in Office.BuildableItems)
         {
             if (!item || !item.Initialized || item.isGhost || item.IsDestroyed || item.ItemInstance is null || !Equipment(item.ItemInstance.ID)) continue;
+            PersonalMods.Networking.ReplicatedFurnitureVisuals.Ensure(item);
             var id=item.GUID.ToString();Machines[id]=item;
             var interactables=item.GetComponentsInChildren<InteractableObject>(true);
             if (interactables.Length==0) AddInteraction(item.gameObject,item.ItemInstance.ID==WorkshopRules.Bench ? "Use Blotter Bench" : "Open drying cabinet");
             else foreach (var interactable in interactables) interactable.SetMessage(item.ItemInstance.ID==WorkshopRules.Bench ? "Use Blotter Bench" : "Open drying cabinet");
         }
+        foreach(var id in Cabinets.Keys.Where(id=>!Machines.ContainsKey(id)).ToArray()){Cabinets[id].Dispose();Cabinets.Remove(id);}
         RefreshMachines(LSDGameplayMod.Current!.State);
     }
 
@@ -161,9 +170,13 @@ internal sealed class WorkshopWorld : IDisposable
             var item=pair.Value;if (!item) continue;
             var machine=state.Machines.FirstOrDefault(m=>m.Id==pair.Key);
             var show=machine is not null && machine.Stage is not MachineStage.Empty;
-            foreach (var transform in item.GetComponentsInChildren<Transform>(true))
-                if (transform.name is "Paper" or "PrintedSheet" || transform.name.StartsWith("ArtworkSurface",StringComparison.Ordinal))
-                    transform.gameObject.SetActive(show && (!transform.name.StartsWith("ArtworkSurface",StringComparison.Ordinal) || machine!.Stage!=MachineStage.Preparing));
+            if(item.ItemInstance.ID==WorkshopRules.Cabinet)Cabinet(item).Refresh(machine);
+            else {
+                foreach (var transform in item.GetComponentsInChildren<Transform>(true))
+                    if (transform.name is "Paper" or "PrintedSheet" || transform.name.StartsWith("ArtworkSurface",StringComparison.Ordinal))
+                        transform.gameObject.SetActive(show && (!transform.name.StartsWith("ArtworkSurface",StringComparison.Ordinal) || machine!.Stage!=MachineStage.Preparing));
+                if (machine is not null) StudioAssets.ApplyArtwork(item.gameObject,machine.ArtSlot,sheet:true);
+            }
             foreach (var renderer in item.GetComponentsInChildren<Renderer>(true).Where(r=>r.name=="StatusLamp"))
             {
                 var lamp=machine?.Stage==MachineStage.Drying ? 1 : machine?.Stage==MachineStage.DryOutput ? 2 : 0;
@@ -171,7 +184,6 @@ internal sealed class WorkshopWorld : IDisposable
                 { material=new Material(renderer.sharedMaterial);material.color=lamp switch { 1=>new(1,0.61f,0.12f),2=>new(0.22f,0.85f,0.52f),_=>new(0.16f,0.22f,0.24f) };Lamps[lamp]=material; }
                 renderer.sharedMaterial=material;
             }
-            if (machine is not null) StudioAssets.ApplyArtwork(item.gameObject,machine.ArtSlot,sheet:true);
         }
     }
 
@@ -322,5 +334,5 @@ internal sealed class WorkshopWorld : IDisposable
         { if (mod.State.Machines.RemoveAll(m=>m.Id==__instance.GUID.ToString())>0) { mod.State.Revision++;WorkshopNetwork.Publish(); } }
         return true;
     }
-    public void Dispose() { if (Sticker) Object.Destroy(Sticker);foreach (var material in Lamps.Values) Object.Destroy(material);Lamps.Clear();Machines.Clear();Office=null;Conversation=null; }
+    public void Dispose() { if (Sticker) Object.Destroy(Sticker);foreach (var view in Cabinets.Values)view.Dispose();Cabinets.Clear();foreach (var material in Lamps.Values) Object.Destroy(material);Lamps.Clear();Machines.Clear();Office=null;Conversation=null; }
 }

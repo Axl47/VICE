@@ -98,6 +98,11 @@ Check(failures.Count == 0, $"{failures.Count} compatibility failures.");
 Check(mod.Name.Name == "VICE.Syndicate", "Module identity is VICE.Syndicate.");
 Check(mod.MainModule.Resources.Any(r => r.Name.EndsWith("LICENSE.CartelEnforcer")), "MIT notice is embedded.");
 Check(mod.MainModule.Resources.Count(r => r.Name.StartsWith("VICE.Syndicate.Defaults/")) == 9, "All nine release default files are embedded.");
+var startup = mod.MainModule.Types.Single(type => type.Name == "SyndicateMod").Methods.Single(method => method.Name == "OnLoadCompleteCb");
+var startupCalls = startup.Body.Instructions.Select(i => i.Operand).OfType<MethodReference>().ToArray();
+Check(startupCalls.Any(c => c.DeclaringType.FullName == "Il2CppFishNet.InstanceFinder" && c.Name == "get_NetworkManager"), "Startup reads the registered network manager.");
+Check(startupCalls.Any(c => c.Name == "get_IsServer") && startupCalls.Any(c => c.Name == "get_ActiveSaveInfo"), "Guest/host-save readiness guards precede persistent setup.");
+Check(Array.FindIndex(startupCalls, c => c.Name == "get_ActiveSaveInfo") < Array.FindIndex(startupCalls, c => c.Name == "Start"), "Host save readiness must be checked before starting setup.");
 Console.WriteLine($"Passed {assertions} assertions and {targets.Count} beta patch contracts/native addresses.");
 
 record Symbol(string Type, string Name, string Parameters, string ReturnType, string Rva);

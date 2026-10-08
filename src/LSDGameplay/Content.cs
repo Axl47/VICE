@@ -36,8 +36,14 @@ internal static class Content
                     .WithLegalStatus(spec.Item1==WorkshopRules.Prism ? LegalStatus.Illegal:LegalStatus.Legal)
                     .WithStackLimit(20).WithPricing(spec.Item4).WithIcon(StudioAssets.PropIcon(spec.Item1==WorkshopRules.Prism ? "Prism" : spec.Item1==WorkshopRules.Paper ? "Paper" : spec.Item1==WorkshopRules.Ink ? "Ink" : "Sleeve"))
                     .WithStoredItem(spec.Item1==WorkshopRules.Prism ? StudioAssets.Stored("Parcel"):StudioAssets.StoredSupply(spec.Item1==WorkshopRules.Ink)).WithoutStationItem().Build();
-            var parcelHeld=new GameObject("Prism Base viewmodel");parcelHeld.SetActive(false);UnityEngine.Object.DontDestroyOnLoad(parcelHeld);
+            // Native Equip clones the prefab's activeSelf state. Keep the
+            // template active under a disabled cache so the held clone renders.
+            var parcelCache=new GameObject("Prism Base viewmodel cache");parcelCache.SetActive(false);UnityEngine.Object.DontDestroyOnLoad(parcelCache);
+            var parcelHeld=new GameObject("Prism Base viewmodel");parcelHeld.transform.SetParent(parcelCache.transform,false);
             var parcelVisual=UnityEngine.Object.Instantiate(StudioAssets.Visual("Parcel"),parcelHeld.transform);parcelVisual.SetActive(true);
+            var viewmodelLayer=LayerMask.NameToLayer("Viewmodel");
+            if(viewmodelLayer<0)throw new InvalidOperationException("Native Viewmodel layer is unavailable.");
+            foreach(var part in parcelHeld.GetComponentsInChildren<Transform>(true))part.gameObject.layer=viewmodelLayer;
             var held=parcelHeld.AddComponent<Il2CppScheduleOne.Equipping.Equippable_Viewmodel>();
             held.localPosition=new(0.18f,-0.18f,0.45f);held.localEulerAngles=new(15,-25,0);held.localScale=Vector3.one*0.65f;
             held.CanInteractWhenEquipped=true;held.CanPickUpWhenEquipped=true;Il2CppScheduleOne.Registry.GetItem(WorkshopRules.Prism).Equippable=held;

@@ -1,4 +1,6 @@
-# VICE Syndicate 0.1.1
+# VICE Syndicate 0.1.2
+
+Version 0.1.2 keeps persistent save-slot data, event scheduling and clone setup on the host. Guests receive the networked world without reading `ActiveSaveInfo`, which is absent on clients. Host setup waits for both game readiness and a valid save. Leaving a world resets guest readiness so a later host session can initialize normally.
 
 VICE.Syndicate is the cartel module in the personal VICE suite. VICE.Enforcement owns police; Syndicate owns cartel events and difficulty. It targets Schedule I **0.4.7f11 beta / IL2CPP**, Unity 2022.3.62f2, MelonLoader 0.7.3 and .NET 6 x64. There is no Mono build.
 

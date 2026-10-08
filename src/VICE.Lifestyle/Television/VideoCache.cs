@@ -58,6 +58,17 @@ internal sealed class VideoCache
         var title = Path.GetFileNameWithoutExtension(name);
         return new() { Kind = "video", Source = Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant(), VideoName = name, VideoBytes = (int)file.Length, Title = title[..Math.Min(160, title.Length)] };
     }
+    internal static MediaSelection Select(string directory, string name, bool multiplayer, CancellationToken cancellation)
+    {
+        if (multiplayer) return Describe(directory, name, cancellation);
+        cancellation.ThrowIfCancellationRequested();
+        var path = SourcePath(directory, name);
+        if (new FileInfo(path).Length < 12) throw new InvalidDataException("Choose a nonempty MP4 file.");
+        var title = Path.GetFileNameWithoutExtension(name);
+        // Local selections store just a filename. They have no transfer-size or
+        // 32-bit byte-count restriction and never enter the downloaded cache.
+        return new() { Kind = "local", Source = name, Title = title[..Math.Min(160, title.Length)] };
+    }
 }
 
 // Reliable FishNet messages arrive in order. Write one chunk at a time and hash
@@ -78,11 +89,32 @@ internal sealed class VideoTransfer : IDisposable
     {
         if (!MediaRules.IsHash(hash) || length is < 12 or > MediaRules.MaxVideoBytes) throw new InvalidDataException("Invalid video transfer.");
         Destination = destination; Partial = Path.ChangeExtension(destination, ".part"); Hash = hash; Length = length; LastActivity = now; Released = released;
-        File = new(Partial, FileMode.CreateNew, FileAccess.Write, FileShare.None, MediaRules.ChunkBytes);
+        File = new(Partial, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None, MediaRules.ChunkBytes);
     }
     internal bool Add(int index, byte[] data, double now)
     {
-        if (Closed || now - LastActivity > 60 || index != NextIndex || data.Length != Math.Min(MediaRules.ChunkBytes, Length - Received))
+        if (Closed || now - LastActivity > 60) throw new InvalidDataException("Invalid or stalled video chunk.");
+        if (!Closed && index >= 0 && index < NextIndex)
+        {
+            var position = (long)index * MediaRules.ChunkBytes;
+            if (data.Length != Math.Min(MediaRules.ChunkBytes, Length - position)) throw new InvalidDataException("Invalid repeated video chunk.");
+            var savedPosition = File.Position;
+            try
+            {
+                File.Position = position;
+                var original = new byte[data.Length];
+                for (var offset = 0; offset < original.Length;)
+                {
+                    var read = File.Read(original, offset, original.Length - offset);
+                    if (read == 0) throw new InvalidDataException("Repeated video chunk is incomplete.");
+                    offset += read;
+                }
+                if (!original.SequenceEqual(data)) throw new InvalidDataException("Video chunk changed during retransmission.");
+            }
+            finally { File.Position = savedPosition; }
+            return false;
+        }
+        if (index != NextIndex || data.Length != Math.Min(MediaRules.ChunkBytes, Length - Received))
             throw new InvalidDataException("Invalid or stalled video chunk.");
         File.Write(data, 0, data.Length); Checksum.AppendData(data); Received += data.Length; NextIndex++; LastActivity = now;
         if (Received != Length) return false;

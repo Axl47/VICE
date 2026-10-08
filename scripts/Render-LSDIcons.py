@@ -32,25 +32,31 @@ for name, source, only in [
     upper = Vector(tuple(max(p[i] for p in points) for i in range(3)))
     centre = (lower + upper) / 2
     span = max(upper - lower)
-    bpy.ops.object.camera_add(location=centre + Vector((2, -3, 2.3)) * span)
+    view = (2, -3, -2.3) if name == "Sleeve" else (2, -3, 2.3)
+    bpy.ops.object.camera_add(location=centre + Vector(view) * span)
     camera = bpy.context.object
     camera.rotation_euler = (centre-camera.location).to_track_quat("-Z", "Y").to_euler()
     camera.data.type = "ORTHO"
     camera.data.ortho_scale = span * 1.45
     scene.camera = camera
     for offset, power, size in [((1,-2,3), 160, 2), ((-2,-1,1), 80, 2), ((0,2,2), 100, 1.5)]:
-        bpy.ops.object.light_add(type="AREA", location=centre+Vector(offset)*span)
+        light_offset = Vector((offset[0],offset[1],-offset[2] if name == "Sleeve" else offset[2]))
+        bpy.ops.object.light_add(type="AREA", location=centre+light_offset*span)
         light = bpy.context.object
         light.rotation_euler = (centre-light.location).to_track_quat("-Z", "Y").to_euler()
         light.data.energy = power * span * span
         light.data.shape = "DISK"
         light.data.size = size * span
+    if scene.world is None:
+        scene.world = bpy.data.worlds.new("Icon World")
     scene.world.use_nodes = True
     scene.world.node_tree.nodes["Background"].inputs["Color"].default_value = (0.75,0.8,0.9,1)
     scene.world.node_tree.nodes["Background"].inputs["Strength"].default_value = 0.5
     scene.render.engine = "CYCLES"
     scene.cycles.device = "CPU"
-    scene.cycles.samples = 24
+    scene.cycles.samples = 32
+    scene.cycles.use_denoising = False
+    scene.cycles.seed = 0
     scene.render.resolution_x = scene.render.resolution_y = 256
     scene.render.resolution_percentage = 100
     scene.render.film_transparent = True
