@@ -220,7 +220,8 @@ namespace NACops
             else
             {
                 for (int i = 0; i < PoliceOfficer.Officers.Count; i++)
-                    generatedOfficerPool.Add(PoliceOfficer.Officers[i]);
+                    if (PoliceOfficer.Officers[i].NPCData?.BasicInfo.ID != "officerPrefab")
+                        generatedOfficerPool.Add(PoliceOfficer.Officers[i]);
             }
             foreach (PoliceOfficer offc in generatedOfficerPool)
                 allActiveOfficers.Add(offc);

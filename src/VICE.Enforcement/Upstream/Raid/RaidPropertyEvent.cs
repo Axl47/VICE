@@ -285,6 +285,7 @@ namespace NACops
                     Log("NPC already registered in NPCRegistry");
 
                 networkManager.ServerManager.Spawn(copNet);
+                RegisterCloneGuid(myNpc);
                 copNet.gameObject.SetActive(true);
 
                 DialogueController controller = offc.DialogueHandler.GetComponent<DialogueController>();

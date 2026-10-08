@@ -1536,7 +1536,11 @@ namespace VICE.Syndicate
             Log("Replicating COP NPC");
             NetworkManager netManager = UnityEngine.Object.FindObjectOfType<NetworkManager>(true);
 
-            PoliceOfficer officer = UnityEngine.Object.FindObjectOfType<PoliceOfficer>();
+            // Use a native officer, not another module's live template. Toggling
+            // an Enforcement template restarts its native GUID initialization.
+            PoliceOfficer officer = PoliceOfficer.Officers.ToArray().FirstOrDefault(o => o && o.NPCData is not null
+                && o.NPCData.BasicInfo.ID.StartsWith("officer", StringComparison.OrdinalIgnoreCase)
+                && o.NPCData.BasicInfo.ID != "officerPrefab");
 
 
             if (officer == null)
@@ -1588,6 +1592,10 @@ namespace VICE.Syndicate
             offc.Movement.PauseMovement();
 
             obj.SetActive(true);
+            // Templates are not officers available for daily patrols or another
+            // module's pool. The native Awake path initially adds them there.
+            PoliceOfficer.Officers.Remove(offc);
+            NPCInitHelper.RegisterCloneGuid(npc);
             Log("Finished replicating COP NPC");
             yield break;
         }

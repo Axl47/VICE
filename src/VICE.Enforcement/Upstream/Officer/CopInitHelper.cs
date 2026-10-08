@@ -2,13 +2,13 @@ using MelonLoader;
 using UnityEngine;
 using UnityEngine.AI;
 using System.Collections;
+using HarmonyLib;
 
 using static NACops.NACops;
 using static NACops.DebugModule;
 using static NACops.AvatarUtility;
 
 #if MONO
-using HarmonyLib;
 using System.Reflection;
 using ScheduleOne.AvatarFramework;
 using ScheduleOne.NPCs;
@@ -29,6 +29,7 @@ using Il2CppScheduleOne.NPCs.Framework;
 using Behaviour = Il2CppScheduleOne.NPCs.Behaviour.Behaviour;
 using Il2CppFishNet.Managing;
 using Il2CppFishNet.Object;
+using Il2Cpp;
 #endif
 
 namespace NACops
@@ -36,6 +37,7 @@ namespace NACops
 
     public static class CopInitHelper
     {
+        private static readonly Dictionary<IntPtr, Il2CppSystem.Guid> CloneGuids = new();
 #if MONO
         public static List<PoliceOfficer> generatedOfficerPool = new();
 #else
@@ -49,7 +51,11 @@ namespace NACops
         public static IEnumerator ReplicateCopNPC()
         {
             Log("Replicating COP NPC");
-            PoliceOfficer officer = UnityEngine.Object.FindObjectOfType<PoliceOfficer>();
+            // Other VICE modules keep a live template. Cloning/reactivating one
+            // of those templates would restart its native identity lifecycle.
+            PoliceOfficer officer = PoliceOfficer.Officers.ToArray().FirstOrDefault(o => o && o.NPCData is not null
+                && o.NPCData.BasicInfo.ID.StartsWith("officer", StringComparison.OrdinalIgnoreCase)
+                && o.NPCData.BasicInfo.ID != "officerPrefab");
 
             if (officer == null)
             {
@@ -58,6 +64,8 @@ namespace NACops
             }
             var copyAppearance = officer.Avatar.Appearance.AppliedNakedAppearance?.Clone();
             var copyOutfit = officer.NPCData.Appearance.DefaultOutfit;
+            var sourceData = officer.NPCData.GetDeepCopy();
+            var sourceGuid = officer.GUID;
             GameObject obj = officer.gameObject;
             obj.SetActive(false);
 
@@ -73,7 +81,7 @@ namespace NACops
             offc.AutoDeactivate = false; // Prevent from returning to station and from being added to officer pool
 
             clone.name = $"RuntimeOfficer";
-            yield return MelonCoroutines.Start(InitiateClone(newNob, networkManager));
+            yield return MelonCoroutines.Start(InitiateClone(newNob, networkManager, sourceData));
 
             npc.NPCData.BasicInfo.ID = "officerPrefab";
 
@@ -110,6 +118,10 @@ namespace NACops
             offc.Awareness.SetAwarenessActive(false);
 
             obj.SetActive(true);
+            // Reactivating the source can restore its GUID on the clone. Finalize
+            // both registrations after spawning and restoring the source.
+            officer.SetGUID(sourceGuid);
+            RegisterCloneGuid(npc);
             Log("Finished replicating COP NPC");
             yield break;
         }
@@ -119,15 +131,25 @@ namespace NACops
             NPC npc = newNob.GetComponent<NPC>();
             // A Unity clone can retain its source NPCData reference and baked GUID.
             // Give it independent data before changing names, inventory or appearance.
-            npc._NPCData_k__BackingField = (dataPreset ?? npc.NPCData).GetDeepCopy();
-            npc.BakedGUID = System.Guid.NewGuid().ToString();
-            npc._GUID_k__BackingField = new Il2CppSystem.Guid(npc.BakedGUID);
+            // Awake clears the runtime backing field on a Unity clone. Use the
+            // source data or the native prefab's data, never that empty field.
+            var sourceData = dataPreset ?? npc.NPCData ?? npc._defaultNPCData?.GetRuntimeData();
+            if (sourceData is null) throw new InvalidOperationException($"Officer clone '{newNob.name}' has no source NPC data.");
+            var cloneData = sourceData.GetDeepCopy();
+            var cloneGuid = GUIDManager.GenerateUniqueGUID();
+            CloneGuids.Add(npc.Pointer, cloneGuid);
+            npc.BakedGUID = cloneGuid.ToString();
+            // Leave the runtime backing field empty until Awake below. Filling
+            // it early makes InitializeNPC deinitialize uninitialized Health.
             SaveSubscriptions.Add(() =>
             {
+                CloneGuids.Remove(npc.Pointer);
                 if (!npc) return;
                 NPCManager.NPCRegistry.Remove(npc);
                 var officer = npc.TryCast<PoliceOfficer>();
                 if (officer is not null) PoliceOfficer.Officers.Remove(officer);
+                if (GUIDManager.IsGUIDAlreadyRegistered(npc.GUID) && GUIDManager.GetObject<NPC>(npc.GUID)?.Pointer == npc.Pointer)
+                    GUIDManager.DeregisterObject(npc.Cast<Il2CppScheduleOne.IGUIDRegisterable>());
                 UnityEngine.Object.Destroy(npc.gameObject);
             });
 
@@ -138,6 +160,10 @@ namespace NACops
             newNob.gameObject.SetActive(true);
             yield return Wait01;
             yield return frameEnd;
+
+            // Awake has now wired the native components. Detach the data before
+            // applying clone-specific appearance, identity or inventory changes.
+            npc._NPCData_k__BackingField = cloneData;
 
             newNob.transform.Find("Avatar").gameObject.SetActive(false);
             newNob.transform.Find("Avatar/BodyContainer").gameObject.SetActive(false);
@@ -176,10 +202,7 @@ namespace NACops
                 Log(ex.ToString());
             }
 
-            if (dataPreset != null)
-            {
-                npc.ApplyNPCData(dataPreset);
-            }
+            npc.ApplyNPCData(cloneData);
 
             // Invoke pre init to populate the necessary component references
             try
@@ -238,8 +261,17 @@ namespace NACops
 
             // Initialization may reload the prefab's NPC data. Detach it again
             // before callers assign the clone's identity and inventory settings.
-            npc._NPCData_k__BackingField = npc.NPCData.GetDeepCopy();
+            npc._NPCData_k__BackingField = cloneData.GetDeepCopy();
             npc.Awareness.SetAwarenessActive(false);
+        }
+
+        public static void RegisterCloneGuid(NPC npc)
+        {
+            if (!CloneGuids.TryGetValue(npc.Pointer, out var guid)) return;
+            // Native Start writes the inherited GUID directly. Restore our owned
+            // identity after Start, and after FishNet finishes spawning.
+            npc.BakedGUID = guid.ToString();
+            npc.SetGUID(guid);
         }
         
         // Extend the base amount of officers available for daily routines
@@ -247,7 +279,8 @@ namespace NACops
         {
             PoliceStation station = PoliceStation.PoliceStations[0];
             for (int i = 0; i < PoliceOfficer.Officers.Count; i++)
-                generatedOfficerPool.Add(PoliceOfficer.Officers[i]);
+                if (PoliceOfficer.Officers[i].NPCData?.BasicInfo.ID != "officerPrefab")
+                    generatedOfficerPool.Add(PoliceOfficer.Officers[i]);
 
             for (int i = 0; i < officerConfig.ModAddedOfficersCount; i++)
             {
@@ -272,6 +305,7 @@ namespace NACops
                     NPCManager.NPCRegistry.Add(myNpc);
 
                 networkManager.ServerManager.Spawn(copNet);
+                RegisterCloneGuid(myNpc);
                 copNet.gameObject.SetActive(true);
 
                 DialogueController controller = offc.DialogueHandler.GetComponent<DialogueController>();
@@ -323,6 +357,7 @@ namespace NACops
                 NPCManager.NPCRegistry.Add(myNpc);
 
             networkManager.ServerManager.Spawn(copNet);
+            RegisterCloneGuid(myNpc);
 
             DialogueController controller = offc.DialogueHandler.GetComponent<DialogueController>();
             controller.Choices.Clear();
@@ -368,6 +403,7 @@ namespace NACops
                 NPCManager.NPCRegistry.Add(myNpc);
 
             networkManager.ServerManager.Spawn(copNet);
+            RegisterCloneGuid(myNpc);
 
             DialogueController controller = offc.DialogueHandler.GetComponent<DialogueController>();
             controller.Choices.Clear();
@@ -395,5 +431,11 @@ namespace NACops
             Log("Done spawning buy bust officer");
             yield break;
         }
+    }
+
+    [HarmonyPatch(typeof(PoliceOfficer), nameof(PoliceOfficer.Start))]
+    internal static class RuntimeOfficerStartPatch
+    {
+        private static void Postfix(PoliceOfficer __instance) => CopInitHelper.RegisterCloneGuid(__instance);
     }
 }
