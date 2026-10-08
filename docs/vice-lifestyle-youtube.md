@@ -34,7 +34,7 @@ The helper terminates on Stop, source change, distance/culling suspension, sessi
 
 ## Validation
 
-`Build-VICE.ps1 -Modules Lifestyle` runs the Core, Lifestyle and module checks, native patch-address guard, export hashes and isolated installer fixture. YouTube checks cover accepted/rejected links, single-player restrictions, frame layout/orientation, distance gain, protocol parsing, browser-owned timing, stale pause/seek reports, timeout/disconnect handling, and paused save/favorite identities.
+`Build-VICE.ps1 -Modules Lifestyle` runs the Core, Lifestyle and module C# checks, native patch-address guard, export hashes and the **VICE module DLL installer** fixture. It does not run the archive-based TV companion installer regression or the native game diagnostic; those are separate manual commands below. The C# YouTube checks cover accepted/rejected links, single-player restrictions, frame layout/orientation, distance gain, protocol parsing (including streams longer than 24 hours within the screen's seven-day limit), browser-owned timing, stale pause/seek reports, timeout/disconnect handling, and paused save/favorite identities.
 
 The opt-in native diagnostic runs against a copied `artifacts/SaveGame_5` save. It places the actual furniture through the native wall-placement handler, selects a link through the source panel, verifies advancing browser frames and video position, then checks pause/resume, seeking, volume, favorites, paused save serialization and helper process cleanup. It captures an actual in-game screenshot:
 
@@ -42,9 +42,9 @@ The opt-in native diagnostic runs against a copied `artifacts/SaveGame_5` save. 
 
 ![YouTube source picker](images/lifestyle/youtube-picker.png)
 
-The corrected native run passed all these checks, and visual inspection confirmed upright video. The run used `artifacts/youtube-oriented-check`; `result.txt` and the local MelonLoader log record `TV_CHECK_PASSED`. Automated validation passed 55 Core assertions, 179 Lifestyle checks, 41 module checks and 12 installer-fixture checks. The screenshots are unmodified captures from that run.
+The corrected native run passed all these checks, and visual inspection confirmed upright video. The run used `artifacts/youtube-oriented-check`; `result.txt` and the local MelonLoader log record `TV_CHECK_PASSED`. Automated validation passed 55 Core assertions, 181 Lifestyle checks, 41 module checks and 12 module-installer fixture checks. The screenshots are unmodified captures from that run.
 
-The separate local companion installer regression also passed six cases: fresh installation, a complete existing installation, a missing executable, a corrupted CEF DLL, a missing license file, and rejection of an unrecognized archive. It uses a disposable game-directory fixture under `artifacts`:
+The separate manual companion installer regression requires the owner's local archive and is not invoked by `Build-VICE.ps1`. It passed six cases: fresh installation, a complete existing installation, a missing executable, a corrupted CEF DLL, a missing license file, and rejection of an unrecognized archive. It uses a disposable game-directory fixture under `artifacts` and deletes that fixture in `finally` on success or failure:
 
 ```powershell
 ./tests/VICE.Lifestyle/Test-TVCompanionInstaller.ps1 -Archive 'C:\path\to\Build-A-Base-0.4.26.zip'

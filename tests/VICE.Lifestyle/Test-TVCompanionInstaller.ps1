@@ -2,6 +2,7 @@ param([Parameter(Mandatory)][string]$Archive)
 $ErrorActionPreference = 'Stop'
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 $fixture = Join-Path $repoRoot ('artifacts\companion-installer-' + [Guid]::NewGuid().ToString('N'))
+try {
 New-Item -ItemType Directory -Path $fixture | Out-Null
 New-Item -ItemType File -Path (Join-Path $fixture 'Schedule I.exe') | Out-Null
 $installer = Join-Path $repoRoot 'scripts\Install-TVCompanion.ps1'
@@ -44,3 +45,13 @@ $wrongArchive = Join-Path $fixture 'wrong.zip'
 [IO.File]::WriteAllBytes($wrongArchive, [byte[]]@(0))
 Reject-Installation '*SHA-256 does not match*' $wrongArchive
 Write-Output 'PASS: 6 companion installer checks: fresh, complete existing, missing executable, corrupted CEF, missing license, wrong archive.'
+} finally {
+    if (Test-Path -LiteralPath $fixture) {
+        $cleanup = (Resolve-Path -LiteralPath $fixture).Path
+        $artifacts = [IO.Path]::GetFullPath((Join-Path $repoRoot 'artifacts'))
+        if (-not $cleanup.StartsWith($artifacts + '\', [StringComparison]::OrdinalIgnoreCase) -or [IO.Path]::GetFileName($cleanup) -notmatch '^companion-installer-[a-f0-9]{32}$') {
+            throw 'Fixture cleanup escaped the intended artifacts directory.'
+        }
+        Remove-Item -LiteralPath $cleanup -Recurse -Force
+    }
+}

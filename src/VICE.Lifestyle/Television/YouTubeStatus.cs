@@ -26,7 +26,7 @@ internal sealed class YouTubeStatus
         return new()
         {
             Type = type, VideoId = Text(root, "videoId"), Title = Text(root, "title"), Message = Text(root, "message"),
-            Position = Math.Clamp(Number(root, "position"), 0, 86400), Duration = Math.Clamp(Number(root, "duration"), 0, 86400),
+            Position = Math.Clamp(Number(root, "position"), 0, 604800), Duration = Math.Clamp(Number(root, "duration"), 0, 604800),
             Revision = (long)Math.Clamp(Number(root, "revision"), 0, int.MaxValue), Ready = Flag(root, "ready"),
             Paused = Flag(root, "paused"), Buffering = Flag(root, "buffering"), Ended = Flag(root, "ended"), Advertisement = Flag(root, "advertisement")
         };

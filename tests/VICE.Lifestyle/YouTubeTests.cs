@@ -21,6 +21,10 @@ internal static class YouTubeTests
         YouTubeRules.OrientFrame(pixels,new byte[YouTubeRules.Width*4]);
         check(pixels[YouTubeRules.FrameBytes-YouTubeRules.Width*4]==17&&pixels[^1]==31&&pixels[YouTubeRules.Width*4-1]==42,"Browser rows did not preserve horizontal orientation while flipping vertically.");
         check(YouTubeStatus.Parse("{\"type\":\"state\",\"position\":\"invalid\"}")!.Position==0,"Malformed numeric status was not handled safely.");
+        var longStream=YouTubeStatus.Parse("{\"type\":\"state\",\"position\":90000,\"duration\":200000}")!;
+        check(longStream.Position==90000&&longStream.Duration==200000,"Telemetry beyond 24 hours was truncated.");
+        var boundedStream=YouTubeStatus.Parse("{\"type\":\"state\",\"position\":1000000,\"duration\":1000000}")!;
+        check(boundedStream.Position==604800&&boundedStream.Duration==604800,"Telemetry exceeded the screen's seven-day limit.");
         check(YouTubeRules.Gain(1,1,1,22)==0&&YouTubeRules.Gain(1,1,1,2)==1&&YouTubeRules.Gain(1,1,0,2)==0,"Distance/mute gain failed.");
         check(!YouTubeStatus.Handshake("{\"type\":\"ready\",\"protocol\":2,\"width\":1280,\"height\":720,\"audio\":\"speakers\"}"),"Unsupported helper protocol accepted.");
         check(YouTubeStatus.Handshake("{\"type\":\"ready\",\"protocol\":1,\"width\":1280,\"height\":720,\"audio\":\"speakers\"}"),"Known helper handshake rejected.");
