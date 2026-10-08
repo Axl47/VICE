@@ -28,7 +28,7 @@ foreach ($module in $Modules) {
     New-Item -ItemType Directory -Path $mods -Force | Out-Null
     Copy-Item -LiteralPath (Join-Path $repoRoot "src\VICE.$module\bin\Release\net6.0\VICE.$module.dll") -Destination $mods
     if ($module -in @('Enforcement','Syndicate')) {
-        $defaults = Join-Path $package "UserData\VICE.$module"
+        $defaults = Join-Path $package "UserData\VICE\$module"
         New-Item -ItemType Directory -Path $defaults, (Join-Path $package 'Licenses') -Force | Out-Null
         Copy-Item -Path (Join-Path $repoRoot "src\VICE.$module\Defaults\*") -Destination $defaults -Recurse
         $license = if ($module -eq 'Enforcement') { 'LICENSE.NACops' } else { 'LICENSE.CartelEnforcer' }

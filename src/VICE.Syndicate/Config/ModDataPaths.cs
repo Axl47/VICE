@@ -11,7 +11,8 @@ namespace VICE.Syndicate
     public static class ModDataPaths
     {
 
-        private static readonly string UserDataPath = Path.Combine(MelonEnvironment.UserDataDirectory, "VICE.Syndicate");
+        public static string Root { get; } = VICE.Core.UserDataFolders.PrepareModule(
+            MelonEnvironment.UserDataDirectory, "Syndicate", "VICE.Syndicate");
 
         // Then for each config file or persistent data file it depends on the subfolder level
 
@@ -35,6 +36,6 @@ namespace VICE.Syndicate
         // Steal back customers persistence
         public static readonly string pathStolenCustomers = "StolenCustomers"; // Directory, Filenames dynamic {saveslot num}_{organization}.json
 
-        public static string GetPathTo(string modDataDestination) => Path.Combine(UserDataPath, modDataDestination);
+        public static string GetPathTo(string modDataDestination) => Path.Combine(Root, modDataDestination);
     }
 }

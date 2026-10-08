@@ -54,7 +54,7 @@ namespace VICE.Syndicate
         public const string Description = "Cartel - Modded and configurable";
         public const string Author = "Axl47";
         public const string Company = null;
-        public const string Version = "0.1.0";
+        public const string Version = "0.1.1";
         public const string DownloadLink = null;
     }
 
@@ -133,7 +133,7 @@ namespace VICE.Syndicate
                 .Where(name => name != null && name.StartsWith("CartelEnforcer", StringComparison.OrdinalIgnoreCase)).ToArray();
             if (conflicts.Length > 0) { MelonLogger.Error("Remove the original Cartel Enforcer DLL before using VICE Syndicate."); return; }
             VICE.Core.DefaultFiles.Seed(typeof(SyndicateMod).Assembly, "VICE.Syndicate.Defaults/",
-                Path.Combine(MelonLoader.Utils.MelonEnvironment.UserDataDirectory, "VICE.Syndicate"));
+                ModDataPaths.Root);
             Instance = this;
             loadCompleteCallback = (UnityEngine.Events.UnityAction)OnLoadCompleteCb;
             currentConfig = ConfigLoader.Load();

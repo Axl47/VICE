@@ -57,6 +57,29 @@ internal static class UserDataMigrationTests
         check(File.ReadAllText(Path.Combine(tv, "blocked")) == "VICE file" && Directory.GetFiles(conflicts, "nested.txt", SearchOption.AllDirectories).Any(f => File.ReadAllText(f) == "legacy directory"), "File/directory collision lost data.");
         check(File.ReadAllText(Path.Combine(tv, "folder", "keep.txt")) == "VICE directory" && Directory.GetFiles(conflicts, "folder", SearchOption.AllDirectories).Any(f => File.ReadAllText(f) == "legacy file"), "Directory/file collision lost data.");
 
+        foreach (var module in new[] { "Enforcement", "Syndicate" })
+        {
+            var legacyName = "VICE." + module;
+            var oldModule = Path.Combine(root, legacyName);
+            Write(Path.Combine(oldModule, "settings.json"), "custom module settings");
+            var savedPath = module == "Enforcement" ? Path.Combine("HeatData", "slot.json") : Path.Combine("Allied", "QuestData", "slot.json");
+            Write(Path.Combine(oldModule, savedPath), "persistent save record");
+            var destination = UserDataFolders.PrepareModule(root, module, legacyName);
+            check(destination == Path.Combine(root, "VICE", module), "Module root is outside the general VICE folder.");
+            DefaultFiles.Seed(System.Reflection.Assembly.GetExecutingAssembly(), "TestDefaults/", destination);
+            check(File.ReadAllText(Path.Combine(destination, "settings.json")) == "custom module settings", "Defaults masked migrated module settings.");
+            check(File.ReadAllText(Path.Combine(destination, savedPath)) == "persistent save record", "Module migration lost a persistent save record.");
+            check(!Directory.Exists(oldModule), "Module migration left its old root behind.");
+            Write(Path.Combine(oldModule, "settings.json"), "conflicting module settings");
+            Write(Path.Combine(oldModule, "nested", "extra.json"), "additional module data");
+            UserDataFolders.PrepareModule(root, module, legacyName);
+            check(File.ReadAllText(Path.Combine(destination, "settings.json")) == "custom module settings", "Module merge replaced existing settings.");
+            check(File.ReadAllText(Path.Combine(destination, "nested", "extra.json")) == "additional module data", "Module merge lost nested data.");
+            check(Directory.GetFiles(conflicts, "settings.json", SearchOption.AllDirectories).Any(f => f.Contains(legacyName) && File.ReadAllText(f) == "conflicting module settings"), "Module settings conflict was not preserved.");
+            check(UserDataFolders.PrepareModule(root, module, legacyName) == destination, "Module initialization is not repeatable.");
+        }
+        Reject(() => UserDataFolders.PrepareModule(root, "../escape", "VICE.Enforcement"), "Module-root traversal was accepted.");
+        Reject(() => UserDataFolders.PrepareModule(root, "Syndicate", "VICE"), "Module migration accepted the VICE root as a source.");
         Reject(() => UserDataFolders.Prepare(root, "../escape", "Television", "PersonalTV"), "Module traversal was accepted.");
         Reject(() => UserDataFolders.Prepare(root, "Lifestyle", "..", "PersonalTV"), "Feature traversal was accepted.");
         Reject(() => UserDataFolders.Prepare(root, "Lifestyle", "Television", "../escape"), "Legacy traversal was accepted.");

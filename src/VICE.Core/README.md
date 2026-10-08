@@ -1,4 +1,4 @@
-# VICE Core 0.1.1
+# VICE Core 0.1.2
 
 Shared .NET 6 library for the owner's VICE family. Install one `VICE.Core.dll` in the game's `UserLibs`, with each module's DLL in `Mods`. Core has no `MelonInfo` and owns no police, cartel or other gameplay hooks. Do not duplicate Core in both directories.
 
@@ -15,5 +15,6 @@ The public contract is:
 - `SubscriptionScope.Add(Action release)` registers cleanup; `Dispose()` invokes releases in reverse order, continues after an invalid native owner, and permits reuse for another loaded save.
 - `DefaultFiles.Seed(Assembly, prefix, directory)` writes embedded defaults only where no file exists and rejects paths outside the destination.
 - `UserDataFolders.Prepare(userData, module, feature, params legacyFolders)` returns `UserData/VICE/<module>/<feature>` and moves existing legacy folders there. Existing destination files win; conflicting source files are moved into `VICE/MigrationConflicts` with their relative paths. It rejects traversal and linked folders, and repeated calls preserve migrated edits. It depends only on .NET filesystem APIs, so migration tests can run without the game.
+- `UserDataFolders.PrepareModule(userData, module, params legacyFolders)` returns `UserData/VICE/<module>` with the same migration safeguards. Enforcement and Syndicate call it before seeding defaults or loading settings.
 
 These signatures are shared with VICE.Syndicate. Retain them when adding more services. Future modules should avoid owning the same native hooks or distributing a separate embedded copy of Core. The legacy personal modules remain independent until individually migrated.

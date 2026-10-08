@@ -7,6 +7,13 @@ $expected = @('UserLibs\VICE.Core.dll') + @($ExpectedModules | Sort-Object -Uniq
 $actual = @(Get-ChildItem -LiteralPath $root -Recurse -File -Filter '*.dll' | ForEach-Object { $_.FullName.Substring($root.Length + 1) })
 if (@(Compare-Object $expected $actual).Count) { throw 'Package does not contain exactly Core and the selected modules.' }
 if (@(Compare-Object @($ExpectedModules | Sort-Object -Unique) @($metadata.Modules | Sort-Object)).Count) { throw 'Package module metadata differs from the selection.' }
+foreach ($module in @('Enforcement','Syndicate')) {
+    if (Test-Path -LiteralPath (Join-Path $root "UserData\VICE.$module")) { throw 'Package uses a legacy top-level module data folder.' }
+    $defaults = Join-Path $root "UserData\VICE\$module"
+    if ($module -in $ExpectedModules) {
+        if (-not (Test-Path -LiteralPath (Join-Path $defaults 'config.json') -PathType Leaf)) { throw "Missing VICE/$module defaults." }
+    } elseif (Test-Path -LiteralPath $defaults) { throw 'Package contains defaults for an unselected module.' }
+}
 foreach ($name in @('Core') + $ExpectedModules) {
     $relative = if ($name -eq 'Core') { 'UserLibs\VICE.Core.dll' } else { "Mods\VICE.$name.dll" }
     $actualVersion = [version][Diagnostics.FileVersionInfo]::GetVersionInfo((Join-Path $root $relative)).FileVersion

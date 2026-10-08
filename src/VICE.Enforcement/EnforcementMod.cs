@@ -7,7 +7,7 @@ using PersonalMods.BetterPolice;
 using NACops;
 using UnityEngine;
 
-[assembly: MelonInfo(typeof(VICE.Enforcement.EnforcementMod), "VICE.Enforcement", "0.1.0", "Axl47; based on XOWithSauce / Frostbyt3 / Babyhamsta")]
+[assembly: MelonInfo(typeof(VICE.Enforcement.EnforcementMod), "VICE.Enforcement", "0.1.1", "Axl47; based on XOWithSauce / Frostbyt3 / Babyhamsta")]
 [assembly: MelonGame("TVGS", "Schedule I")]
 [assembly: MelonPlatformDomain(MelonPlatformDomainAttribute.CompatibleDomains.IL2CPP)]
 [assembly: HarmonyDontPatchAll]
@@ -29,7 +29,7 @@ public sealed class EnforcementMod : global::NACops.NACops
             return;
         }
         Core.DefaultFiles.Seed(typeof(EnforcementMod).Assembly, "VICE.Enforcement.Defaults/",
-            Path.Combine(MelonLoader.Utils.MelonEnvironment.UserDataDirectory, "VICE.Enforcement"));
+            NACops.ModDataPaths.Root);
         base.OnInitializeMelon();
         officerConfig = ConfigLoader.LoadOfficerConfig();
         ApplyPersonalPolicy();
@@ -45,7 +45,7 @@ public sealed class EnforcementMod : global::NACops.NACops
         }
         police.Initialize(HarmonyInstance);
         initialized = true;
-        MelonLogger.Msg("VICE Enforcement 0.1.0 initialized with VICE Core; police only. Host controls NACops events.");
+        MelonLogger.Msg("VICE Enforcement 0.1.1 initialized with VICE Core; police only. Host controls NACops events.");
     }
 
     internal static void ApplyPersonalPolicy()

@@ -50,13 +50,13 @@ foreach ($relative in $files) {
 }
 $defaults = @($manifest | Where-Object {
     $relative = $_.File.Replace('/', '\')
-    ($Modules -contains 'Enforcement' -and $relative.StartsWith('UserData\VICE.Enforcement\')) -or
-    ($Modules -contains 'Syndicate' -and $relative.StartsWith('UserData\VICE.Syndicate\'))
+    ($Modules -contains 'Enforcement' -and $relative.StartsWith('UserData\VICE\Enforcement\')) -or
+    ($Modules -contains 'Syndicate' -and $relative.StartsWith('UserData\VICE\Syndicate\'))
 })
 foreach ($record in $defaults) {
     $relative = $record.File.Replace('/', '\')
-    $module = if ($relative.StartsWith('UserData\VICE.Enforcement\')) { 'Enforcement' } else { 'Syndicate' }
-    $dataRoot = [IO.Path]::GetFullPath((Join-Path $gameRoot "UserData\VICE.$module"))
+    $module = if ($relative.StartsWith('UserData\VICE\Enforcement\')) { 'Enforcement' } else { 'Syndicate' }
+    $dataRoot = [IO.Path]::GetFullPath((Join-Path $gameRoot "UserData\VICE\$module"))
     $target = [IO.Path]::GetFullPath((Join-Path $gameRoot $relative))
     if (-not $target.StartsWith($dataRoot + '\', [StringComparison]::OrdinalIgnoreCase)) { throw 'Default file escaped its selected module data directory.' }
 }
@@ -91,6 +91,13 @@ try {
     foreach ($record in $defaults) {
         $target = [IO.Path]::GetFullPath((Join-Path $gameRoot $record.File))
         if (-not $target.StartsWith($gameRoot.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)) { throw 'Default file escaped the game directory.' }
+        # Runtime migration runs before embedded defaults. Leave legacy settings a
+        # vacant destination so installing an export cannot mask them with defaults.
+        $relative = $record.File.Replace('/', '\')
+        $module = if ($relative.StartsWith('UserData\VICE\Enforcement\')) { 'Enforcement' } else { 'Syndicate' }
+        $prefix = "UserData\VICE\$module\"
+        $legacyData = Join-Path $gameRoot ("UserData\VICE.$module\" + $relative.Substring($prefix.Length))
+        if (Test-Path -LiteralPath $legacyData) { continue }
         if (-not (Test-Path -LiteralPath $target)) {
             New-Item -ItemType Directory -Path (Split-Path $target -Parent) -Force | Out-Null
             Copy-Item -LiteralPath (Join-Path $packageRoot $record.File) -Destination $target

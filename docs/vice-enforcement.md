@@ -1,4 +1,4 @@
-# VICE Enforcement 0.1.0
+# VICE Enforcement 0.1.1
 
 The first police module in the **VICE** family combines the IL2CPP side of [XOWithSauce's NACops 2.1.3](https://github.com/XOWithSauce/schedule-nacops/tree/97cedcd9f06e16bf16f9460493b87bc2fe460560) with Personal Better Police 0.2.0's police changes. It targets the installed **Schedule I beta 0.4.7f11**, Unity 2022.3.62f2 and MelonLoader 0.7.3, x64 / .NET 6. The upstream release targeted 0.4.6f13. Source and IL2CPP release defaults are pinned to commit `97cedcd9f06e16bf16f9460493b87bc2fe460560`; its MIT notice is preserved in `src/VICE.Enforcement/LICENSE.NACops` and the package.
 
@@ -17,7 +17,7 @@ Core is a reusable dependency, with no gameplay hooks of its own. The other pers
 
 ## Configuration and merge policy
 
-New NACops feature switches use `VICEEnforcement` in `UserData/MelonPreferences.cfg`. `Enabled=false` disables the whole module on the next launch. JSON settings and patrol data live in `UserData/VICE.Enforcement/`; packaged defaults are also embedded and seed only missing files. Existing files and heat data are preserved. The defaults contain 17 foot routes, 18 sentry entries and two vehicle routes.
+New NACops feature switches use `VICEEnforcement` in `UserData/MelonPreferences.cfg`. `Enabled=false` disables the whole module on the next launch. JSON settings and patrol data live in `UserData/VICE/Enforcement/`; packaged defaults are also embedded and seed only missing files. Existing files and heat data are preserved. The defaults contain 17 foot routes, 18 sentry entries and two vehicle routes.
 
 Better Police's settings migrate into `VICEEnforcementPolice`. The first launch uses values from `PersonalBetterPolice` as defaults, including your speed, FOV, accuracy, backup and flanking settings. Existing values in the new category take precedence on subsequent launches. The old category remains available for rollback. Its `Enabled` switch controls only the Better Police adjustments inside Enforcement.
 
@@ -25,7 +25,7 @@ Better Police owns movement multiplier, vision/notice timing, arrest ticks and n
 
 New cosmetics use the beta's modern avatar objects. Investigators borrow a loaded civilian's appearance/outfit and hide their police belt. Additional officers and raiders retain native police outfits with randomized appearance; the old raid clothing texture layers are no longer used.
 
-Event scheduling, clones, property raids and surveillance run on the host. Multiplayer replication of the upstream runtime NPCs is not playtested; matching versions/settings are recommended. Restart after changing settings. Heat persists per save slot and organization in `UserData/VICE.Enforcement/HeatData`, independently of native save files. Old NACops heat files are not automatically imported.
+Event scheduling, clones, property raids and surveillance run on the host. Multiplayer replication of the upstream runtime NPCs is not playtested; matching versions/settings are recommended. Restart after changing settings. Heat persists per save slot and organization in `UserData/VICE/Enforcement/HeatData`, independently of native save files. Old NACops heat files are not automatically imported.
 
 ## Build and install
 
@@ -49,3 +49,5 @@ Compilation uses warnings as errors against the installed IL2CPP assemblies. Aut
 The installer was exercised twice against an isolated fixture, verifying police/Core replacement, DLL hashes, default-file seeding, preservation of existing settings and unrelated modules, and safe reinstallation. This fixture check does not install into the real game.
 
 Use a disposable or copied save first. Verify startup with both VICE assemblies loaded, then load the save and wait for officer setup. In the in-game console, `enforcement help` lists commands (`nacops` remains an alias). Check `enforcement list footpatrol`, `enforcement list sentry` and `enforcement list raid`, then exercise patrols, investigator, camera detection and a pursuit with multiple officers. Raid tests can destroy equipment and seize product, so exercise them only in the copied save. Check save/reload and returning to the menu twice to verify isolated heat data and event cleanup. Inspect MelonLoader logs for errors and verify native police, personal weapons and other installed modules still behave correctly.
+
+From 0.1.1, existing `UserData/VICE.Enforcement` data automatically moves into `UserData/VICE/Enforcement` before defaults are seeded. Existing destination files are preserved; conflicting legacy files are retained in `UserData/VICE/MigrationConflicts`. Install the updated Core 0.1.2 with this module.

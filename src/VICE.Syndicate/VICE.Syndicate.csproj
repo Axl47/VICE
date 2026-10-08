@@ -2,7 +2,7 @@
   <PropertyGroup>
     <IsGameMod>true</IsGameMod><UseViceCore>true</UseViceCore>
     <AssemblyName>VICE.Syndicate</AssemblyName><RootNamespace>VICE.Syndicate</RootNamespace>
-    <Version>0.1.0</Version><Product>VICE Syndicate</Product><Authors>Axl47</Authors>
+    <Version>0.1.1</Version><Product>VICE Syndicate</Product><Authors>Axl47</Authors>
     <Description>VICE cartel module for Schedule I IL2CPP beta.</Description>
     <Copyright>Based on MIT source Copyright (c) 2026 XOWithSauce; VICE adaptations by Axl47.</Copyright>
     <Nullable>disable</Nullable><AllowUnsafeBlocks>true</AllowUnsafeBlocks>

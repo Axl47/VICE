@@ -1,12 +1,18 @@
 namespace VICE.Core;
 
-/// <summary>Move personal feature data under VICE without replacing existing data.</summary>
+/// <summary>Move module and feature data under VICE without replacing existing data.</summary>
 public static class UserDataFolders
 {
     public static string Prepare(string userData, string module, string feature, params string[] legacyFolders)
+        => PrepareAt(userData, Path.Combine("VICE", Component(module), Component(feature)), legacyFolders);
+
+    public static string PrepareModule(string userData, string module, params string[] legacyFolders)
+        => PrepareAt(userData, Path.Combine("VICE", Component(module)), legacyFolders);
+
+    private static string PrepareAt(string userData, string relativeDestination, string[] legacyFolders)
     {
         var root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(userData));
-        var destination = Within(root, Path.Combine(root, "VICE", Component(module), Component(feature)));
+        var destination = Within(root, Path.Combine(root, relativeDestination));
         if (legacyFolders.Any(name => name.Equals("VICE", StringComparison.OrdinalIgnoreCase)))
             throw new InvalidDataException("The VICE root cannot be a legacy feature folder.");
         var sources = legacyFolders.Select(name => Within(root, Path.Combine(root, Component(name)))).ToArray();

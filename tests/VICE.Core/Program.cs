@@ -6,6 +6,8 @@ if (args.Length > 0 && args[0] == "--migrate-userdata")
     if (args.Length != 2) throw new ArgumentException("Pass the UserData directory to migrate.");
     Console.WriteLine(UserDataFolders.Prepare(args[1], "Lifestyle", "Television", "PersonalTV"));
     Console.WriteLine(UserDataFolders.Prepare(args[1], "Commerce", "Purchasing", "PersonalGasPurchases", "PersonalGuestPurchases"));
+    Console.WriteLine(UserDataFolders.PrepareModule(args[1], "Enforcement", "VICE.Enforcement"));
+    Console.WriteLine(UserDataFolders.PrepareModule(args[1], "Syndicate", "VICE.Syndicate"));
     return;
 }
 

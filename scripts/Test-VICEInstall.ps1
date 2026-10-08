@@ -15,9 +15,18 @@ foreach ($module in @('Commerce','Arsenal','Lifestyle','Interface','Enforcement'
     Set-Content -LiteralPath (Join-Path $game "Mods\VICE.$module.dll") -Value "previous $module"
 }
 if ($modules -contains 'Enforcement') {
-    New-Item -ItemType Directory -Path (Join-Path $game 'UserData\VICE.Enforcement') -Force | Out-Null
-    Set-Content -LiteralPath (Join-Path $game 'UserData\VICE.Enforcement\config.json') -Value 'personal settings'
+    New-Item -ItemType Directory -Path (Join-Path $game 'UserData\VICE\Enforcement') -Force | Out-Null
+    Set-Content -LiteralPath (Join-Path $game 'UserData\VICE\Enforcement\config.json') -Value 'personal settings'
     Set-Content -LiteralPath (Join-Path $game 'Mods\Personal.BetterPolice.dll') -Value 'legacy police'
+}
+foreach ($module in $modules | Where-Object { $_ -in @('Enforcement', 'Syndicate') }) {
+    $legacySetting = if ($module -eq 'Enforcement') { 'officer.json' } else { 'Ambush\settings.json' }
+    $legacyTarget = Join-Path $game "UserData\VICE.$module\$legacySetting"
+    New-Item -ItemType Directory -Path (Split-Path $legacyTarget -Parent) -Force | Out-Null
+    Set-Content -LiteralPath $legacyTarget -Value 'legacy personal settings'
+    $save = Join-Path $game "UserData\VICE.$module\SavedRecords\slot.json"
+    New-Item -ItemType Directory -Path (Split-Path $save -Parent) -Force | Out-Null
+    Set-Content -LiteralPath $save -Value 'legacy saved record'
 }
 & (Join-Path $PackageDir 'Install-VICE.ps1') -GameDir $game -PackageDir $PackageDir
 $checks = 0
@@ -32,11 +41,17 @@ foreach ($module in @('Commerce','Arsenal','Lifestyle','Interface','Enforcement'
 }
 Assert-ExportInstall ((Get-Content -LiteralPath (Join-Path $game 'Mods\Personal.LSDPreview.dll') -Raw).Trim() -eq 'unrelated module') 'Unrelated personal module changed.'
 if ($modules -contains 'Enforcement') {
-    Assert-ExportInstall ((Get-Content -LiteralPath (Join-Path $game 'UserData\VICE.Enforcement\config.json') -Raw).Trim() -eq 'personal settings') 'Existing Enforcement settings were overwritten.'
-    Assert-ExportInstall (Test-Path -LiteralPath (Join-Path $game 'UserData\VICE.Enforcement\Spawn\patrols.json')) 'Missing Enforcement defaults were not seeded.'
+    Assert-ExportInstall ((Get-Content -LiteralPath (Join-Path $game 'UserData\VICE\Enforcement\config.json') -Raw).Trim() -eq 'personal settings') 'Existing Enforcement settings were overwritten.'
+    Assert-ExportInstall (Test-Path -LiteralPath (Join-Path $game 'UserData\VICE\Enforcement\Spawn\patrols.json')) 'Missing Enforcement defaults were not seeded.'
     Assert-ExportInstall (-not (Test-Path -LiteralPath (Join-Path $game 'Mods\Personal.BetterPolice.dll'))) 'Legacy police remained active.'
 }
-if ($modules -contains 'Syndicate') { Assert-ExportInstall (Test-Path -LiteralPath (Join-Path $game 'UserData\VICE.Syndicate\config.json')) 'Syndicate defaults were not seeded.' }
+if ($modules -contains 'Syndicate') { Assert-ExportInstall (Test-Path -LiteralPath (Join-Path $game 'UserData\VICE\Syndicate\config.json')) 'Syndicate defaults were not seeded.' }
+foreach ($module in $modules | Where-Object { $_ -in @('Enforcement', 'Syndicate') }) {
+    $legacySetting = if ($module -eq 'Enforcement') { 'officer.json' } else { 'Ambush\settings.json' }
+    Assert-ExportInstall (-not (Test-Path -LiteralPath (Join-Path $game "UserData\VICE\$module\$legacySetting"))) "Defaults masked legacy $module settings before runtime migration."
+    Assert-ExportInstall ((Get-Content -LiteralPath (Join-Path $game "UserData\VICE.$module\$legacySetting") -Raw).Trim() -eq 'legacy personal settings') "Legacy $module settings changed."
+    Assert-ExportInstall ((Get-Content -LiteralPath (Join-Path $game "UserData\VICE.$module\SavedRecords\slot.json") -Raw).Trim() -eq 'legacy saved record') "Legacy $module saved data changed."
+}
 $bad = Join-Path $fixture 'bad-package'
 Copy-Item -LiteralPath $PackageDir -Destination $bad -Recurse
 [IO.File]::AppendAllText((Join-Path $bad 'UserLibs\VICE.Core.dll'), 'corrupt')

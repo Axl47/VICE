@@ -24,8 +24,8 @@ hashes.json                     # SHA-256 for packaged files
 Install-VICE.ps1
 Install-VICEModules.ps1          # Shared installation implementation
 docs/
-UserData/VICE.Enforcement/       # Only if Enforcement is selected
-UserData/VICE.Syndicate/         # Only if Syndicate is selected
+UserData/VICE/Enforcement/       # Only if Enforcement is selected
+UserData/VICE/Syndicate/         # Only if Syndicate is selected
 Licenses/                       # Original notices for selected upstream ports
 ```
 

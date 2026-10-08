@@ -1,4 +1,4 @@
-# VICE Syndicate 0.1.0
+# VICE Syndicate 0.1.1
 
 VICE.Syndicate is the cartel module in the personal VICE suite. VICE.Enforcement owns police; Syndicate owns cartel events and difficulty. It targets Schedule I **0.4.7f11 beta / IL2CPP**, Unity 2022.3.62f2, MelonLoader 0.7.3 and .NET 6 x64. There is no Mono build.
 
@@ -12,7 +12,7 @@ The package installs `Mods/VICE.Syndicate.dll` and shared `UserLibs/VICE.Core.dl
 
 ## Configuration and difficulty
 
-JSON settings and save-specific records live under `UserData/VICE.Syndicate/`. Melon preferences use category `VICESyndicate`. No original Cartel Enforcer settings or persistent records are imported automatically.
+JSON settings and save-specific records live under `UserData/VICE/Syndicate/`. Melon preferences use category `VICESyndicate`. No original Cartel Enforcer settings or persistent records are imported automatically.
 
 The difficulty defaults carry over Personal Better Police's hostile cartel settings:
 
@@ -45,3 +45,5 @@ The initial 0.4.7f11 build passed with zero warnings/errors, 15 assertions and 3
 Source baseline: [XOWithSauce/schedule-cartelenforcer](https://github.com/XOWithSauce/schedule-cartelenforcer), commit `4b674404fffe5109b46b990387af46407917d223`, upstream version 2.0.0. JSON defaults are from the 2.0.0 IL2CPP release. Only the IL2CPP source branches were imported into this monorepo, with independent VICE identity and versioning; no GitHub fork was created.
 
 Original source copyright **2026 XOWithSauce**, MIT licensed. The complete original notice remains in `src/VICE.Syndicate/LICENSE.CartelEnforcer`, is embedded in the DLL and is included under `Licenses/CartelEnforcer-MIT.txt` in the package. Personal VICE adaptations are by Axl47. Renaming does not replace the original source copyright.
+
+From 0.1.1, existing `UserData/VICE.Syndicate` data automatically moves into `UserData/VICE/Syndicate` before defaults are seeded. Existing destination files are preserved; conflicting legacy files are retained in `UserData/VICE/MigrationConflicts`. Install the updated Core 0.1.2 with this module.
