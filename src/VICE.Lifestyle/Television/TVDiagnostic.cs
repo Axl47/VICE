@@ -19,6 +19,7 @@ internal sealed class TVDiagnostic
     private readonly string Output,Save,Video,YouTubeLink;
     private readonly bool Reload;
     private readonly bool PromptOnly;
+    private readonly bool YouTubeControls;
     private bool Started,Done;
     private int Phase;
     private double Next,Deadline,PreviousPosition;
@@ -43,6 +44,7 @@ internal sealed class TVDiagnostic
     private TVDiagnostic(TelevisionFeature mod,string output,string save,string video,bool reload,string origin,bool promptOnly,string youtube)
     {
         Mod=mod;Output=Path.GetFullPath(output);Save=Path.GetFullPath(save);Video=MediaRules.FileName(video,".mp4");Reload=reload;PromptOnly=promptOnly;
+        YouTubeControls=Environment.GetCommandLineArgs().Contains("--tv-check-youtube-controls");
         Origin=origin;PreviousOrigin=TVConfig.RelayOrigin.Value;PreviousToken=TVConfig.RelayToken.Value;
         YouTubeLink=youtube;if(youtube.Length>0)YouTubeRules.VideoId(youtube);
         if(Origin.Length>0&&!MediaRules.VideoUrl(Origin).IsLoopback)throw new InvalidOperationException("Diagnostic fixture must use loopback HTTP.");
@@ -176,16 +178,51 @@ internal sealed class TVDiagnostic
                 Mod.Panel!.CheckSeek(42,State.Duration);Mod.Panel.CheckVolume(.25f);Phase=107;Next=TVNetwork.Now+3;return;
             case 107:
                 Check(Controller.CheckPlaying&&Controller.CheckPosition>=41&&Controller.CheckPosition<50,"YouTube seek failed.");
-                Check(Math.Abs(State.Volume-.25)<.01,"YouTube volume control failed.");
+                Check(Math.Abs(State.Volume-.25)<.01,"YouTube volume control failed: state="+State.Volume+"; "+Mod.Panel!.CheckControls);
                 Mod.Panel!.CheckClick("Save favorite");Mod.Panel.CheckClick("Remember: off");Mod.Panel.Close();
                 Check(State.Remember&&Mod.Document.Favorites.Any(f=>f.Kind=="youtube"&&f.Source==State.Media.Source),"YouTube favorite/remember failed.");
                 var savedYouTube=TVDocument.Load(Mod.Document.SaveJson(),TVNetwork.Now).Screens.Single(s=>s.Id==State.Id);
                 Check(savedYouTube.Media.Kind=="youtube"&&!savedYouTube.Playing,"Remembered YouTube would autoplay on load.");
+                if(YouTubeControls){Phase=109;Next=TVNetwork.Now+.5;return;}
                 Send(new(){Action="stop"});Phase=108;Next=TVNetwork.Now+2;return;
             case 108:
                 Check(!Controller.Texture&&State.Media.Kind=="none","YouTube stop did not clear the screen.");
                 try{using var child=System.Diagnostics.Process.GetProcessById(CompanionProcess);Check(child.HasExited,"YouTube companion survived Stop.");}catch(ArgumentException){}
-                Pass("Live YouTube on the placed Wall Screen passed: UI link selection, 1280x720 advancing frames, playback, pause/resume, seeking, volume, favorites, paused save semantics and companion cleanup. Browser audio uses distance gain; directional Unity audio and multiplayer are not implemented.");return;
+                Pass("Live YouTube on the placed Wall Screen passed: UI link selection, 1280x720 advancing frames, playback, pause/resume, seeking, volume, favorites, paused save semantics and companion cleanup."+(YouTubeControls?" Chapter boundaries, current title, chapter selection, pagination and CC toggle capture sequence also passed; caption visibility requires inspection of the screenshots.":"")+" Browser audio uses distance gain; directional Unity audio and multiplayer are not implemented.");return;
+            case 109:
+                if(Controller.Chapters.Count<3)return;
+                Mod.Panel!.Open(Item!.GUID.ToString());Mod.Panel.CheckClick("Chapters");
+                Check(Mod.Panel.CheckChapterMarks==Controller.Chapters.Count,"Chapter boundaries were not shown on the playback bar.");
+                Check(Mod.Panel.CheckRowCount==Controller.Chapters.Count,"Chapter list did not contain all player chapters.");
+                Mod.Panel.CheckClick("Next");Mod.Panel.CheckClick("Previous");Mod.Panel.CheckRow(1);Phase=110;Next=TVNetwork.Now+3;return;
+            case 110:
+                Check(Controller.CheckPosition>=Controller.Chapters[1].Start&&Controller.CheckPosition<Controller.Chapters[1].Start+15,"Chapter selection did not seek to its boundary.");
+                Check(Mod.Panel!.CheckChapterTitle.Contains(Controller.Chapters[1].Title),"Current chapter title did not follow playback.");
+                ScreenCapture.CaptureScreenshot(Path.Combine(Output,"youtube-chapters.png"));Phase=111;Next=TVNetwork.Now+1;return;
+            case 111:
+                if(!File.Exists(Path.Combine(Output,"youtube-chapters.png")))return;
+                Mod.Panel!.CheckSeek(170,State.Duration);Phase=112;Next=TVNetwork.Now+3;return;
+            case 112:
+                Check(Controller.CheckPosition>=169&&Controller.CheckPosition<185,"Caption capture seek failed.");
+                Mod.Panel!.CheckClick("Play");Mod.Panel.Close();Phase=113;Next=TVNetwork.Now+2;return;
+            case 113:
+                Check(!Controller.CheckPlaying,"Caption capture did not pause.");
+                ScreenCapture.CaptureScreenshot(Path.Combine(Output,"captions-initial.png"));Phase=114;Next=TVNetwork.Now+1;return;
+            case 114:
+                if(!File.Exists(Path.Combine(Output,"captions-initial.png")))return;
+                Mod.Panel!.Open(Item!.GUID.ToString());Mod.Panel.CheckClick("CC · Toggle");Mod.Panel.Close();Phase=115;Next=TVNetwork.Now+2;return;
+            case 115:
+                Check(!Controller.CheckPlaying,"CC toggle resumed paused playback.");
+                ScreenCapture.CaptureScreenshot(Path.Combine(Output,"captions-toggled.png"));Phase=116;Next=TVNetwork.Now+1;return;
+            case 116:
+                if(!File.Exists(Path.Combine(Output,"captions-toggled.png")))return;
+                Mod.Panel!.Open(Item!.GUID.ToString());Mod.Panel.CheckClick("CC · Toggle");Mod.Panel.Close();Phase=117;Next=TVNetwork.Now+2;return;
+            case 117:
+                Check(!Controller.CheckPlaying,"Second CC toggle resumed paused playback.");
+                ScreenCapture.CaptureScreenshot(Path.Combine(Output,"captions-restored.png"));Phase=118;Next=TVNetwork.Now+1;return;
+            case 118:
+                if(!File.Exists(Path.Combine(Output,"captions-restored.png")))return;
+                Send(new(){Action="stop"});Phase=108;Next=TVNetwork.Now+2;return;
             case 4:
                 if(!Controller.CheckPlaying)return;
                 Check(Controller.Texture&&Controller.Texture!.width>=1280,"Video did not preserve source resolution.");PreviousPosition=Controller.CheckPosition;Phase=5;Next=TVNetwork.Now+2;return;

@@ -15,7 +15,14 @@ internal sealed class TVPanel : IDisposable
     private readonly GameObject Root;
     private readonly RectTransform Frame,Picker;
     private readonly RawImage Preview;
-    private readonly TextMeshProUGUI Title,Status,Message,Timing,PlayLabel,RememberLabel;
+    private readonly TextMeshProUGUI Title,Status,Message,Timing,PlayLabel,RememberLabel,ChapterTitle;
+    private readonly Button CaptionsButton,ChaptersButton;
+    private readonly List<GameObject> ChapterMarks=new();
+    private IReadOnlyList<YouTubeChapter>? ChapterCatalog;
+    private IReadOnlyList<YouTubeChapter> VisibleChapters=Array.Empty<YouTubeChapter>();
+    private string ChapterSnapshot="";
+    private string ChapterMediaSnapshot="";
+    private double ChapterDuration=-1;
     private readonly Slider Timeline,Volume;
     private readonly GameInput.ExitDelegate ExitHandler;
     private readonly List<GameObject> PageControls=new();
@@ -36,9 +43,14 @@ internal sealed class TVPanel : IDisposable
     internal void CheckRow(int index)=>Rows[index].Select();
     internal void CheckSearch(){Search!.text="fixture";CheckClick("Search");}
     internal void CheckClick(string label)=>Root.GetComponentsInChildren<Button>(true).First(b=>b.name==label).onClick.Invoke();
-    internal void CheckSeek(double position,double duration)=>Timeline.value=(float)(position/duration);
-    internal void CheckVolume(float volume)=>Volume.value=volume;
+    // Programmatic diagnostic drags include release; a physical mouse held in
+    // another app must not leave a diagnostic slider waiting for mouse-up.
+    internal void CheckSeek(double position,double duration){Timeline.value=(float)(position/duration);CommitSliders();}
+    internal void CheckVolume(float volume){Volume.value=volume;CommitSliders();}
+    internal string CheckControls=>$"open={Opened}, volume={Volume.value}, pending={VolumeDirty}, mouseHeld={Mouse.current?.leftButton.isPressed}, notice={Message.text}";
     internal void CheckYouTube(string link){Search!.text=link;CheckClick("Play YouTube");}
+    internal int CheckChapterMarks=>ChapterMarks.Count;
+    internal string CheckChapterTitle=>ChapterTitle.text;
     private readonly List<GameObject> Tabs=new();
     private double NextFavoritesCheck;
 
@@ -50,11 +62,13 @@ internal sealed class TVPanel : IDisposable
         Root.AddComponent<GraphicRaycaster>();
         Frame=TVWidgets.Rect(Root.transform,"Screen panel",0,0,1640,980);Frame.anchorMin=Frame.anchorMax=Frame.pivot=new(.5f,.5f);Frame.anchoredPosition=Vector2.zero;
         Frame.gameObject.AddComponent<Image>().color=new(.025f,.045f,.065f,.98f);
-        Title=TVWidgets.Label(Frame,"WALL SCREEN",30,14,1330,40,27);
+        Title=TVWidgets.Label(Frame,"WALL SCREEN",30,14,990,56,27);
+        CaptionsButton=TVWidgets.Button(Frame,"CC · Toggle",1050,18,165,36,()=>Send(new(){Action="youtubeCaptions"}));
         TVWidgets.Button(Frame,"Leave · Esc",1450,18,160,36,Close);
         var preview=TVWidgets.Rect(Frame,"Video preview",30,90,790,444);Preview=preview.gameObject.AddComponent<RawImage>();Preview.raycastTarget=false;Preview.color=Color.white;
         Status=TVWidgets.Label(Frame,"",30,548,790,62,21);
         Picker=TVWidgets.Rect(Frame,"Source picker",860,140,750,650);
+        ChaptersButton=TVWidgets.Button(Frame,"Chapters",1225,18,190,36,()=>{Fullscreen=false;Picker.gameObject.SetActive(true);foreach(var tab in Tabs)tab.SetActive(true);Switch("chapters");});
         var tabs=new[]{("images","Images"),("url","Video URL"),("youtube","YouTube"),("relay","Relay"),("favorites","Favorites"),("local","Local MP4")};
         for(var i=0;i<tabs.Length;i++){var tab=tabs[i];Tabs.Add(TVWidgets.Button(Frame,tab.Item2,860+i*126,88,118,38,()=>Switch(tab.Item1)).gameObject);}
         var play=TVWidgets.Button(Frame,"Play",30,818,125,40,()=>Send(new(){Action="toggle"}));PlayLabel=play.GetComponentInChildren<TextMeshProUGUI>();
@@ -68,6 +82,7 @@ internal sealed class TVPanel : IDisposable
         TVWidgets.Button(Frame,"Mute",1410,818,90,40,()=>Send(new(){Action="volume",Volume=0}));
         Timeline=TVWidgets.Slider(Frame,30,875,1330,value=>{if(!Updating)SeekDirty=true;});
         Timing=TVWidgets.Label(Frame,"",1380,870,230,35,18);
+        ChapterTitle=TVWidgets.Label(Frame,"",30,900,1330,23,16);
         Message=TVWidgets.Label(Frame,"",30,920,1580,44,18);
         ExitHandler=DelegateSupport.ConvertDelegate<GameInput.ExitDelegate>((Action<ExitAction>)(action=>{if(Opened){action.used=true;Close();}}))!;
         GameInput.RegisterExitListener(ExitHandler,10);Root.SetActive(false);
@@ -79,6 +94,8 @@ internal sealed class TVPanel : IDisposable
         var world=TelevisionFeature.Current!.World!;
         if(!world.Screens.ContainsKey(screen))return;
         Screen=screen;Epoch++;Fullscreen=false;SeekDirty=VolumeDirty=false;
+        ChapterCatalog=null;VisibleChapters=Array.Empty<YouTubeChapter>();
+        var initialState=State();if(initialState is not null)UpdateChapters(world.Screens[Screen],initialState,initialState.Target(TVNetwork.Now));
         var camera=PlayerCamera.Instance;var inventory=PlayerInventory.Instance;
         PreviousLook=camera.CanLook;PreviousMove=PlayerMovement.Instance._canMove;PreviousHotbar=inventory.HotbarEnabled;
         PreviousEquipping=inventory.EquippingEnabled;PreviousTyping=GameInput.IsTyping;
@@ -88,7 +105,7 @@ internal sealed class TVPanel : IDisposable
     }
     internal void Close()
     {
-        if(!Opened)return;Opened=false;Epoch++;Queries.Clear();Root.SetActive(false);Preview.texture=null;
+        if(!Opened)return;Opened=false;Epoch++;Queries.Clear();if(Root)Root.SetActive(false);if(Preview)Preview.texture=null;
         var camera=PlayerCamera.Instance;
         if(camera){camera.RemoveActiveUIElement("PersonalTV");camera.SetCanLook(PreviousLook);if(camera.ActiveUIElementCount==0)camera.LockMouse(true);}
         if(PlayerMovement.Instance)PlayerMovement.Instance._canMove=PreviousMove;
@@ -99,6 +116,12 @@ internal sealed class TVPanel : IDisposable
     private void Send(TVCommand command){command.Screen=Screen;TVNetwork.Submit(command);}
     private void Select(MediaSelection media)=>Send(new(){Action="select",Media=media});
     private void Seek(double delta){var state=State();if(state is not null)Send(new(){Action="seek",Position=Math.Max(0,state.Target(TVNetwork.Now)+delta)});}
+    private void CommitSliders()
+    {
+        var state=State();if(state is null||!Opened)return;
+        if(SeekDirty){SeekDirty=false;Send(new(){Action="seek",Position=Timeline.value*state.Duration});}
+        if(VolumeDirty){VolumeDirty=false;Send(new(){Action="volume",Volume=Volume.value});}
+    }
     internal void Reply(TVMessage message)
     {
         if(Queries.Remove(message.Token,out var query)&&query.Epoch==Epoch&&Opened)
@@ -119,6 +142,7 @@ internal sealed class TVPanel : IDisposable
             case "local":LocalFiles(true);break;
             case "url":Url();break;
             case "youtube":YouTube();break;
+            case "chapters":Chapters();break;
             case "favorites":Favorites();break;
             case "relay":RelayHome();break;
         }
@@ -154,7 +178,36 @@ internal sealed class TVPanel : IDisposable
         PageControls[^1].GetComponent<RectTransform>().anchoredPosition=new(155,-475);
         Button("Next",615,475,135,()=>{Page=Math.Min(Math.Max(0,(Rows.Count-1)/8),Page+1);Redraw();});
     }
-    private void Redraw(){if(Tab is "images" or "local")LocalFiles(Tab=="local");else if(Tab=="favorites")Favorites();else{DrawRows();RelayNavigation();}}
+    private void Redraw(){if(Tab is "images" or "local")LocalFiles(Tab=="local");else if(Tab=="favorites")Favorites();else if(Tab=="chapters")Chapters();else{DrawRows();RelayNavigation();}}
+    private void Chapters()
+    {
+        Heading="YouTube chapters";
+        Rows=VisibleChapters.Select(chapter=>($"{Format(chapter.Start)} · {chapter.Title}",(Action)(()=>Send(new(){Action="seek",Position=chapter.Start})))).ToList();
+        if(Rows.Count>0){DrawRows();Label("Choose a chapter to jump to its start. Marks on the playback bar show chapter boundaries.",535,100);}
+        else{ClearPage();Label(Heading,0);Label(State()?.Media.Kind=="youtube"?(ChapterSnapshot.Length>0?ChapterSnapshot:"Waiting for the video's duration…"):"Choose a YouTube video to see its chapters.",70,150);}
+    }
+    private void UpdateChapters(ScreenController controller,ScreenState state,double position)
+    {
+        var youtube=state.Media.Kind=="youtube";
+        CaptionsButton.gameObject.SetActive(youtube);CaptionsButton.interactable=youtube&&controller.CanToggleCaptions;
+        ChaptersButton.gameObject.SetActive(youtube);
+        var catalog=controller.Chapters;var status=controller.ChapterStatus;
+        var media=state.Media.Kind+":"+state.Media.Source;
+        if(!ReferenceEquals(ChapterCatalog,catalog)||ChapterDuration!=state.Duration||ChapterSnapshot!=status||ChapterMediaSnapshot!=media)
+        {
+            ChapterCatalog=catalog;ChapterDuration=state.Duration;ChapterSnapshot=status;ChapterMediaSnapshot=media;
+            VisibleChapters=youtube&&state.Duration>0?catalog.Where(c=>c.Start<state.Duration).ToArray():Array.Empty<YouTubeChapter>();
+            foreach(var mark in ChapterMarks)if(mark)Object.Destroy(mark);ChapterMarks.Clear();
+            foreach(var chapter in VisibleChapters)
+            {
+                var tick=TVWidgets.Rect(Timeline.transform,"Chapter boundary",7+(float)(chapter.Start/state.Duration)*1316,0,2,24);
+                var image=tick.gameObject.AddComponent<Image>();image.color=new(1,1,1,.65f);image.raycastTarget=false;ChapterMarks.Add(tick.gameObject);
+            }
+            if(Tab=="chapters"){Page=Math.Min(Page,Math.Max(0,(VisibleChapters.Count-1)/8));Chapters();}
+        }
+        var current=youtube?VisibleChapters.LastOrDefault(c=>c.Start<=position):null;
+        ChapterTitle.text=current is null?"":$"{Format(current.Start)} · {current.Title}";
+    }
     private void Url()
     {
         Label("Direct video URL",0);Label("Use an HTTP(S) media file that the game can decode. MP4 with H.264 video and AAC audio works best.",50,100);
@@ -174,7 +227,7 @@ internal sealed class TVPanel : IDisposable
             var id=YouTubeRules.VideoId(input.text);
             Select(new(){Kind="youtube",Source=id,Title="YouTube · "+id});
         });
-        Label("Playback continues when you leave. Use the controls below to pause, seek or adjust volume. Sound becomes quieter as you move away.",295,130);
+        Label("Playback continues when you leave. Use CC · Toggle to turn captions on or off. Open Chapters to jump between sections. Sound becomes quieter as you move away.",295,130);
         Label("Remember and Favorites keep the video selection. Saved screens start paused.",450,90);
     }
     private void Favorites()
@@ -269,11 +322,8 @@ internal sealed class TVPanel : IDisposable
         var position=state.Target(TVNetwork.Now);Timing.text=$"{Format(position)} / {(state.Duration>0?Format(state.Duration):"--:--")}";
         Updating=true;try{if(!SeekDirty)Timeline.SetValueWithoutNotify(state.Duration>0?(float)(position/state.Duration):0);if(!VolumeDirty)Volume.SetValueWithoutNotify(state.Volume);}finally{Updating=false;}
         Timeline.interactable=(state.Media.Kind is "url" or "relay" or "local" or "youtube")&&state.Duration>0&&controller.Seekable;
-        if(Mouse.current?.leftButton.isPressed!=true)
-        {
-            if(SeekDirty){SeekDirty=false;Send(new(){Action="seek",Position=Timeline.value*state.Duration});}
-            else if(VolumeDirty){VolumeDirty=false;Send(new(){Action="volume",Volume=Volume.value});}
-        }
+        UpdateChapters(controller,state,position);
+        if(Mouse.current?.leftButton.isPressed!=true)CommitSliders();
         foreach(var token in Queries.Where(p=>Time.realtimeSinceStartup-p.Value.Started>65).Select(p=>p.Key).ToArray()){Queries.Remove(token);Notice("Relay request timed out. Try again.");}
         if(Tab=="favorites"&&TVNetwork.Now>=NextFavoritesCheck){NextFavoritesCheck=TVNetwork.Now+.5;if(FavoriteSnapshot!=JsonSerializer.Serialize(mod.Document.Favorites))Favorites();}
     }

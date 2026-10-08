@@ -159,6 +159,10 @@ internal sealed class TelevisionFeature
                 state.Position=Math.Min(command.Position,state.Duration>0?state.Duration:604800);state.Anchor=now;break;
             case "volume":
                 if(!float.IsFinite(command.Volume)||command.Volume is < 0 or > 1)throw new InvalidDataException("Invalid volume.");state.Volume=command.Volume;break;
+            case "youtubeCaptions":
+                YouTubeRules.RequireSinglePlayer(TVNetwork.Host,TVNetwork.PeerCount);
+                if(state.Media.Kind!="youtube"||World?.Screens.GetValueOrDefault(state.Id) is not {} captionScreen)throw new InvalidOperationException("Choose a YouTube video first.");
+                captionScreen.ToggleCaptions(state.Media.Source);break;
             case "remember":state.Remember=command.Remember||state.Media.Kind=="image";break;
             case "favorite":
                 if(state.Media.Kind=="none")throw new InvalidOperationException("Choose media before saving a favorite.");
