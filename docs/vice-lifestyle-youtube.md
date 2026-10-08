@@ -30,6 +30,12 @@ The helper terminates on Stop, source change, distance/culling suspension, sessi
 
 The opt-in native diagnostic runs against a copied `artifacts/SaveGame_5` save. It places the actual furniture through the native wall-placement handler, selects a link through the source panel, verifies advancing browser frames and video position, then checks pause/resume, seeking, volume, favorites, paused save serialization and helper process cleanup. It captures an actual in-game screenshot:
 
+![YouTube playing on the Wall Screen](images/lifestyle/youtube-tv.png)
+
+![YouTube source picker](images/lifestyle/youtube-picker.png)
+
+The corrected native run passed all these checks, and visual inspection confirmed upright video. The run used `artifacts/youtube-oriented-check`; `result.txt` and the local MelonLoader log record `TV_CHECK_PASSED`. Automated validation passed 55 Core assertions, 179 Lifestyle checks, 41 module checks and 12 installer-fixture checks. The screenshots are unmodified captures from that run.
+
 Example developer invocation (this diagnostic intentionally rejects normal save paths):
 
 ```text
