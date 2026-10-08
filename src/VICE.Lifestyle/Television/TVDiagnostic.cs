@@ -16,7 +16,7 @@ namespace VICE.Lifestyle.Television;
 internal sealed class TVDiagnostic
 {
     private readonly TelevisionFeature Mod;
-    private readonly string Output,Save,Video;
+    private readonly string Output,Save,Video,YouTubeLink;
     private readonly bool Reload;
     private readonly bool PromptOnly;
     private bool Started,Done;
@@ -26,6 +26,8 @@ internal sealed class TVDiagnostic
     private Vector3 Near;
     private Vector3 PlacementPoint,Outward;
     private double PromptY;
+    private long PreviousFrame;
+    private int CompanionProcess;
     private bool GhostLogged;
     private string Hash="";
     private readonly string Origin,PreviousOrigin,PreviousToken;
@@ -36,12 +38,13 @@ internal sealed class TVDiagnostic
     {
         var args=Environment.GetCommandLineArgs();var output=args.FirstOrDefault(a=>a.StartsWith("--tv-system-check="))?[18..];
         if(output is null)return null;
-        return new(mod,output,args.FirstOrDefault(a=>a.StartsWith("--tv-check-save="))?[16..]??"",args.FirstOrDefault(a=>a.StartsWith("--tv-check-video="))?[17..]??"",args.Contains("--tv-check-reload")||args.Contains("--tv-check-prompt-only"),args.FirstOrDefault(a=>a.StartsWith("--tv-check-origin="))?[18..]??"",args.Contains("--tv-check-prompt-only"));
+        return new(mod,output,args.FirstOrDefault(a=>a.StartsWith("--tv-check-save="))?[16..]??"",args.FirstOrDefault(a=>a.StartsWith("--tv-check-video="))?[17..]??"youtube-check.mp4",args.Contains("--tv-check-reload")||args.Contains("--tv-check-prompt-only"),args.FirstOrDefault(a=>a.StartsWith("--tv-check-origin="))?[18..]??"",args.Contains("--tv-check-prompt-only"),args.FirstOrDefault(a=>a.StartsWith("--tv-check-youtube="))?[19..]??"");
     }
-    private TVDiagnostic(TelevisionFeature mod,string output,string save,string video,bool reload,string origin,bool promptOnly)
+    private TVDiagnostic(TelevisionFeature mod,string output,string save,string video,bool reload,string origin,bool promptOnly,string youtube)
     {
         Mod=mod;Output=Path.GetFullPath(output);Save=Path.GetFullPath(save);Video=MediaRules.FileName(video,".mp4");Reload=reload;PromptOnly=promptOnly;
         Origin=origin;PreviousOrigin=TVConfig.RelayOrigin.Value;PreviousToken=TVConfig.RelayToken.Value;
+        YouTubeLink=youtube;if(youtube.Length>0)YouTubeRules.VideoId(youtube);
         if(Origin.Length>0&&!MediaRules.VideoUrl(Origin).IsLoopback)throw new InvalidOperationException("Diagnostic fixture must use loopback HTTP.");
         var workspace=Path.GetFullPath(@"C:\Users\ortaa\Documents\Projects\ScheduleOne-Mods\artifacts")+Path.DirectorySeparatorChar;
         if(!Output.StartsWith(workspace,StringComparison.OrdinalIgnoreCase)||!Save.StartsWith(workspace,StringComparison.OrdinalIgnoreCase)||Path.GetFileName(Save)!="SaveGame_5")
@@ -55,7 +58,7 @@ internal sealed class TVDiagnostic
         if(Started||Done||UnityEngine.SceneManagement.SceneManager.GetActiveScene().name!="Menu")return;
         var manager=LoadManager.Instance;if(!manager||manager.IsLoading||LoadManager.SaveGames is null)return;
         if(!LoadManager.TryLoadSaveInfo(Save,5,out var info,true))return;
-        Started=true;Deadline=TVNetwork.Now+120;MelonLogger.Msg("TV_CHECK loading isolated save "+Save);manager.StartGame(info,false,false);
+        Started=true;Deadline=TVNetwork.Now+(YouTubeLink.Length>0?300:120);MelonLogger.Msg("TV_CHECK loading isolated save "+Save);manager.StartGame(info,false,false);
     }
     internal void Tick()
     {
@@ -106,6 +109,11 @@ internal sealed class TVDiagnostic
                 Check(Item&&Item.Initialized&&Item.ParentProperty.IsOwned,"Native wall placement failed.");
                 Mod.World!.Scan();Frame();Phase=1;Next=TVNetwork.Now+1;return;
             case 1:
+                if(YouTubeLink.Length>0)
+                {
+                    Mod.Panel!.Open(Item!.GUID.ToString());Mod.Panel.CheckTab("youtube");
+                    ScreenCapture.CaptureScreenshot(Path.Combine(Output,"youtube-picker.png"));Phase=100;Next=TVNetwork.Now+1;return;
+                }
                 var texture=new Texture2D(64,32,TextureFormat.RGBA32,false);
                 for(var y=0;y<32;y++)for(var x=0;x<64;x++)texture.SetPixel(x,y,x<32?new Color(.1f,.65f,.95f):new Color(.95f,.3f,.1f));texture.Apply();
                 var bytes=ImageConversion.EncodeToPNG(texture).ToArray();Object.Destroy(texture);Hash=Mod.Cache.Put(bytes);
@@ -143,6 +151,41 @@ internal sealed class TVDiagnostic
                 Mod.Panel!.Close();
                 Check(PlayerCamera.Instance.CanLook==BeforeLook&&PlayerMovement.Instance._canMove==BeforeMove&&PlayerInventory.Instance.HotbarEnabled==BeforeInventory&&PlayerInventory.Instance.EquippingEnabled==BeforeEquipping,"Interaction did not restore game controls.");
                 Send(new(){Action="select",Media=new(){Kind="local",Source=Video,Title="TV diagnostic video"}});Phase=4;Next=TVNetwork.Now+1;return;
+            case 100:
+                if(!File.Exists(Path.Combine(Output,"youtube-picker.png")))return;
+                Mod.Panel!.CheckYouTube(YouTubeLink);Mod.Panel.Close();Phase=101;Next=TVNetwork.Now+1;return;
+            case 101:
+                if(!Controller.CheckPlaying||Controller.CheckFrameSequence<1)return;
+                Check(Controller.Texture&&Controller.Texture!.width==1280,"YouTube did not produce a browser texture.");
+                PreviousPosition=Controller.CheckPosition;PreviousFrame=Controller.CheckFrameSequence;CompanionProcess=Controller.CheckCompanionProcess;
+                Phase=102;Next=TVNetwork.Now+3;return;
+            case 102:
+                Check(Controller.CheckPlaying&&Controller.CheckPosition>PreviousPosition+1,"Live YouTube playback did not advance.");
+                Check(Controller.CheckFrameSequence>PreviousFrame,"Live browser frames did not advance.");
+                ScreenCapture.CaptureScreenshot(Path.Combine(Output,"wall-youtube.png"));Phase=103;Next=TVNetwork.Now+1;return;
+            case 103:
+                if(!File.Exists(Path.Combine(Output,"wall-youtube.png")))return;
+                Mod.Panel!.Open(Item!.GUID.ToString());Mod.Panel.CheckClick("Play");Phase=104;Next=TVNetwork.Now+2;return;
+            case 104:
+                Check(!Controller.CheckPlaying&&!State.Playing,"YouTube pause failed.");PreviousPosition=Controller.CheckPosition;Phase=105;Next=TVNetwork.Now+2;return;
+            case 105:
+                Check(Math.Abs(Controller.CheckPosition-PreviousPosition)<.3,"Paused YouTube position advanced.");
+                Mod.Panel!.CheckClick("Play");Phase=106;Next=TVNetwork.Now+3;return;
+            case 106:
+                Check(Controller.CheckPlaying&&Controller.CheckPosition>PreviousPosition+1,"YouTube resume failed.");
+                Mod.Panel!.CheckSeek(42,State.Duration);Mod.Panel.CheckVolume(.25f);Phase=107;Next=TVNetwork.Now+3;return;
+            case 107:
+                Check(Controller.CheckPlaying&&Controller.CheckPosition>=41&&Controller.CheckPosition<50,"YouTube seek failed.");
+                Check(Math.Abs(State.Volume-.25)<.01,"YouTube volume control failed.");
+                Mod.Panel!.CheckClick("Save favorite");Mod.Panel.CheckClick("Remember: off");Mod.Panel.Close();
+                Check(State.Remember&&Mod.Document.Favorites.Any(f=>f.Kind=="youtube"&&f.Source==State.Media.Source),"YouTube favorite/remember failed.");
+                var savedYouTube=TVDocument.Load(Mod.Document.SaveJson(),TVNetwork.Now).Screens.Single(s=>s.Id==State.Id);
+                Check(savedYouTube.Media.Kind=="youtube"&&!savedYouTube.Playing,"Remembered YouTube would autoplay on load.");
+                Send(new(){Action="stop"});Phase=108;Next=TVNetwork.Now+2;return;
+            case 108:
+                Check(!Controller.Texture&&State.Media.Kind=="none","YouTube stop did not clear the screen.");
+                try{using var child=System.Diagnostics.Process.GetProcessById(CompanionProcess);Check(child.HasExited,"YouTube companion survived Stop.");}catch(ArgumentException){}
+                Pass("Live YouTube on the placed Wall Screen passed: UI link selection, 1280x720 advancing frames, playback, pause/resume, seeking, volume, favorites, paused save semantics and companion cleanup. Browser audio uses distance gain; directional Unity audio and multiplayer are not implemented.");return;
             case 4:
                 if(!Controller.CheckPlaying)return;
                 Check(Controller.Texture&&Controller.Texture!.width>=1280,"Video did not preserve source resolution.");PreviousPosition=Controller.CheckPosition;Phase=5;Next=TVNetwork.Now+2;return;

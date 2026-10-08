@@ -98,8 +98,8 @@ internal sealed class TelevisionFeature
                 NextPublish=TVNetwork.Now+2;
                 foreach(var state in Document.Screens.ToArray())
                 {
-                    if(state.Media.Kind=="local"&&TVNetwork.PeerCount>1){Stop(state);Notice("Local video stopped because another player joined.");}
-                    if(state.Playing&&state.Duration>0&&state.Target(TVNetwork.Now)>=state.Duration){state.Reanchor(TVNetwork.Now);state.Playing=false;state.VideoRequested=false;Touch(state);}
+                    if(state.Media.Kind is "local" or "youtube"&&TVNetwork.PeerCount>1){Stop(state);Notice("Single-player playback stopped because another player joined.");}
+                    if(state.Media.Kind!="youtube"&&state.Playing&&state.Duration>0&&state.Target(TVNetwork.Now)>=state.Duration){state.Reanchor(TVNetwork.Now);state.Playing=false;state.VideoRequested=false;Touch(state);}
                     if(state.Media.Kind=="relay"&&state.ExpiresAt is {} expires&&expires<DateTimeOffset.UtcNow.AddMinutes(2)&&!RelayJobs.ContainsKey(state.Id))StartRelay(state,true);
                 }
                 TVNetwork.Publish();
@@ -130,16 +130,25 @@ internal sealed class TelevisionFeature
         {
             case "select":
                 var media=command.Media??throw new InvalidDataException("No media was selected.");media.Validate();
+                if(media.Kind=="youtube")
+                {
+                    YouTubeRules.RequireSinglePlayer(TVNetwork.Host,TVNetwork.PeerCount);
+                    if(!File.Exists(TVConfig.YouTubeCompanionPath))throw new InvalidOperationException("Install the Build-A-Base TV companion before playing YouTube.");
+                    foreach(var other in Document.Screens.Where(s=>s.Id!=state.Id&&s.Media.Kind=="youtube").ToArray()){Stop(other);Touch(other);}
+                }
                 if(media.Kind=="image"&&!Cache.Has(media.Source))throw new InvalidOperationException("The image is still being transferred.");
                 if(media.Kind=="local"&&(TVNetwork.PeerCount>1||!File.Exists(Path.Combine(TVConfig.Videos,media.Source))||(File.GetAttributes(Path.Combine(TVConfig.Videos,media.Source))&FileAttributes.ReparsePoint)!=0))throw new InvalidOperationException("Local videos require single-player and a regular file in the designated Videos folder.");
                 if(media.Kind=="relay")using(var setup=TVConfig.Relay()){}
                 Stop(state);state.Media=media.Clone();state.Remember=media.Kind=="image"||command.Remember;state.Position=0;state.Anchor=now;state.Duration=0;
-                state.Playing=media.Kind=="url";
+                state.Playing=media.Kind is "url" or "youtube";
                 if(media.Kind=="relay")StartRelay(state,false);
                 break;
             case "toggle": case "play": case "pause":
                 if(state.Media.Kind is "none" or "image")throw new InvalidOperationException("Choose a video first.");
+                if(state.Media.Kind=="youtube")YouTubeRules.RequireSinglePlayer(TVNetwork.Host,TVNetwork.PeerCount);
                 var wanted=command.Action=="play"||(command.Action=="toggle"&&!(state.Media.Kind=="video"?state.VideoRequested:RelayJobs.ContainsKey(state.Id)?ResumeIntent.GetValueOrDefault(state.Id):state.Playing));
+                if(state.Media.Kind=="youtube"&&wanted)
+                    foreach(var other in Document.Screens.Where(s=>s.Id!=state.Id&&s.Media.Kind=="youtube").ToArray()){Stop(other);Touch(other);}
                 if(state.Media.Kind=="video") { if(wanted)TVVideoNetwork.Play(state);else TVVideoNetwork.Pause(state); }
                 else if(state.Media.Kind=="relay"&&state.PlaybackUrl.Length==0&&!RelayJobs.ContainsKey(state.Id)){StartRelay(state,false);ResumeIntent[state.Id]=wanted;}
                 else if(RelayJobs.ContainsKey(state.Id))ResumeIntent[state.Id]=wanted;
@@ -159,6 +168,12 @@ internal sealed class TelevisionFeature
                 if(command.Index<0||command.Index>=Document.Favorites.Count)throw new InvalidDataException("Unknown favorite.");Document.Favorites.RemoveAt(command.Index);break;
             case "stop":Stop(state);break;
             case "retry":
+                if(state.Media.Kind=="youtube")
+                {
+                    YouTubeRules.RequireSinglePlayer(TVNetwork.Host,TVNetwork.PeerCount);
+                    foreach(var other in Document.Screens.Where(s=>s.Id!=state.Id&&s.Media.Kind=="youtube").ToArray()){Stop(other);Touch(other);}
+                    state.Playing=true;
+                }
                 if(state.Media.Kind=="video"){TVVideoNetwork.Pause(state);state.MediaGeneration++;World?.Screens.GetValueOrDefault(state.Id)?.Retry();TVVideoNetwork.Play(state);}
                 else if(state.Media.Kind=="relay")StartRelay(state,state.PlaybackId.Length>0);
                 else{state.MediaGeneration++;World?.Screens.GetValueOrDefault(state.Id)?.Retry();}break;

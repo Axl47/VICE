@@ -38,6 +38,7 @@ internal sealed class TVPanel : IDisposable
     internal void CheckClick(string label)=>Root.GetComponentsInChildren<Button>(true).First(b=>b.name==label).onClick.Invoke();
     internal void CheckSeek(double position,double duration)=>Timeline.value=(float)(position/duration);
     internal void CheckVolume(float volume)=>Volume.value=volume;
+    internal void CheckYouTube(string link){Search!.text=link;CheckClick("Play YouTube");}
     private readonly List<GameObject> Tabs=new();
     private double NextFavoritesCheck;
 
@@ -54,8 +55,8 @@ internal sealed class TVPanel : IDisposable
         var preview=TVWidgets.Rect(Frame,"Video preview",30,90,790,444);Preview=preview.gameObject.AddComponent<RawImage>();Preview.raycastTarget=false;Preview.color=Color.white;
         Status=TVWidgets.Label(Frame,"",30,548,790,62,21);
         Picker=TVWidgets.Rect(Frame,"Source picker",860,140,750,650);
-        var tabs=new[]{("images","Images"),("url","Video URL"),("relay","Relay"),("favorites","Favorites"),("local","Local MP4")};
-        for(var i=0;i<tabs.Length;i++){var tab=tabs[i];Tabs.Add(TVWidgets.Button(Frame,tab.Item2,860+i*151,88,143,38,()=>Switch(tab.Item1)).gameObject);}
+        var tabs=new[]{("images","Images"),("url","Video URL"),("youtube","YouTube"),("relay","Relay"),("favorites","Favorites"),("local","Local MP4")};
+        for(var i=0;i<tabs.Length;i++){var tab=tabs[i];Tabs.Add(TVWidgets.Button(Frame,tab.Item2,860+i*126,88,118,38,()=>Switch(tab.Item1)).gameObject);}
         var play=TVWidgets.Button(Frame,"Play",30,818,125,40,()=>Send(new(){Action="toggle"}));PlayLabel=play.GetComponentInChildren<TextMeshProUGUI>();
         TVWidgets.Button(Frame,"−10s",165,818,80,40,()=>Seek(-10));TVWidgets.Button(Frame,"+10s",255,818,80,40,()=>Seek(10));
         TVWidgets.Button(Frame,"Stop",345,818,95,40,()=>Send(new(){Action="stop"}));
@@ -117,6 +118,7 @@ internal sealed class TVPanel : IDisposable
             case "images":LocalFiles(false);break;
             case "local":LocalFiles(true);break;
             case "url":Url();break;
+            case "youtube":YouTube();break;
             case "favorites":Favorites();break;
             case "relay":RelayHome();break;
         }
@@ -159,6 +161,21 @@ internal sealed class TVPanel : IDisposable
         var input=Input("https://example.com/video.mp4",165,4096);var title=Input("Optional display title",220,160);
         Button("Play URL",0,280,190,()=>Select(new(){Kind="url",Source=MediaRules.VideoUrl(input.text.Trim()).AbsoluteUri,Title=string.IsNullOrWhiteSpace(title.text)?"Video URL":title.text.Trim()}));
         Label("Each viewer downloads this URL directly. Use Remember to keep it with this screen, or Save favorite to reuse it later.",345,110);
+    }
+    private void YouTube()
+    {
+        Heading="YouTube · single-player";Label(Heading,0);
+        if(TVNetwork.PeerCount>1){Label("YouTube playback is available in single-player only.",60,90);return;}
+        if(!File.Exists(TVConfig.YouTubeCompanionPath))
+        {Label("Install the Build-A-Base TV companion to use YouTube. See the Lifestyle YouTube guide included with this update.",60,150);return;}
+        Label("Paste a YouTube video link, then press Play YouTube. One Wall Screen can play YouTube at a time.",55,90);
+        var input=Input("https://www.youtube.com/watch?v=…",165,4096);Search=input;
+        Button("Play YouTube",0,225,210,()=>{
+            var id=YouTubeRules.VideoId(input.text);
+            Select(new(){Kind="youtube",Source=id,Title="YouTube · "+id});
+        });
+        Label("Playback continues when you leave. Use the controls below to pause, seek or adjust volume. Sound becomes quieter as you move away.",295,130);
+        Label("Remember and Favorites keep the video selection. Saved screens start paused.",450,90);
     }
     private void Favorites()
     {
@@ -251,7 +268,7 @@ internal sealed class TVPanel : IDisposable
         TVWidgets.Place(Preview.rectTransform,30+(maxW-width)/2,90+(maxH-height)/2,width,height);Status.gameObject.SetActive(!Fullscreen);
         var position=state.Target(TVNetwork.Now);Timing.text=$"{Format(position)} / {(state.Duration>0?Format(state.Duration):"--:--")}";
         Updating=true;try{if(!SeekDirty)Timeline.SetValueWithoutNotify(state.Duration>0?(float)(position/state.Duration):0);if(!VolumeDirty)Volume.SetValueWithoutNotify(state.Volume);}finally{Updating=false;}
-        Timeline.interactable=(state.Media.Kind is "url" or "relay" or "local")&&state.Duration>0&&controller.Seekable;
+        Timeline.interactable=(state.Media.Kind is "url" or "relay" or "local" or "youtube")&&state.Duration>0&&controller.Seekable;
         if(Mouse.current?.leftButton.isPressed!=true)
         {
             if(SeekDirty){SeekDirty=false;Send(new(){Action="seek",Position=Timeline.value*state.Duration});}

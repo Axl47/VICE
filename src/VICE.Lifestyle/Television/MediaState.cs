@@ -18,11 +18,12 @@ public sealed class MediaSelection
     public MediaSelection Clone() => JsonSerializer.Deserialize<MediaSelection>(JsonSerializer.Serialize(this))!;
     public void Validate()
     {
-        if (Kind is not ("none" or "image" or "url" or "relay" or "local" or "video")) throw new InvalidDataException("Unknown media type.");
+        if (Kind is not ("none" or "image" or "url" or "relay" or "local" or "video" or "youtube")) throw new InvalidDataException("Unknown media type.");
         if (Title.Length > 160 || Source.Length > 4096 || SourceId?.Length > 256 || VersionId?.Length > 256)
             throw new InvalidDataException("Media selection is too long.");
         if (Kind == "image" && !MediaRules.IsHash(Source)) throw new InvalidDataException("Invalid image identity.");
         if (Kind == "url") MediaRules.VideoUrl(Source);
+        if (Kind == "youtube" && !YouTubeRules.IsId(Source)) throw new InvalidDataException("Invalid YouTube video identity.");
         if (Kind == "local") MediaRules.FileName(Source, ".mp4");
         if (Kind == "video")
         {
@@ -52,7 +53,7 @@ public sealed class ScreenState
     public DateTimeOffset? ExpiresAt { get; set; }
     public string Status { get; set; } = "";
     public bool VideoRequested { get; set; }
-    public double Target(double hostTime) => Math.Clamp(Position + (Playing ? Math.Max(0, hostTime - Anchor) : 0), 0, Duration > 0 ? Duration : 604800);
+    public double Target(double hostTime) => Math.Clamp(Position + (Playing && Media.Kind != "youtube" ? Math.Max(0, hostTime - Anchor) : 0), 0, Duration > 0 ? Duration : 604800);
     public void Reanchor(double hostTime) { Position = Target(hostTime); Anchor = hostTime; }
     public ScreenState Clone() => JsonSerializer.Deserialize<ScreenState>(JsonSerializer.Serialize(this))!;
     public ScreenState ForSave()

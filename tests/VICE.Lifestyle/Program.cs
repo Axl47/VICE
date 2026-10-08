@@ -8,6 +8,7 @@ void Check(bool condition,string message){if(!condition)throw new Exception(mess
 void Reject(Action action,string message){try{action();}catch(InvalidDataException){checks++;return;}throw new Exception(message);}
 SynchronousPacketPayloadTests.Run(Check);
 ReliableOutboxTests.Run(Check);
+YouTubeTests.Run(Check);
 var image=Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aMs4AAAAASUVORK5CYII=");
 var hash=ImageCache.Hash(image);
 var id=Guid.NewGuid().ToString();

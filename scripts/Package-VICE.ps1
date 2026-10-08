@@ -40,6 +40,12 @@ Copy-Item -LiteralPath (Join-Path $repoRoot 'README.md') -Destination $package
 Get-ChildItem -LiteralPath (Join-Path $repoRoot 'docs') -Filter '*.md' -File | Copy-Item -Destination (Join-Path $package 'docs')
 Copy-Item -LiteralPath (Join-Path $repoRoot 'src\VICE.Core\README.md') -Destination (Join-Path $package 'docs\vice-core.md')
 foreach ($installer in @('Install-VICE.ps1','Install-VICEModules.ps1')) { Copy-Item -LiteralPath (Join-Path $PSScriptRoot $installer) -Destination $package }
+if ($Modules -contains 'Lifestyle') {
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'Install-TVCompanion.ps1') -Destination $package
+    $images = Join-Path $package 'docs\images'
+    New-Item -ItemType Directory -Path $images -Force | Out-Null
+    Copy-Item -LiteralPath (Join-Path $repoRoot 'docs\images\lifestyle') -Destination $images -Recurse
+}
 [ordered]@{ FormatVersion = 1; Modules = @($Modules); Versions = $versions } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $package 'package.json') -Encoding utf8
 $manifest = @(Get-ChildItem -LiteralPath $package -Recurse -File | ForEach-Object {
     [pscustomobject]@{ File = $_.FullName.Substring($package.Length + 1); SHA256 = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash }

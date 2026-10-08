@@ -2,7 +2,7 @@
   <PropertyGroup>
     <IsGameMod>true</IsGameMod><UseViceCore>true</UseViceCore>
     <AssemblyName>VICE.Lifestyle</AssemblyName><RootNamespace>VICE.Lifestyle</RootNamespace>
-    <Version>0.1.5</Version><Authors>Axl47</Authors>
+    <Version>0.1.6</Version><Authors>Axl47</Authors>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../Networking/SynchronousPacketPayload.cs" Link="Networking/SynchronousPacketPayload.cs" />
