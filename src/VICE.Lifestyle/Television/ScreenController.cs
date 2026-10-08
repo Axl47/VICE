@@ -5,6 +5,7 @@ using Il2CppScheduleOne.EntityFramework;
 using Il2CppScheduleOne.PlayerScripts;
 using UnityEngine;
 using UnityEngine.Video;
+using System.Runtime.InteropServices;
 using Object=UnityEngine.Object;
 
 namespace VICE.Lifestyle.Television;
@@ -14,10 +15,12 @@ internal sealed class ScreenController : IDisposable
     internal readonly BuildableItem Item;
     internal string Id=>Item.GUID.ToString();
     internal string Status {get;private set;}="Screen off";
-    internal Texture? Texture=>Image ? Image : VideoTexture;
-    internal bool Seekable=>Player&&NativeVideoState.CanSeek(Player!);
-    internal double CheckPosition=>Player?Player!.time:0;
-    internal bool CheckPlaying=>Player&&NativeVideoState.IsPlaying(Player!);
+    internal Texture? Texture=>Image ? Image : BrowserTexture ? BrowserTexture : VideoTexture;
+    internal bool Seekable=>YouTube?.HasMedia==true||Player&&NativeVideoState.CanSeek(Player!);
+    internal double CheckPosition=>YouTube is not null?YouTubePosition:Player?Player!.time:0;
+    internal bool CheckPlaying=>YouTube is not null?YouTube.HasMedia&&YouTubePlaying:Player&&NativeVideoState.IsPlaying(Player!);
+    internal long CheckFrameSequence=>Companion?.Sequence??0;
+    internal int CheckCompanionProcess=>Companion?.ProcessId??0;
     private readonly Material Material;
     private readonly Transform Face;
     private GameObject? Runtime;
@@ -25,6 +28,12 @@ internal sealed class ScreenController : IDisposable
     private AudioSource? Audio;
     private RenderTexture? VideoTexture;
     private Texture2D? Image;
+    private Texture2D? BrowserTexture;
+    private YouTubeCompanion? Companion;
+    private YouTubePlayback? YouTube;
+    private GCHandle BrowserPixels;
+    private double YouTubePosition;
+    private bool YouTubePlaying;
     private VideoPlayer.ErrorEventHandler? ErrorHandler;
     private string Key="", FailedKey="";
     private bool Prepared;
@@ -49,6 +58,13 @@ internal sealed class ScreenController : IDisposable
         {Release();Key="";Status="Playback suspended while distant";return;}
         if(key!=Key){Release();Key=key;FailedKey="";}
         if(selected.Kind=="none"){Status="Screen off";return;}
+        if(selected.Kind=="youtube")
+        {
+            if(FailedKey==key)return;
+            try { TickYouTube(state,distance); }
+            catch(Exception error) { state.Playing=false;Fail(error is FileNotFoundException?error.Message:"YouTube playback failed. Check the companion installation and press Retry."); }
+            return;
+        }
         if(selected.Kind=="image")
         {
             if(!Image)
@@ -101,6 +117,30 @@ internal sealed class ScreenController : IDisposable
         Status=state.Playing?"Playing":"Paused";
     }
     private static Player? PlayerScriptsLocal()=>Il2CppScheduleOne.PlayerScripts.Player.Local;
+    private void TickYouTube(ScreenState state,float distance)
+    {
+        if(!TVNetwork.Host||TVNetwork.PeerCount!=1){Release();Status="YouTube is available in single-player only";return;}
+        if(YouTube is null)
+        {
+            if(!state.Playing){Status="YouTube selected · press Play";return;}
+            Companion=new(TVConfig.YouTubeCompanionPath);YouTube=new(Companion,TVNetwork.Now);
+            BrowserPixels=GCHandle.Alloc(Companion.Pixels,GCHandleType.Pinned);
+            BrowserTexture=new Texture2D(YouTubeRules.Width,YouTubeRules.Height,TextureFormat.BGRA32,false);
+            BrowserTexture.filterMode=FilterMode.Bilinear;
+            // Keep the screen black until the selected video's browser report is ready.
+        }
+        var manager=AudioManager.Instance;
+        var gain=YouTubeRules.Gain(state.Volume,TVConfig.PersonalVolume.Value,manager?manager.GetVolume(EAudioType.FX,true):1,distance);
+        YouTube.Tick(state,TVNetwork.Now,gain);Status=YouTube.Status;YouTubePosition=state.Position;YouTubePlaying=state.Playing;
+        if(YouTube.Failed){state.Playing=false;Fail(YouTube.Status);return;}
+        if(Companion!.ReadFrame())
+        {
+            BrowserTexture!.LoadRawTextureData(BrowserPixels.AddrOfPinnedObject(),Companion.Pixels.Length);
+            BrowserTexture.Apply(false,false);
+            if(YouTube.HasMedia)Bind(BrowserTexture);
+        }
+        else if(YouTube.HasMedia&&BrowserTexture)Bind(BrowserTexture!);
+    }
     private void Prepare(string url)
     {
         Runtime=new("Personal TV playback");Runtime.transform.SetParent(Item.transform,false);
@@ -123,6 +163,9 @@ internal sealed class ScreenController : IDisposable
     }
     private void Release()
     {
+        YouTube?.Dispose();YouTube=null;Companion=null;YouTubePosition=0;YouTubePlaying=false;
+        if(BrowserPixels.IsAllocated)BrowserPixels.Free();
+        if(BrowserTexture)Object.Destroy(BrowserTexture);BrowserTexture=null;
         if(Player){if(ErrorHandler is not null)Player!.errorReceived-=ErrorHandler;Player!.Stop();}
         if(Audio)Audio!.Stop();if(Runtime)Object.Destroy(Runtime);Runtime=null;Player=null;Audio=null;ErrorHandler=null;Prepared=false;
         if(VideoTexture){VideoTexture!.Release();Object.Destroy(VideoTexture);}VideoTexture=null;

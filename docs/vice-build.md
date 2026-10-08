@@ -23,6 +23,7 @@ package.json                    # Selected modules and every DLL's version
 hashes.json                     # SHA-256 for packaged files
 Install-VICE.ps1
 Install-VICEModules.ps1          # Shared installation implementation
+Install-TVCompanion.ps1          # Optional local YouTube dependency installer; Lifestyle only
 docs/
 UserData/VICE/Enforcement/       # Only if Enforcement is selected
 UserData/VICE/Syndicate/         # Only if Syndicate is selected
