@@ -32,11 +32,11 @@ Event scheduling, clones, property raids and surveillance run on the host. Multi
 From this repository in PowerShell:
 
 ```powershell
-./scripts/Build-VICEEnforcement.ps1
-./scripts/Install-VICEEnforcement.ps1
+./scripts/Build-VICE.ps1 -Modules Enforcement
+./scripts/Install-VICE.ps1 -PackageDir <printed-export-directory>
 ```
 
-Alternatively run the build with `-Install`. Both scripts accept `-GameDir`. Build uses the local portable SDK when available and creates `artifacts/VICE.Enforcement-0.1.0.zip`. No original Mono project or DLL is used in the build. The old personal suite remains buildable.
+Alternatively run the build with `-Install`. Both scripts accept `-GameDir`. The unified build uses the local portable SDK when available and prints a fresh export directory/ZIP containing Enforcement and the current Core. `Build-VICEEnforcement.ps1` forwards to this same workflow. No original Mono project or DLL is used in the build. The old personal suite remains buildable.
 
 The installer requires the game to be closed. It backs up existing police/Core binaries, disables `Personal.BetterPolice`, original BetterPolice/NACops and duplicate Core copies in `Mods`, then copies Enforcement into `Mods` and Core into `UserLibs`, verifies hashes and seeds missing data files. It preserves other modules and existing settings. To roll back with the game closed, remove Enforcement and restore the prior police DLL from the printed backup folder; keep Core while other VICE modules require it. The old suite's installer skips Personal Better Police when Enforcement is installed.
 

@@ -25,9 +25,9 @@ Core remains independent of Unity/game-specific UI and item types. Weapon code, 
 
 ## Build and verification
 
-`scripts/Build-VICEModules.ps1` builds only these four modules and their Core dependency. It audits native patch addresses separately for each module, runs the existing pure transaction/purchase/weapon checks, and runs the adapted TV state/Relay checks.
+`scripts/Build-VICE.ps1` always builds Core, then the modules selected with `-Modules` or `-All`. Native patch checks and pure feature checks run for the selected modules. All six implemented VICE modules use the [same export format and installer](vice-build.md). `Build-VICEModules.ps1` is a compatibility wrapper selecting Commerce, Arsenal, Lifestyle and Interface.
 
-`tests/VICE.Modules` inspects the built DLLs with Cecil. It verifies one Melon entry point per DLL, ordinary feature classes, the Core dependency, the absence of embedded personal support helpers or legacy assembly dependencies, expected lifecycle forwarding, hook teardown, and the weapon resource lookup. It also exercises Core's predecessor detection in an isolated test process.
+`tests/VICE.Modules` inspects the selected ordinary module DLLs with Cecil. It verifies one Melon entry point per DLL, ordinary feature classes, the Core dependency, the absence of embedded personal support helpers or legacy assembly dependencies, expected lifecycle forwarding, hook teardown, and the weapon resource lookup. It also exercises Core's predecessor detection in an isolated test process.
 
 The installer fixture checks selective and full DLL migration, retained police/syndicate/LSD/S1API files, preserved shopping/media data, installed hashes, and rejection of a corrupt package before any installation changes. Feature data migrates on module initialization; `tests/VICE.Core` covers folder moves, merges, collision preservation and repeated initialization. Fixtures and DLL backups remain under ignored `artifacts` directories.
 
@@ -35,4 +35,4 @@ Compile/metadata checks do not execute Harmony in the game. Check the four modul
 
 ## Other work
 
-The existing Enforcement, Syndicate, and LSD projects retain their separate workflows. No Substances project or DLL is created in this migration. The original untracked PersonalTV research source/test/build files are left intact; the suite builds the adapted implementation under `VICE.Lifestyle`.
+Enforcement and Syndicate retain their feature-specific checks inside the unified build. LSD projects retain their separate workflows until Substances is implemented. No Substances project or DLL is created here. The original PersonalTV research source/test/build files remain; the suite builds the adapted implementation under `VICE.Lifestyle`.

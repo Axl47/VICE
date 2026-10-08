@@ -1,6 +1,7 @@
+param([string]$PackageDir = '')
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path $PSScriptRoot -Parent
-$package = Join-Path $repoRoot 'artifacts\VICE.Modules-0.1.0'
+$package = if ($PackageDir) { $PackageDir } else { Join-Path $repoRoot 'artifacts\VICE.Modules-0.1.0' }
 $fixture = Join-Path $repoRoot ('artifacts\install-tests\VICE.Modules-' + [Guid]::NewGuid().ToString('N'))
 $game = Join-Path $fixture 'game'
 $mods = Join-Path $game 'Mods'

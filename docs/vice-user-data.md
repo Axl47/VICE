@@ -24,6 +24,6 @@ If the new destination already exists, migration moves missing files into it. Ex
 
 Place new images and MP4 files directly in the new `Images` and `Videos` folders. Shopping lists continue to load from `orders.json`. The separate standalone Personal.TV and Personal.GasPurchases implementations use their original locations. Native save data in `Modded/PersonalTV`, furniture IDs and preferences in `MelonPreferences.cfg` retain their current identities.
 
-Install the updated `UserLibs/VICE.Core.dll` together with the Commerce and Lifestyle DLLs. Core 0.1.1 supplies the shared migration service. `Build-VICEModules.ps1` packages all three; the Lifestyle-only build also includes Core.
+Install the updated `UserLibs/VICE.Core.dll` together with the Commerce and Lifestyle DLLs. Core 0.1.1 supplies the shared migration service. `Build-VICE.ps1 -Modules Commerce,Lifestyle` builds and exports all three. Every VICE build includes the current Core, including single-module and Core-only updates.
 
 The migration tests cover nested media and caches, shopping-list preservation, existing destination folders, both purchase folder names, collision archives, file/directory conflicts, repeated initialization, path validation and resuming a partial move.

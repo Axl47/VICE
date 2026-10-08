@@ -21,6 +21,6 @@ Saved video selections start paused without downloading. A host's original can b
 
 ## Build and validation
 
-Run `scripts/Build-VICELifestyle.ps1` to compile VICE Lifestyle and its Core dependency, execute the standalone migration, state, transfer and Relay checks, check native Harmony patch targets, and produce `artifacts/VICE.Lifestyle-0.1.2.zip`. While the game is closed, replace both the packaged `Mods/VICE.Lifestyle.dll` and `UserLibs/VICE.Core.dll` in the existing VICE installation. The package does not include video files.
+Run `scripts/Build-VICE.ps1 -Modules Lifestyle` to compile VICE Lifestyle and the current Core, execute the migration, state, transfer and Relay checks, check native Harmony patch targets, and export both DLLs in one update ZIP. The command prints the fresh export directory and ZIP path. Install with `scripts/Install-VICE.ps1 -PackageDir <export-directory>` while the game is closed. To update purchases in the same export, select `-Modules Commerce,Lifestyle`. The package does not include video files.
 
 The tests execute the production video cache and transfer coordinator with transport doubles. They cover no traffic before Play, host and guest sources, checksum failures, sequential chunks, cancellation, the readiness barrier, disconnected peers, storage reservations, eviction and session cleanup. Compilation uses the installed IL2CPP assemblies with warnings treated as errors. A live two-player playtest is still required to verify FishNet transport throughput, decoder/audio behavior and catch-up under real network conditions.

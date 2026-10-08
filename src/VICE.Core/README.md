@@ -2,6 +2,8 @@
 
 Shared .NET 6 library for the owner's VICE family. Install one `VICE.Core.dll` in the game's `UserLibs`, with each module's DLL in `Mods`. Core has no `MelonInfo` and owns no police, cartel or other gameplay hooks. Do not duplicate Core in both directories.
 
+`scripts/Build-VICE.ps1` always builds and checks the current Core before any selected modules. With no module selection it exports Core alone; `-Modules Commerce,Lifestyle` exports Core and just those two modules. All module build aliases use this same workflow and export validator. See the [build guide](../../docs/vice-build.md).
+
 Projects reference `VICE.Core.csproj` and set `UseViceCore=true` to avoid linking the older `src/Shared/ModSupport.cs`. Core references the installed MelonLoader and Harmony assemblies; game-specific modules reference their own IL2CPP assemblies.
 
 The public contract is:

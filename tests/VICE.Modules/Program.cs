@@ -16,7 +16,7 @@ Check(!ModuleCompatibility.CanInitialize("Test", "vice.tests.legacy"), "Predeces
 Check(MelonLoader.MelonLogger.LastError.Contains("Vice.Tests.Legacy"), "Conflict errors must identify the predecessor.");
 Check(ModuleCompatibility.CanInitialize("Test", "Vice.Tests.Other"), "Unrelated assemblies must not block a module.");
 
-if (args.Length != 1) throw new ArgumentException("Pass the repository directory to inspect the built module DLLs.");
+if (args.Length < 1) throw new ArgumentException("Pass the repository directory and optional module names to inspect built DLLs.");
 var repository = Path.GetFullPath(args[0]);
 var callbacks = new Dictionary<string, (string Callback, string Feature, string Method)[]>
 {
@@ -57,7 +57,9 @@ var callbacks = new Dictionary<string, (string Callback, string Feature, string 
     }
 };
 
-foreach (var (module, expected) in callbacks)
+var selected = args.Length > 1 ? args.Skip(1).ToHashSet(StringComparer.OrdinalIgnoreCase) : callbacks.Keys.ToHashSet();
+if (selected.Any(module => !callbacks.Keys.Contains(module, StringComparer.OrdinalIgnoreCase))) throw new ArgumentException("Unknown module for lifecycle checks.");
+foreach (var (module, expected) in callbacks.Where(pair => selected.Contains(pair.Key)))
 {
     var dll = Path.Combine(repository, "src", "VICE." + module, "bin", "Release", "net6.0", "VICE." + module + ".dll");
     using var assembly = AssemblyDefinition.ReadAssembly(dll);

@@ -1,7 +1,7 @@
 param(
     [string]$GameDir = 'C:\Program Files (x86)\Steam\steamapps\common\Schedule I',
     [string]$PackageDir = '',
-    [ValidateSet('Commerce', 'Arsenal', 'Lifestyle', 'Interface')]
+    [ValidateSet('Commerce', 'Arsenal', 'Lifestyle', 'Interface', 'Enforcement', 'Syndicate')]
     [string[]]$Modules = @('Commerce', 'Arsenal', 'Lifestyle', 'Interface')
 )
 $ErrorActionPreference = 'Stop'
@@ -19,7 +19,6 @@ foreach ($process in Get-Process -Name 'Schedule I', 'ScheduleI' -ErrorAction Si
     if (-not $runningPath -or $runningPath -ieq $gameExecutable) { throw 'Close this Schedule I installation before installing VICE modules.' }
 }
 $Modules = @($Modules | Select-Object -Unique)
-if ($Modules.Count -eq 0) { throw 'Select at least one VICE module.' }
 if ($Modules -contains 'Lifestyle' -and -not (Test-Path -LiteralPath (Join-Path $gameRoot 'Mods\S1API.Il2Cpp.MelonLoader.dll'))) {
     throw 'Install the IL2CPP S1API dependency before installing VICE Lifestyle.'
 }
@@ -28,20 +27,45 @@ $legacy = @{
     Arsenal = @('Personal.MoreGuns.dll', 'MoreGuns.dll')
     Lifestyle = @('Personal.Casino.dll', 'Personal.TV.dll', 'Personal.TVProof.dll')
     Interface = @('Personal.UIEnhancements.dll')
+    Enforcement = @('Personal.BetterPolice.dll','BetterPolice.dll','NACops.dll','NACops-IL2Cpp.dll','Personal.NACops.dll')
+    Syndicate = @()
+}
+if ($Modules -contains 'Syndicate' -and (Get-ChildItem -LiteralPath (Join-Path $gameRoot 'Mods') -Filter '*CartelEnforcer*.dll' -ErrorAction SilentlyContinue)) {
+    throw 'Remove the original Cartel Enforcer DLL before installing VICE Syndicate.'
 }
 $files = @('UserLibs\VICE.Core.dll') + @($Modules | ForEach-Object { "Mods\VICE.$_.dll" })
 $manifest = @(Get-Content -LiteralPath (Join-Path $packageRoot 'hashes.json') -Raw | ConvertFrom-Json)
+$seen = @{}
+foreach ($record in $manifest) {
+    $source = [IO.Path]::GetFullPath((Join-Path $packageRoot $record.File))
+    if (-not $source.StartsWith($packageRoot.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase) -or $seen.ContainsKey($source)) { throw 'Invalid or duplicated package manifest path.' }
+    $seen[$source] = $true
+    if ((Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash -ne $record.SHA256) { throw "Package hash mismatch: $($record.File)" }
+}
 foreach ($relative in $files) {
     $source = Join-Path $packageRoot $relative
     $record = @($manifest | Where-Object { $_.File -eq $relative })
     if ($record.Count -ne 1 -or -not (Test-Path -LiteralPath $source -PathType Leaf)) { throw "Missing packaged file or unique hash: $relative" }
     if ((Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash -ne $record[0].SHA256) { throw "Package hash mismatch: $relative" }
 }
+$defaults = @($manifest | Where-Object {
+    $relative = $_.File.Replace('/', '\')
+    ($Modules -contains 'Enforcement' -and $relative.StartsWith('UserData\VICE.Enforcement\')) -or
+    ($Modules -contains 'Syndicate' -and $relative.StartsWith('UserData\VICE.Syndicate\'))
+})
+foreach ($record in $defaults) {
+    $relative = $record.File.Replace('/', '\')
+    $module = if ($relative.StartsWith('UserData\VICE.Enforcement\')) { 'Enforcement' } else { 'Syndicate' }
+    $dataRoot = [IO.Path]::GetFullPath((Join-Path $gameRoot "UserData\VICE.$module"))
+    $target = [IO.Path]::GetFullPath((Join-Path $gameRoot $relative))
+    if (-not $target.StartsWith($dataRoot + '\', [StringComparison]::OrdinalIgnoreCase)) { throw 'Default file escaped its selected module data directory.' }
+}
 # Only explicitly selected modules, their predecessors and the shared library are touched.
 $previous = @($files) + @($Modules | ForEach-Object { $legacy[$_] } | ForEach-Object { 'Mods\' + $_ }) + @('Mods\VICE.Core.dll')
 $previous = @($previous | Select-Object -Unique)
 $backup = Join-Path $repoRoot ('artifacts\install-backups\VICE.Modules-' + (Get-Date -Format 'yyyyMMdd-HHmmss-fff') + '-' + [Guid]::NewGuid().ToString('N'))
 $present = @{}
+$seeded = @()
 foreach ($relative in $previous) {
     $target = Join-Path $gameRoot $relative
     $present[$relative] = Test-Path -LiteralPath $target -PathType Leaf
@@ -64,6 +88,15 @@ try {
         $target = Join-Path $gameRoot $relative
         if ($present[$relative]) { Remove-Item -LiteralPath $target }
     }
+    foreach ($record in $defaults) {
+        $target = [IO.Path]::GetFullPath((Join-Path $gameRoot $record.File))
+        if (-not $target.StartsWith($gameRoot.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)) { throw 'Default file escaped the game directory.' }
+        if (-not (Test-Path -LiteralPath $target)) {
+            New-Item -ItemType Directory -Path (Split-Path $target -Parent) -Force | Out-Null
+            Copy-Item -LiteralPath (Join-Path $packageRoot $record.File) -Destination $target
+            $seeded += $target
+        }
+    }
 }
 catch {
     $failure = $_
@@ -72,6 +105,7 @@ catch {
         if ($present[$relative]) { Copy-Item -LiteralPath (Join-Path $backup $relative) -Destination $target -Force }
         elseif ($relative -in $files -and (Test-Path -LiteralPath $target -PathType Leaf)) { Remove-Item -LiteralPath $target }
     }
+    foreach ($target in $seeded) { if (Test-Path -LiteralPath $target -PathType Leaf) { Remove-Item -LiteralPath $target } }
     throw $failure
 }
-Write-Output "Installed VICE $($Modules -join ', ') and shared UserLibs\VICE.Core.dll. Previous DLLs backed up outside Mods: $backup"
+Write-Output "Installed shared UserLibs\VICE.Core.dll and selected modules [$($Modules -join ', ')]. Previous DLLs backed up outside Mods: $backup"

@@ -86,59 +86,60 @@ Preferences remain under `PersonalUIEnhancements`. Minimap, payout labels, custo
 
 ## Enforcement, Syndicate, and Substances
 
-These modules have separate development and build workflows. The Commerce/Arsenal/Lifestyle/Interface migration does not change their gameplay code.
+Enforcement and Syndicate share the VICE build/export workflow. Substances remains in its existing development projects.
 
-Build Enforcement with `scripts/Build-VICEEnforcement.ps1` and install with `scripts/Install-VICEEnforcement.ps1`. It combines the police systems and retains the original personal police settings through Core's preference migration. Cartel changes belong to Syndicate. See the [Enforcement guide](docs/vice-enforcement.md).
+Build Enforcement with `scripts/Build-VICE.ps1 -Modules Enforcement`. It combines the police systems and retains the original personal police settings through Core's preference migration. Cartel changes belong to Syndicate. See the [Enforcement guide](docs/vice-enforcement.md).
 
-Build Syndicate with `scripts/Build-VICESyndicate.ps1` and install with `scripts/Install-VICESyndicate.ps1`. It owns cartel events and the personal hostile-cartel difficulty settings. See the [Syndicate guide](docs/vice-syndicate.md).
+Build Syndicate with `scripts/Build-VICE.ps1 -Modules Syndicate`. It owns cartel events and the personal hostile-cartel difficulty settings. See the [Syndicate guide](docs/vice-syndicate.md).
 
 Substances remains under active development in the existing LSD projects. `scripts/Build-LSDGameplay.ps1` builds the workshop gameplay and its companion preview; `scripts/Build-LSDPreview.ps1` builds the preview independently. Keep using these projects until their own migration is complete. See the [workshop guide](docs/lsd-workshop.md), [gameplay design](docs/lsd-gameplay-design.md), and [effects preview guide](docs/lsd-preview.md).
 
-## Build and package the four migrated modules
+## Build and export VICE
 
 Launch the IL2CPP beta with MelonLoader once to generate `MelonLoader/Il2CppAssemblies`. Install compatible IL2CPP S1API before building Lifestyle. From PowerShell in this repository:
 
 ```powershell
-./scripts/Build-VICEModules.ps1
+./scripts/Build-VICE.ps1 -Modules Commerce,Lifestyle
+./scripts/Build-VICE.ps1 -Modules Lifestyle
+./scripts/Build-VICE.ps1          # Core only
+./scripts/Build-VICE.ps1 -All     # All six implemented gameplay modules
 ```
 
-The script builds Commerce, Arsenal, Lifestyle, Interface, and their Core dependency with warnings treated as errors. It runs transaction, shopping-list, weapon spin-up, TV state/Relay, module registration/lifecycle, native patch-address, and installer checks. It creates `artifacts/VICE.Modules-0.1.0.zip`, containing:
+Every invocation builds and checks the current Core, then builds and checks exactly the selected modules with warnings treated as errors. Each export uses a fresh directory under `artifacts`, so old module DLLs cannot leak into a smaller update. Core + Commerce + Lifestyle exports contain:
 
 ```text
 Mods/
   VICE.Commerce.dll
-  VICE.Arsenal.dll
   VICE.Lifestyle.dll
-  VICE.Interface.dll
 UserLibs/
   VICE.Core.dll
 ```
 
-The package also includes this README, the installer, a SHA-256 manifest, and the feature guides. Enforcement, Syndicate, and the current LSD DLLs are not bundled by this script. It does not install anything unless `-Install` is supplied.
+The result prints its directory and ZIP paths. Every package includes one `UserLibs/VICE.Core.dll`, version/selection metadata, hashes, an installer and guides. Enforcement and Syndicate include their defaults and licenses when selected. The current LSD projects are not VICE modules yet. Add `-Install` to install the export while the game is closed.
 
-Use `-GameDir`, `-OriginalMoreGuns`, `-DotnetPath`, or `-NugetConfig` for local overrides. The bundled local SDK is used when present; otherwise the script uses `dotnet`. `Game.local.props` can set the game reference path for direct project builds.
+Use `-GameDir`, `-OriginalMoreGuns`, `-DotnetPath`, `-NugetConfig` or `-OutputDirectory` for local overrides. The bundled local SDK is used when present; otherwise the script uses `dotnet`. `Game.local.props` can set the game reference path for direct project builds.
 
 Arsenal requires the owner's authorized original MoreGuns asset bundle. If the extracted bundle already exists in `.research/assets`, the script reuses it. Otherwise it calls `scripts/Prepare-Assets.ps1` with `-OriginalMoreGuns`. No private assets or game assemblies are downloaded.
 
-`scripts/Build.ps1` and `scripts/Package.ps1` forward to the four-module VICE workflow. For a single module, build its project under `src/VICE.<Module>` directly. The solution retains the other modules' projects and development tests.
+The old module build scripts forward to `Build-VICE.ps1`; they no longer contain separate compilation or export logic. See the [unified build guide](docs/vice-build.md) for selections, checks and installation. Direct project builds compile DLLs without creating an update export.
 
 ## Install and preserve existing data
 
 Close the game, build the package, then run:
 
 ```powershell
-./scripts/Install-VICEModules.ps1
+./scripts/Install-VICE.ps1 -PackageDir <printed-export-directory>
 ```
 
 For selected modules only:
 
 ```powershell
-./scripts/Install-VICEModules.ps1 -Modules Commerce,Interface
+./scripts/Install-VICE.ps1 -PackageDir <printed-export-directory> -Modules Lifestyle
 ```
 
 The installer checks packaged hashes before writing, backs up the selected predecessors and existing replacements outside `Mods`, installs the selected VICE DLLs, and removes their predecessor DLLs after verification. It also installs the shared Core in `UserLibs` and removes a duplicate Core from `Mods`. A failed installation restores the previous DLLs.
 
-Enforcement, Syndicate, Better Police, LSD Gameplay, LSD Preview, and S1API are outside this installer's replacement list. Preferences, shopping lists, local media, and game saves are preserved. `Personal.TVProof.dll` is removed when installing Lifestyle because its test registration conflicts with the TV feature.
+Only selected modules and their predecessors are replaced. Enforcement also replaces its legacy police DLLs, while Syndicate rejects a still-installed original Cartel Enforcer. Existing JSON settings are preserved and missing selected-module defaults are seeded. Preferences, shopping lists, local media and game saves are preserved. `Personal.TVProof.dll` is removed when installing Lifestyle because its test registration conflicts with the TV feature.
 
 Keep **one current `VICE.Core.dll` in `UserLibs`** for the suite. Rebuild Core-dependent packages from the current workspace before installing them; an older package can carry an older Core. The migrated modules use Core's new predecessor compatibility check.
 

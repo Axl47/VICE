@@ -6,9 +6,9 @@ The baseline retains configurable ambush locations and weapons, physical dealer 
 
 ## Build and install
 
-Run `./scripts/Build-VICESyndicate.ps1` to compile both the module and its checks and create `artifacts/VICE.Syndicate-0.1.0.zip`. With the game closed, run `./scripts/Install-VICESyndicate.ps1`, or build with `-Install`.
+Run `./scripts/Build-VICE.ps1 -Modules Syndicate` to compile the current Core, Syndicate and its checks, then export both DLLs in one update ZIP. The command prints the export directory and ZIP path. With the game closed, run `./scripts/Install-VICE.ps1 -PackageDir <export-directory>`, or build with `-Install`. `Build-VICESyndicate.ps1` forwards to this shared workflow.
 
-The package installs `Mods/VICE.Syndicate.dll` and shared `UserLibs/VICE.Core.dll`. Keep one Core DLL in UserLibs for both VICE modules. Remove the original Cartel Enforcer DLL before installing Syndicate. The installer preserves existing JSON settings and backs up replaced DLLs. The general PersonalMods build/install scripts do not include this module.
+The package installs `Mods/VICE.Syndicate.dll` and shared `UserLibs/VICE.Core.dll`. Keep one Core DLL in UserLibs for the VICE modules. Remove the original Cartel Enforcer DLL before installing Syndicate. The installer preserves existing JSON settings and backs up replaced DLLs. Select multiple modules or `-All` to export them together with the same Core.
 
 ## Configuration and difficulty
 
