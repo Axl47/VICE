@@ -67,3 +67,11 @@ The tested link is the YouTube Developers iframe API demo. The proof of concept 
 For the 0.1.7 controls, the ordinary build passed 55 Core assertions, 198 Lifestyle checks, 41 module checks and 12 installer fixture checks. An opt-in live metadata check (`dotnet run --project tests/VICE.Lifestyle -c Release -- --youtube-chapters-live`) found 100 chapters on the owner's supplied `WJNppjUrmxM` video, including Intro at 2:13. The new checks cover primary-player identity, creator/automatic chapters, malformed and duplicate times, sorting, quoted JSON, metadata size limits, and C input readiness/ad/disconnect guards.
 
 Append `--tv-check-youtube-controls` to the native diagnostic with the supplied link to check chapter marks, current title, paginated chapter selection and seeking. It captures the chapter panel and a paused frame before, after and after restoring CC. Caption visibility must be confirmed by inspecting those captures; the helper does not report CC state.
+
+The 0.1.7 native run passed on Schedule I 0.4.7f12 using the supplied video and copied save in `artifacts/youtube-controls-check-r2`. It verified all 100 chapter marks/list entries, paging, jumping to the second chapter and its current title, alongside the existing playback checks and helper cleanup. Visual inspection of the paused frame confirmed captions present initially, absent after CC, and present again after a second CC toggle. These are unmodified in-game captures:
+
+![YouTube chapter list and playback bar](images/lifestyle/youtube-chapters.png)
+
+![YouTube captions enabled](images/lifestyle/youtube-captions-on.png)
+
+![The same paused frame with captions disabled](images/lifestyle/youtube-captions-off.png)
