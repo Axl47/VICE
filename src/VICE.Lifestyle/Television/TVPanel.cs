@@ -43,8 +43,11 @@ internal sealed class TVPanel : IDisposable
     internal void CheckRow(int index)=>Rows[index].Select();
     internal void CheckSearch(){Search!.text="fixture";CheckClick("Search");}
     internal void CheckClick(string label)=>Root.GetComponentsInChildren<Button>(true).First(b=>b.name==label).onClick.Invoke();
-    internal void CheckSeek(double position,double duration)=>Timeline.value=(float)(position/duration);
-    internal void CheckVolume(float volume)=>Volume.value=volume;
+    // Programmatic diagnostic drags include release; a physical mouse held in
+    // another app must not leave a diagnostic slider waiting for mouse-up.
+    internal void CheckSeek(double position,double duration){Timeline.value=(float)(position/duration);CommitSliders();}
+    internal void CheckVolume(float volume){Volume.value=volume;CommitSliders();}
+    internal string CheckControls=>$"open={Opened}, volume={Volume.value}, pending={VolumeDirty}, mouseHeld={Mouse.current?.leftButton.isPressed}, notice={Message.text}";
     internal void CheckYouTube(string link){Search!.text=link;CheckClick("Play YouTube");}
     internal int CheckChapterMarks=>ChapterMarks.Count;
     internal string CheckChapterTitle=>ChapterTitle.text;
@@ -102,7 +105,7 @@ internal sealed class TVPanel : IDisposable
     }
     internal void Close()
     {
-        if(!Opened)return;Opened=false;Epoch++;Queries.Clear();Root.SetActive(false);Preview.texture=null;
+        if(!Opened)return;Opened=false;Epoch++;Queries.Clear();if(Root)Root.SetActive(false);if(Preview)Preview.texture=null;
         var camera=PlayerCamera.Instance;
         if(camera){camera.RemoveActiveUIElement("PersonalTV");camera.SetCanLook(PreviousLook);if(camera.ActiveUIElementCount==0)camera.LockMouse(true);}
         if(PlayerMovement.Instance)PlayerMovement.Instance._canMove=PreviousMove;
@@ -113,6 +116,12 @@ internal sealed class TVPanel : IDisposable
     private void Send(TVCommand command){command.Screen=Screen;TVNetwork.Submit(command);}
     private void Select(MediaSelection media)=>Send(new(){Action="select",Media=media});
     private void Seek(double delta){var state=State();if(state is not null)Send(new(){Action="seek",Position=Math.Max(0,state.Target(TVNetwork.Now)+delta)});}
+    private void CommitSliders()
+    {
+        var state=State();if(state is null||!Opened)return;
+        if(SeekDirty){SeekDirty=false;Send(new(){Action="seek",Position=Timeline.value*state.Duration});}
+        if(VolumeDirty){VolumeDirty=false;Send(new(){Action="volume",Volume=Volume.value});}
+    }
     internal void Reply(TVMessage message)
     {
         if(Queries.Remove(message.Token,out var query)&&query.Epoch==Epoch&&Opened)
@@ -314,11 +323,7 @@ internal sealed class TVPanel : IDisposable
         Updating=true;try{if(!SeekDirty)Timeline.SetValueWithoutNotify(state.Duration>0?(float)(position/state.Duration):0);if(!VolumeDirty)Volume.SetValueWithoutNotify(state.Volume);}finally{Updating=false;}
         Timeline.interactable=(state.Media.Kind is "url" or "relay" or "local" or "youtube")&&state.Duration>0&&controller.Seekable;
         UpdateChapters(controller,state,position);
-        if(Mouse.current?.leftButton.isPressed!=true)
-        {
-            if(SeekDirty){SeekDirty=false;Send(new(){Action="seek",Position=Timeline.value*state.Duration});}
-            else if(VolumeDirty){VolumeDirty=false;Send(new(){Action="volume",Volume=Volume.value});}
-        }
+        if(Mouse.current?.leftButton.isPressed!=true)CommitSliders();
         foreach(var token in Queries.Where(p=>Time.realtimeSinceStartup-p.Value.Started>65).Select(p=>p.Key).ToArray()){Queries.Remove(token);Notice("Relay request timed out. Try again.");}
         if(Tab=="favorites"&&TVNetwork.Now>=NextFavoritesCheck){NextFavoritesCheck=TVNetwork.Now+.5;if(FavoriteSnapshot!=JsonSerializer.Serialize(mod.Document.Favorites))Favorites();}
     }

@@ -178,7 +178,7 @@ internal sealed class TVDiagnostic
                 Mod.Panel!.CheckSeek(42,State.Duration);Mod.Panel.CheckVolume(.25f);Phase=107;Next=TVNetwork.Now+3;return;
             case 107:
                 Check(Controller.CheckPlaying&&Controller.CheckPosition>=41&&Controller.CheckPosition<50,"YouTube seek failed.");
-                Check(Math.Abs(State.Volume-.25)<.01,"YouTube volume control failed.");
+                Check(Math.Abs(State.Volume-.25)<.01,"YouTube volume control failed: state="+State.Volume+"; "+Mod.Panel!.CheckControls);
                 Mod.Panel!.CheckClick("Save favorite");Mod.Panel.CheckClick("Remember: off");Mod.Panel.Close();
                 Check(State.Remember&&Mod.Document.Favorites.Any(f=>f.Kind=="youtube"&&f.Source==State.Media.Source),"YouTube favorite/remember failed.");
                 var savedYouTube=TVDocument.Load(Mod.Document.SaveJson(),TVNetwork.Now).Screens.Single(s=>s.Id==State.Id);
