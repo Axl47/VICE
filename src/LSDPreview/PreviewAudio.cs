@@ -20,7 +20,7 @@ internal sealed class PreviewAudio : IDisposable
     private bool Disposed, Faulted, Reported;
     private float NextCheck;
 
-    internal void Tick(float elapsed, float amount)
+    internal void Tick(float elapsed, float amount, float closedEyes = 0)
     {
         if (Disposed || Faulted) return;
         try
@@ -32,7 +32,7 @@ internal sealed class PreviewAudio : IDisposable
                 NextCheck = Time.realtimeSinceStartup + 0.5f;
                 BindNativeBuses();
             }
-            var wet = AudioBlend.Sample(elapsed, amount);
+            var wet = AudioBlend.Sample(elapsed, amount, closedEyes);
             foreach (var route in Routes) EchoMixerBank.Set(route.Echo, "EchoWet", wet);
             if (!Reported && elapsed >= 30 && Routes.Count > 0)
             {

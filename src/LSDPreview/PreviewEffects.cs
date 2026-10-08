@@ -117,7 +117,7 @@ internal sealed class PreviewEffects : IDisposable
         Ripples?.Tick(elapsed, amount, Strength(LSDPreviewMod.RippleStrength), motion, movement,
             amount > 0 ? closedEyes : 0, amount * Strength(LSDPreviewMod.ClosedEyeStrength));
         PhoneColors?.Tick(elapsed, LSDPreviewMod.PhoneEffects.Value ? amount * Strength(LSDPreviewMod.MaterialColorStrength) : 0);
-        Audio?.Tick(elapsed, amount * Strength(LSDPreviewMod.AudioStrength));
+        Audio?.Tick(elapsed, amount * Strength(LSDPreviewMod.AudioStrength), closedEyes);
         Trails?.Tick(amount * Strength(LSDPreviewMod.AfterimageStrength) * motion);
         Text?.Tick(elapsed, amount * Strength(LSDPreviewMod.TextBlurStrength), amount * Strength(LSDPreviewMod.TextFocusStrength));
         var hallucination = Strength(LSDPreviewMod.HallucinationStrength);

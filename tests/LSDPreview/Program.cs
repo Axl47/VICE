@@ -259,6 +259,13 @@ for (var step = 0; step <= 1200; step++)
     Check(float.IsFinite(wet) && wet is >= 0.7199f and <= 0.9001f, "Direct echo wet gain must remain bounded throughout its slow swells.");
     Near(AudioBlend.Sample(time, 0), 0, "Zero audio strength must mute the owned return.");
     var normal = AudioBlend.Sample(time, 0.6f * PreviewTuning.DefaultAudio);
+    Near(AudioBlend.Sample(time, 0.6f * PreviewTuning.DefaultAudio, 1), normal * 1.45f,
+        "Fully closed eyes must strengthen the default echo by exactly 45%.");
+    Near(AudioBlend.Sample(time, 0.6f * PreviewTuning.DefaultAudio, 0.5f), normal * 1.225f,
+        "Partial closure must smoothly blend the echo boost.");
+    Near(AudioBlend.Sample(time, 0, 1), 0, "Closed eyes must not enable disabled audio.");
+    Check(AudioBlend.Sample(time, 1, 1) is >= 0 and <= 0.90f,
+        "Closed-eye echo must retain the absolute wet-gain cap at maximum settings.");
     Check(normal is >= 0.2939f and <= 0.3676f, "Default native DSP wet gain must remain 29.4-36.75% before the unchanged dry mix.");
     Near(normal, AudioBlend.Sample(time, 0.6f * PreviewTuning.BaselineAudio) * 1.25f,
         "Each default echo sample must increase the approved wet return by exactly 25%.");
@@ -285,6 +292,13 @@ eyes.Step(ClosedEyeView.OpenSeconds / 2, false, true);
 Near(eyes.Closure, 0.5f, "Releasing B should smoothly reopen the view.");
 eyes.Step(ClosedEyeView.OpenSeconds, false, true);
 Near(eyes.Closure, 0, "Release must restore the open-eye image completely.");
+Near(AudioBlend.Sample(30, 0.6f * PreviewTuning.DefaultAudio, eyes.Closure),
+    AudioBlend.Sample(30, 0.6f * PreviewTuning.DefaultAudio), "Reopening must restore the original echo strength.");
+foreach (var invalid in new[] { float.NaN, float.PositiveInfinity, float.NegativeInfinity, -1f })
+    Near(AudioBlend.Sample(30, 0.6f * PreviewTuning.DefaultAudio, invalid),
+        AudioBlend.Sample(30, 0.6f * PreviewTuning.DefaultAudio), "Invalid closure must preserve open-eye audio.");
+Near(AudioBlend.Sample(30, 0.6f * PreviewTuning.DefaultAudio, 2),
+    AudioBlend.Sample(30, 0.6f * PreviewTuning.DefaultAudio, 1), "Closure must clamp to fully closed.");
 eyes.Step(0.2f, true, true);
 var partialClosure = eyes.Closure;
 foreach (var invalid in new[] { -1f, 0, float.NaN, float.PositiveInfinity, float.NegativeInfinity })
