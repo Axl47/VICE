@@ -2,6 +2,7 @@ using System.Collections;
 using Il2CppScheduleOne;
 using Il2CppScheduleOne.Persistence;
 using Il2CppScheduleOne.PlayerScripts;
+using Il2CppScheduleOne.Product;
 using Il2CppScheduleOne.UI;
 using Il2CppScheduleOne.UI.Phone;
 using MelonLoader;
@@ -34,7 +35,8 @@ public sealed class LSDPreviewMod : MelonMod
     private bool CheckedAudio;
     private PreviewEffects? Effects;
     private IntPtr PlayerPointer, ProductPointer;
-    private IntPtr LastWorkshopConsumption;
+    private static readonly ConsumptionEvents WorkshopConsumptions=new();
+    private bool ConsumptionHookAttempted;
     private bool Suspended, LoggedMainLoop, CheckedShader;
 
     public override void OnInitializeMelon()
@@ -128,24 +130,24 @@ public sealed class LSDPreviewMod : MelonMod
                 }
             }
             if (keyboard is not null && keyboard.f9Key.wasPressedThisFrame
-                && !(PlayerCamera.Instance && PlayerCamera.Instance.ActiveUIElements.Contains("OffRegister"))) { Cleanup(); DisposeChecks(); return; }
-            if (!Enabled.Value || !TryContext(out var player, out var playerCamera, out var camera)) { Cleanup(); LastWorkshopConsumption = IntPtr.Zero; return; }
-            var consumed = player.ConsumedProduct;
-            if (consumed is not null && consumed.ID.StartsWith("personal.lsd:tab-", StringComparison.Ordinal))
-            {
-                if (consumed.Pointer != LastWorkshopConsumption)
-                {
-                    LastWorkshopConsumption = consumed.Pointer;
-                    Cleanup();
-                    Effects = new PreviewEffects(camera);
-                    PlayerPointer = player.Pointer;
-                    ProductPointer = consumed.Pointer;
-                    Timeline.Start(DurationSeconds.Value);
-                    EnsureFrameLoop();
-                    LoggerInstance.Msg("Off Register tab consumed: approved LSD treatment started/refreshed without stacking.");
-                }
+                && !(PlayerCamera.Instance && PlayerCamera.Instance.ActiveUIElements.Contains("OffRegister"))) { WorkshopConsumptions.Clear();Cleanup(); DisposeChecks(); return; }
+            if (!Enabled.Value || !TryContext(out var player, out var playerCamera, out var camera)) { Cleanup(); WorkshopConsumptions.Clear(); return; }
+            if(!ConsumptionHookAttempted){
+                ConsumptionHookAttempted=true;
+                ModSupport.Patch(HarmonyInstance,typeof(Player),nameof(Player.ConsumeProductInternal),typeof(LSDPreviewMod),
+                    postfix:nameof(ProductConsumed),parameters:new[]{typeof(ProductItemInstance)});
             }
-            else LastWorkshopConsumption = IntPtr.Zero;
+            var consumed = player.ConsumedProduct;
+            if (WorkshopConsumptions.Take(player.Pointer,out var consumedPointer) && consumed?.Pointer==consumedPointer)
+            {
+                Cleanup();
+                Effects = new PreviewEffects(camera);
+                PlayerPointer = player.Pointer;
+                ProductPointer = consumed.Pointer;
+                Timeline.Start(DurationSeconds.Value);
+                EnsureFrameLoop();
+                LoggerInstance.Msg("Off Register tab consumed: approved LSD treatment started/refreshed without stacking.");
+            }
             if (Effects is not null && (PlayerPointer != player.Pointer
                 || ProductPointer != (player.ConsumedProduct?.Pointer ?? IntPtr.Zero)))
             { Cleanup(); return; }
@@ -190,6 +192,12 @@ public sealed class LSDPreviewMod : MelonMod
             Cleanup();
             ModSupport.WarnOnce("lsd:preview", $"LSD preview could not continue: {error.Message}");
         }
+    }
+
+    private static void ProductConsumed(Player __instance,ProductItemInstance product)
+    {
+        if(__instance && __instance.IsLocalPlayer && product is not null && product.ID.StartsWith("personal.lsd:tab-",StringComparison.Ordinal))
+            WorkshopConsumptions.Record(__instance.Pointer,product.Pointer);
     }
 
     public override void OnLateUpdate()
@@ -271,9 +279,9 @@ public sealed class LSDPreviewMod : MelonMod
     private void DisposeChecks() { CheckAudio?.Dispose(); CheckAudio = null; CheckFrames?.Dispose(); CheckFrames = null; }
     public override void OnSceneWasUnloaded(int buildIndex, string sceneName)
     {
-        if (sceneName == "Main") Cleanup();
+        if (sceneName == "Main") { WorkshopConsumptions.Clear();Cleanup(); }
         if (sceneName == "Menu") DisposeChecks();
     }
-    public override void OnApplicationQuit() { Cleanup(); DisposeChecks(); }
-    public override void OnDeinitializeMelon() { Cleanup(); DisposeChecks(); }
+    public override void OnApplicationQuit() { WorkshopConsumptions.Clear();Cleanup(); DisposeChecks(); }
+    public override void OnDeinitializeMelon() { WorkshopConsumptions.Clear();Cleanup(); DisposeChecks(); }
 }

@@ -1,0 +1,58 @@
+{
+  "date": "2026-10-07",
+  "workshopVersion": "0.2.4",
+  "gameVersion": "0.4.7f11",
+  "unityVersion": "2022.3.62f2",
+  "modelSourcePR": "https://github.com/Axl47/ScheduleOne-Mods/pull/1",
+  "modelSourceCommit": "0115376f1c853d23e63cdea4aa6f77c60dda22e9",
+  "blenderContractCheckPassed": true,
+  "unityBundleRebuildPassed": true,
+  "compilationWarnings": 0,
+  "compilationErrors": 0,
+  "previewAssertions": 132983,
+  "nativeExercisePassed": true,
+  "nativeReloadPassed": true,
+  "nativeGeometryPassed": true,
+  "nativePhysicsPassed": true,
+  "nativePhysicsCases": 7,
+  "releasedTabContacts": 15,
+  "nativeGalleryPassed": true,
+  "saveRestoration": {
+    "Restored": true,
+    "FileCount": 47,
+    "AllSHA256HashesMatch": true
+  },
+  "installedGameplaySha256": "14a6ab21ded1f3b994ba8abcf58957422522648f520c2b7fe3b57b87c213ca13",
+  "assetsSha256": {
+    "src/LSDGameplay/Assets/studio.bundle": "67d2a4fb1fd53af358124f5a83b21c81f6103e498d438dca7ebecd10bff50e7d",
+    "assets/LSDStudio/Assets/Models/Bench.fbx": "d53254924a7fa65751db426b6906d68d48ccfbcbfdb4d0e68ad92caeda3390c3",
+    "assets/LSDStudio/Assets/Models/Cabinet.fbx": "45fb21d2e51ca7299f890530864407ae7e3ebd9a9f245a74d86ddd2df2049295",
+    "assets/LSDStudio/Assets/Models/Packet.fbx": "82cbc77ab38328b36d09dc1490f57cfac7336fdd531d6ec61a559fa29af44385",
+    "assets/LSDStudio/Assets/Models/Parcel.fbx": "69d801e5efc3dd19dea599da21de5376f94ce8d5f00d37e6aacadb816ef89abb",
+    "assets/LSDStudio/Assets/Models/Sheet.fbx": "79b18fd697b27205dac645d62d1eb190d4e8d29d12f4249b3c3d6d2e8e601f88",
+    "assets/LSDStudio/Assets/Models/Tab.fbx": "88c0a8278360ebd4fc01be14837f1f999a0722a034e20901ed9ed73308b7f644",
+    "assets/LSDStudio/Blender/Bench.blend": "6fc5d31f39327910461f2158b6538cc13c500095456ae576e591c3a7c67edfb6",
+    "assets/LSDStudio/Blender/Cabinet.blend": "af26a1b0430243da999d27802d9eecbb8fe0aab538497e9c0b7791415fff7cd2",
+    "assets/LSDStudio/Blender/Packet.blend": "e61e7b5e6db8f465ffbe698d2e44522a1e55cd49bed57b38a35fd0bf9351a6fb",
+    "assets/LSDStudio/Blender/Parcel.blend": "af81d6f8e2fab68c1b56a46ae8684a81afbb41c7828c0dc21e69b2cd2e932695",
+    "assets/LSDStudio/Blender/Sheet.blend": "9e4cb312ef074e163ed396d0e50fc33c75327fa69001df8819999068bc1c5f6f",
+    "assets/LSDStudio/Blender/Tab.blend": "29198c62b3d67f801a9530cf1b4a29639cfdb3f3001ae6ab0a1c4560223d4a78",
+    "docs/images/lsd-studio/in-game/bench-in-game.png": "10755a1885375f7d8caaee7e973e4782c517b05a0d95a48ff3b7c5f2c0b8389e",
+    "docs/images/lsd-studio/in-game/cabinet-in-game.png": "71a901bf64815c989420e707bb79cded3d5ad069e1bd4f0e311495ba85e5c51b",
+    "docs/images/lsd-studio/in-game/cutter-raised.png": "7d46906f39a1a4a8841823423c8a691d67fb9be9f14e0005d7d5a89722674d63",
+    "docs/images/lsd-studio/in-game/drawing.png": "0a7bcd9fd1c5d67f2b63af8c9c60f7194ab90d7133c97f8827d2bc4ea554e39a",
+    "docs/images/lsd-studio/in-game/prism-held-in-game.png": "ec4c9491e0e05fbca0a5f2f5289ce222de1d68881be7473d5f4349832d69fe47",
+    "docs/images/lsd-studio/in-game/roller-halfway.png": "c49e6f8222adcb215293ea7820603a7f21d83386bbdd1302efe96b889d90ab4b",
+    "docs/images/lsd-studio/in-game/supplies-in-game.png": "a1bbf099ad6491f9c4c9901912c0a6b3a0fbd18e003f1ed84fe99e0edd0a04c7"
+  },
+  "limitations": [
+    "Multiplayer and performance profiling untested.",
+    "Native custom-sleeve composite inventory icon retains its existing fallback."
+  ],
+  "evidenceMarkers": [
+    "LSD_SLICE_EXERCISE_PASSED",
+    "LSD_SLICE_RELOAD_PASSED",
+    "LSD_SHEET_CHECK_PASSED",
+    "LSD_PACKAGING_PHYSICS_PASSED"
+  ]
+}

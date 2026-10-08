@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework></PropertyGroup>
   <ItemGroup>
+    <Compile Include="..\..\src\LSDPreview\ConsumptionEvents.cs" Link="ConsumptionEvents.cs" />
     <Compile Include="..\..\src\LSDPreview\TripTimeline.cs" Link="TripTimeline.cs" />
     <Compile Include="..\..\src\LSDPreview\ClosedEyeView.cs" Link="ClosedEyeView.cs" />
     <Compile Include="..\..\src\LSDPreview\PreviewVisibility.cs" Link="PreviewVisibility.cs" />

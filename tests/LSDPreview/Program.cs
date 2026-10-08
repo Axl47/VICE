@@ -10,6 +10,19 @@ void Near(float actual, float expected, string message)
     => Check(Math.Abs(actual - expected) < 0.0001f, message);
 
 var trip = new TripTimeline();
+var consumption=new ConsumptionEvents();
+var player=(IntPtr)1;var stack=(IntPtr)2;
+consumption.Record(player,stack);
+Check(consumption.Take(player,out var first) && first==stack,"First consumption action was lost.");
+Check(!consumption.Take(player,out _),"A retained consumed product restarted the effect without an action.");
+trip.Start(100);trip.Step(40);
+consumption.Record(player,stack);
+if(consumption.Take(player,out var repeated) && repeated==stack)trip.Start(100);
+Check(trip.Elapsed==0 && trip.Phase==TripPhase.Rising,"A second consumption from the same stack did not refresh the trip.");
+consumption.Record((IntPtr)3,stack);
+Check(!consumption.Take(player,out _),"Another player's consumption leaked into the local trip.");
+consumption.Record(player,stack);consumption.Clear();
+Check(!consumption.Take(player,out _),"An emergency reset retained a pending consumption action.");
 trip.Start(100);
 Check(trip.Active && trip.Phase == TripPhase.Rising && trip.Envelope == 0, "Starting must fade in from zero.");
 trip.Step(15);
