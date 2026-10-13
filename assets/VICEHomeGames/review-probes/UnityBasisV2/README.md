@@ -6,7 +6,7 @@ Small candidate FBXs for Unity 2022.3.62f2 review. These replace nothing automat
 
 - Source authoring stays in canonical Unity-contract XYZ coordinates.
 - FBX export pre-reflects local mesh X and empty X, reverses winding, and explicitly triangulates. Unity's observed FBX X reflection should therefore recover the canonical signed coordinates.
-- Pool box primitives retain analytically outward winding. No global normal recalculation across touching boxes. Y-axis cylinder winding corrected. Rail sights are single +Y-facing planes.
+- All box and cylinder primitives retain analytically outward winding, including cue and backplate side faces. No global normal recalculation across touching boxes/cylinders. Y-axis cylinder winding corrected. Rail sights are single +Y-facing planes. Reliable closed-island welding uses a 1e-6 metre tolerance.
 - Every cloth UV is the centre of the uniform green swatch, removing skinny-triangle texture derivatives and adjacent-cell mip bleed. No double-sided material workaround.
 
 ## Required Unity import and checks
@@ -23,3 +23,5 @@ Use the same normal/default axis import settings as the failed first candidate, 
 ## Material object identity
 
 The FBXs retain eight canonical board/dart runtime material names. Importing two FBXs independently may create a second WireMetal object despite identical names. Bind all WireMetal slots in both packages to the same shared Unity material asset when checking the eight-material object budget. A shared art-import binding will accompany accepted production exports. No gameplay adapter or runtime component is included in this probe.
+
+Current triangle counts: table 1,448; cue 146; rack 24; each ball 288; board 2,818; dart 158.
