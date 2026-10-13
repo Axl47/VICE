@@ -1,4 +1,6 @@
-# VICE Enforcement 0.1.4
+# VICE Enforcement 0.1.5
+
+Version 0.1.5 repairs runtime police appearances and adds explicit multiplayer officer/camera synchronization. Install matching Enforcement 0.1.5 and Core on the host and every guest, then restart the game. Existing saves, property heat, preferences and the Local Source contact are retained.
 
 Version 0.1.4 adds **Local Source**, a provisional information contact in the native phone's **Messages** app. It appears automatically after loading a save; no NPC, purchase or introduction quest is required. The name is configurable, and the character's identity/backstory is deferred. It has text-only presentation using the native contact UI.
 
@@ -31,7 +33,19 @@ Better Police owns movement multiplier, vision/notice timing, arrest ticks and n
 
 New cosmetics use the beta's modern avatar objects. Investigators borrow a loaded civilian's appearance/outfit and hide their police belt. Additional officers and raiders retain native police outfits with randomized appearance; the old raid clothing texture layers are no longer used.
 
-Event scheduling, clones, property raids and surveillance run on the host. Multiplayer replication of the upstream runtime NPCs is not playtested; matching versions/settings are recommended. Restart after changing settings. Heat persists per save slot and organization in `UserData/VICE/Enforcement/HeatData`, independently of native save files. Old NACops heat files are not automatically imported.
+Event scheduling, runtime NPC creation, property raids and camera detection run on the host. Guests register the same officer prefab and render host-selected appearances and camera states. A real two-player check remains required. Restart after changing settings. Heat persists per save slot and organization in `UserData/VICE/Enforcement/HeatData`, independently of native save files. Old NACops heat files are not automatically imported.
+
+## Runtime appearances and multiplayer cameras
+
+The old appearance capture moved live officers to one shared offscreen position across coroutine yields. Several captures could therefore photograph overlapping NPCs and their hair, and movement replication could expose those staging teleports. Version 0.1.5 captures one NPC's baked renderer geometry synchronously, including its material properties, on an isolated render layer. It does not teleport or pause the network NPC. Investigator outfit replacement removes both registered avatar objects and orphaned children inherited from a live clone before applying a fresh appearance. The civilian donor's data remains unchanged.
+
+Runtime officers use a dedicated FishNet prefab collection (`47123`, slot `0`), registered on each peer during Main scene initialization. Clones have no inherited scene identity or network parent. FishNet allocates their network IDs; Enforcement no longer manually initializes every clone with ID 150 or disables networking before spawning. Native network behaviours remain in the same order on host and guest. The host sends object-ID/GUID/identity, appearance and visibility snapshots in bounded batches. Guests restore the appearance on the existing native spawned object rather than creating independent substitute officers. Native movement/combat replication remains responsible for motion and interaction. Reserved investigators and buy-bust officers are excluded from the regular police pool on both sides. Prefab registration and packet callbacks are released on save exit, including when Unity has already destroyed the template.
+
+Camera components are now created on guests as well as the host. The host selects active cameras and publishes their active, broken, sighted, progress and beam-target state twice per real second. Late-joining guests receive repeated current snapshots. Guest components render this state and do not independently choose cameras or dispatch police.
+
+The host checks each loaded player against range, camera direction and unobstructed sight. Ray samples use the eyes, midpoint and body center with floating-point interpolation; a full ray-hit buffer cannot establish clear sight. Detection progress, evidence expiry and camera cooldown are separate for each camera/player pair, so observing the host does not hide or implicate a guest. Client-computed visibility and allowlisted visual-state labels are sent four times per second, bound to the authenticated connection's loaded player; the host rechecks geometry and ignores stale observations after two seconds. It applies the existing crime/dispatch policy to the player actually seen. Owner crime/pursuit updates use deduplicated, acknowledged notices to that connection, without replaying another player's evidence. Guest camera impacts request host approval; active state, damage proximity (75 world units), one-time XP and broken/reset state are handled on the host. Daily camera rotation retains the existing selection policy.
+
+These changes require the module on every participant. A guest running an older Enforcement build cannot register the new runtime officer prefab or camera protocol. Host/guest visibility, local furniture/NPC presentation mods, late joins and guest camera impacts should be checked in a genuine two-player session before treating multiplayer behavior as verified.
 
 ## Information contact
 
@@ -77,6 +91,12 @@ The installer requires the game to be closed. It backs up existing police/Core b
 Manual installation uses the package's `Mods`, `UserLibs` and `UserData` layout. Merge data without overwriting personal edits. Do not keep original NACops or Better Police active alongside Enforcement; it refuses to initialize when their assemblies are present.
 
 ## Validation and first playtest
+
+Version 0.1.5 passed 60 automated Enforcement assertions, the existing 3,456 Better Police assertions, Core's 55 assertions, native patch signature/address checks, package hashing and the installer fixture. The new assertions cover camera cone/range/ray fractions, separate host/guest evidence and cooldowns, stale evidence expiry, visibility rolls, allowed remote labels, snapshot validation and removal of the legacy manual network initialization.
+
+The isolated native repair diagnostic passed two loaded sessions on beta 0.4.7f12. It verified the registered non-scene officer prefab, distinct genuinely spawned network object IDs/data/GUIDs, six investigator outfit replacements without duplicate active hair or mutation of the civilian donor, nonempty isolated textures without capture moving the NPC, native appearance JSON/packet serialization, camera initialization/break/reset, and save-exit cleanup. Result: `artifacts/enforcement-repair-native/output-r4/repair-passed.txt`. It used a copied save and a separate loader directory. This is single-instance native validation, not a two-player result.
+
+The required multiplayer follow-up is to load matching 0.1.5 binaries on both players, compare patrol/investigator/raider identities and appearances up close and at impostor distance, join after runtime officers already exist, check that each player independently triggers the same host-selected camera, and check guest impacts and reconnects without duplicate crimes. Cosmetic mods and network timing can affect these paths; matching settings and a copied save are recommended for that follow-up.
 
 Compilation uses warnings as errors against the installed IL2CPP assemblies. Automated checks verify Core cleanup/default-file preservation, Better Police's obstacle-route planner and sight memory, all active attribute hook signatures, exclusive native patch addresses, one IL2CPP entry point, and exclusion of cartel types. These checks establish build/API compatibility; gameplay and multiplayer correctness require a live playtest.
 

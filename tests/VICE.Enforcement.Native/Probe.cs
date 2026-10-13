@@ -22,15 +22,18 @@ public sealed class InformationProbe : MelonMod
     private float deadline, next;
     private int phase, session;
     private RectTransform? previousEntry, previousContainer;
+    private RepairChecks? repair;
     public override void OnInitializeMelon()
     {
         output = Environment.GetCommandLineArgs().Single(a => a.StartsWith("--information-probe-output="))[27..];
         Check(Path.IsPathFullyQualified(output) && Directory.Exists(Path.Combine(output, "SaveGame_5")), "Isolated copy is required.");
         deadline = Time.realtimeSinceStartup + 240;
         Application.runInBackground = true;
+        if (Environment.GetCommandLineArgs().Contains("--enforcement-repair-probe")) repair = new RepairChecks(output);
     }
     public override void OnUpdate()
     {
+        if (repair is not null) { repair.Tick(); return; }
         if (phase == 9 || Time.realtimeSinceStartup < next) return;
         next = Time.realtimeSinceStartup + 1;
         try

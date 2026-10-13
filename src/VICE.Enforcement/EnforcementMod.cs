@@ -7,7 +7,7 @@ using PersonalMods.BetterPolice;
 using NACops;
 using UnityEngine;
 
-[assembly: MelonInfo(typeof(VICE.Enforcement.EnforcementMod), "VICE.Enforcement", "0.1.4", "Axl47; based on XOWithSauce / Frostbyt3 / Babyhamsta")]
+[assembly: MelonInfo(typeof(VICE.Enforcement.EnforcementMod), "VICE.Enforcement", "0.1.5", "Axl47; based on XOWithSauce / Frostbyt3 / Babyhamsta")]
 [assembly: MelonGame("TVGS", "Schedule I")]
 [assembly: MelonPlatformDomain(MelonPlatformDomainAttribute.CompatibleDomains.IL2CPP)]
 [assembly: HarmonyDontPatchAll]
@@ -46,7 +46,7 @@ public sealed class EnforcementMod : global::NACops.NACops
         police.Initialize(HarmonyInstance);
         Information.InformationContact.Initialize();
         initialized = true;
-        MelonLogger.Msg("VICE Enforcement 0.1.4 initialized with VICE Core; police only. Host controls NACops events and information reports.");
+        MelonLogger.Msg("VICE Enforcement 0.1.5 initialized with VICE Core; host police authority and replicated officer/camera presentation.");
     }
 
     internal static void ApplyPersonalPolicy()
@@ -58,12 +58,20 @@ public sealed class EnforcementMod : global::NACops.NACops
     }
 
     // Poll native save readiness rather than depending on a scene build index.
-    public override void OnSceneWasInitialized(int buildIndex, string sceneName) { }
+    public override void OnSceneWasInitialized(int buildIndex, string sceneName)
+    {
+        if (initialized && sceneName == "Main")
+        {
+            try { Multiplayer.EnforcementReplication.BeginScene(); }
+            catch (Exception error) { ModSupport.WarnOnce("enforcement:prefab-scene", "Officer prefab preparation will retry: " + error.Message); }
+        }
+    }
 
     public override void OnUpdate()
     {
         if (!initialized) return;
         police.OnUpdate();
+        Multiplayer.EnforcementReplication.Tick();
         Information.InformationContact.Tick();
         var load = LoadManager.Instance;
         if (!currentConfig.Enabled || !load || !load.IsGameLoaded || !Player.Local)

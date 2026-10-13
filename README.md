@@ -98,6 +98,8 @@ Build Enforcement with `scripts/Build-VICE.ps1 -Modules Enforcement`. It combine
 
 Enforcement 0.1.4 adds **Local Source** in the native phone's Messages app. It occasionally reports meaningful rises or calming transitions around owned properties, with hysteresis, a shared three-game-hour cooldown, saved history and a silent first-load baseline. The host generates reports for loaded organization participants; no NPC or character model is added. Name, enablement and cooldown settings are under `VICEEnforcementInformation`. Native single-instance checks use a copied save; two-player delivery still needs a live check.
 
+Enforcement 0.1.5 isolates avatar texture capture, clears inherited outfit objects, and uses a dedicated native network prefab for runtime officers. Cameras render host state on guests and evaluate each loaded player with separate evidence/cooldowns, targeting the player actually seen. Both participants need matching binaries. Automated checks and a two-load single-instance native diagnostic passed; genuine two-player delivery remains a required follow-up.
+
 Build Syndicate with `scripts/Build-VICE.ps1 -Modules Syndicate`. It owns cartel events and the personal hostile-cartel difficulty settings. See the [Syndicate guide](docs/vice-syndicate.md).
 
 Substances remains under active development in the existing LSD projects. `scripts/Build-LSDGameplay.ps1` builds the workshop gameplay and its companion preview; `scripts/Build-LSDPreview.ps1` builds the preview independently. Keep using these projects until their own migration is complete. See the [workshop guide](docs/lsd-workshop.md), [gameplay design](docs/lsd-gameplay-design.md), and [effects preview guide](docs/lsd-preview.md).
