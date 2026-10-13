@@ -7,21 +7,21 @@ Original low-poly artwork for the Schedule I Lifestyle prototype. Artwork only: 
 - `VICE_HomeGames.blend`: editable metric source, Blender 4.3.2.
 - `PoolTable.fbx`, `PoolAccessories.fbx`, `DartsBoard.fbx`, `Dart.fbx`: separate export packages.
 - `Textures/`: three original 1024 × 1024 RGB PNG base-colour atlases.
-- `Renders/`: actual source-mesh offline Cycles renders, not in-game screenshots. Presentation-only ball/cue/rack positions are not saved in the source or exports.
+- `Renders/`: actual review renders, not in-game screenshots. Final orientation/readability evidence is captured by ordinary Unity editor cameras; any older offline Cycles images are superseded until the final review set is refreshed. Presentation-only ball/cue/rack positions are not saved in the source or exports.
 - `Orthographic_Dimensions.png`: labelled orthographic views of the actual models.
 - `concepts/`: original generated visual references. These are aesthetic references, not geometry specifications. Use the corrected pool v2 reference.
 - `scripts/`: deterministic generation, portable-FBX path cleanup, rendering and independent validation.
 - `validation/`: machine-readable results and exact per-mesh source manifest.
 
-Serialized FBX and Blender re-import are checked independently. Actual Unity 2022.3.62f2 import and in-game rendering remain separate review gates. The prototype's current URP/Unlit materials will not reproduce offline lit renders without appropriate URP/Lit material binding.
+Serialized FBX and Blender re-import are checked independently. Prior isolated Unity 2022.3.62f2 review accepted the repaired pool geometry/winding/cloth and corrected accessory glyphs. The complete corrected production set is awaiting its final Unity review; no in-game rendering is claimed. The prototype's current URP/Unlit materials will not reproduce offline lit renders without appropriate URP/Lit material binding.
 
 ## Coordinates and authoring
 
-Every measurement is metres, 1 unit = 1 metre. The source deliberately stores **Unity contract coordinates directly: +Y up, +X right, +Z forward**. This differs from Blender's conventional Z-up scene; do not rotate the artwork to “correct” it. All mesh vertices, object transforms and named empties are validated in this contract space.
+Every measurement is metres, 1 unit = 1 metre. The source deliberately stores **Unity root coordinates directly: +Y up, +X positive local X, +Z forward**. For an ordinary upright Unity camera on the board’s +Z side looking toward −Z, screen-right is root −X. The approved darts presentation correction below explicitly resolves the original handoff’s conflicting viewer-right claim. This differs from Blender's conventional Z-up scene; do not rotate the artwork to “correct” it. All mesh vertices, object transforms and named empties are validated in this contract space.
 
 Source objects overlap at the origin where the contract requires independent pivots. Solo the named collections to inspect each package. All mesh rotation/scale transforms are identity; every ball has an independent centre origin and identity location/rotation/scale. Accessory display layouts exist only in the unsaved render scene.
 
-Export uses `axis_forward='-Z'`, `axis_up='Y'`, `use_space_transform=False`, `bake_space_transform=False`, `apply_scale_options='FBX_SCALE_UNITS'`. Raw FBX XYZ geometry remains in the contract basis; metre scale is recorded as `UnitScaleFactor=100` centimetres per unit, rather than a non-identity root scale. FBX metadata is Y-up and negative-Z front. The independent binary parser verifies the actual result rather than inferring it from settings. Importer-specific basis handling must still be checked in Unity.
+Export uses `axis_forward='-Z'`, `axis_up='Y'`, `use_space_transform=False`, `bake_space_transform=False`, `apply_scale_options='FBX_SCALE_UNITS'`. The export temporarily pre-reflects mesh X and empty X, reverses face winding, and triangulates. Unity 2022.3.62f2’s observed FBX X reflection then restores the canonical signed coordinates; the editable source is not reflected. Metre scale is recorded as `UnitScaleFactor=100` centimetres per unit, rather than a non-identity root scale. FBX metadata is Y-up and negative-Z front. The independent binary parser verifies the actual result rather than inferring it from settings. Signed pocket positions and the asymmetric root −X=6 / +X=11 board test and the documented scoring-to-visual adapter must be checked in Unity; symmetric bounds alone cannot establish orientation.
 
 All texture references are relative `Textures/...`, including both FBX absolute-name and relative-name fields. No embedded textures, custom shaders or normal/packed-map dependencies. Base colour is sRGB. Roughness and metallic are ordinary material scalars; no packed channel mapping applies.
 
@@ -61,7 +61,7 @@ Named empties:
 
 The 0.30 m inside rack is an intentionally removable decorative prop. It does **not** fit the prototype's current 15-ball arrangement: its centre spacing and ball size require approximately 0.328787 m inside side length. Do not use this artwork to arrange balls or silently enlarge it.
 
-Ball 00 is white; 01–07 solids, 08 black, 09–15 stripes. One atlas contains all sixteen tiles. Number islands occur on opposite hemispheres, away from the longitudinal UV seam. Longitude is explicitly oriented to keep both hemisphere numbers unmirrored.
+Ball 00 is white; 01–07 solids, 08 black, 09–15 stripes. One atlas contains all sixteen tiles. Number islands occur on opposite hemispheres, away from the longitudinal UV seam. Longitude is explicitly oriented for ordinary Unity front and rear cameras, keeping both hemisphere numbers unmirrored. A Blender right-handed authoring camera has a different horizontal view basis; its appearance alone is not the Unity glyph acceptance test.
 
 ## Darts contract
 
@@ -77,9 +77,11 @@ Ball 00 is white; 01–07 solids, 08 black, 09–15 stripes. One atlas contains 
 | Triple | Radii `0.099` / `0.107` |
 | Double | Radii `0.162` / `0.170` |
 
-+Z points toward the thrower; +Y is the centre of 20; +X is right from the thrower's view. Fixed front-projection UVs preserve orientation. Each wedge spans 18°; clockwise order is:
++Z points toward the thrower; +Y is the centre of 20. **Approved correction: root −X is right from the thrower’s ordinary Unity-camera view; root +X is left.** The board’s artwork is reflected in source X, with corrected winding and attached UVs, to preserve the standard visible clockwise sequence and readable numerals. No camera projection or scoring rules are changed. Each wedge spans 18°; clockwise order is:
 
 `20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5`.
+
+Sector 6 is at root X = −0.12, Y = 0; sector 11 at root X = +0.12, Y = 0. The analytical scoring/panel frame retains positive X toward its own right. The future **visual adapter only** must display a recorded hit at root-local `(-LastX, LastY, 0.055)`. Thus analytical `LastX=+0.12` still scores 6 and its displayed dart lands in the visible 6 wedge. Apply this X mapping once, not in both artwork placement and scoring. No gameplay, scoring, input-panel, saved-state or packet change is included.
 
 Singles alternate charcoal/ivory; 20 is charcoal. Double/triple 20 is red, alternating green. Scoring remains analytical in code; artwork and wires do not decide boundary hits. Recommended scoring-centre height: 1.73 m; throw line: 2.37 m. Player placement owns these world offsets.
 
@@ -89,7 +91,7 @@ Dart root is exactly at the tip, local +Z toward the tail. `Dart_Tip`, `Dart_Bar
 
 Pool source and exports retain: `Wood`, `Cloth`, `RailRubber`, `PocketBlack`, `Metal`, `CueWood`, `CueTip`, `RackWood`, `BallAtlas`.
 
-The pool assembly uses **9 unique materials**, within the 12-material budget. There are **29 summed renderer material slots** across all required named meshes and 16 independently moving balls. Unique materials and summed renderer slots are different counts.
+The pool assembly uses **9 unique materials**, within the 12-material budget. There are **29 summed source renderer material slots** across all required named meshes and 16 independently moving balls. Unity omits the unused `Metal` slot on `Pool_Pockets`, leaving **28 summed imported renderer slots**. Unique materials, source slots and imported slots are different counts.
 
 The approved darts ambiguity resolution preserves **all 10 exact source material names**: `SisalDark`, `SisalLight`, `RingRed`, `RingGreen`, `WireMetal`, `Numbers`, `MountMetal`, `DartMetal`, `DartPlastic`, `DartFlight`.
 
@@ -103,18 +105,30 @@ Runtime FBX consolidation:
 
 Mount and dart metal use the same atlas metal swatch and ordinary material settings. The source is saved **before** consolidation, so all ten named datablocks remain editable. Source semantic names are also preserved as mesh custom properties for integration documentation.
 
-Combined board + dart exports use **8 unique materials**, with **12 summed renderer slots** (8 on board meshes, 4 on dart meshes). Keeping the nine required named meshes makes an eight-total-renderer-slot reading impossible without violating the mesh contract. This package therefore uses the explicitly approved unique-runtime-material interpretation; it does not claim eight summed slots.
+Combined board + dart exports use **8 unique material names**, with **12 summed renderer slots** (8 on board meshes, 4 on dart meshes). Keeping the nine required named meshes makes an eight-total-renderer-slot reading impossible without violating the mesh contract. This package therefore uses the explicitly approved unique-runtime-material interpretation; it does not claim eight summed slots. Separate FBX imports can instantiate a second WireMetal object. The shared-material remap below is required to obtain eight actual Unity material objects; identical names alone do not achieve that.
 
 | Asset | Actual triangles | Budget |
 |---|---:|---:|
-| Pool table | 1,484 | 6,000 |
-| Cue | 156 | 500 |
+| Pool table | 1,448 | 6,000 |
+| Cue | 146 | 500 |
 | Rack | 24 | 300 |
 | Each ball | 288 | 320 |
 | Board, numbers and wires | 2,818 | 4,000 |
 | Dart | 158 | 400 |
 
 No LOD1 is included: the pool body is already far below budget, and scoring-face/ball geometry should not be casually decimated. Separate LOD variants can be authored later without changing authoritative pivots or dimensions.
+
+## Required Unity artwork importer and shared-material recipe
+
+This is an artwork import recipe, not runtime gameplay or adapter code. Apply it in the owner’s chosen Unity 2022.3.62f2 art project.
+
+1. Import all four FBXs alongside the shared `Textures` directory. Keep global scale 1, no generated colliders, no animation import, and ordinary back-face culling. Enable **Preserve Hierarchy** (`ModelImporter.preserveHierarchy=true`) so named root empties survive import. Do not compensate the model with an extra X scale/rotation: the export already bridges Unity’s handedness conversion.
+2. Use imported normals and UVs. Do not use a double-sided material to conceal incorrect winding. Check the README’s signed empty locations, plus board 6 at `(-0.12,0,0.055)`, 11 at `(0.12,0,0.055)`, and 20 at +Y.
+3. Create one shared Unity material asset per canonical runtime name. For pool, these are Wood, Cloth, RailRubber, PocketBlack, Metal, CueWood, CueTip, RackWood, BallAtlas. For the combined darts assembly, these are SisalDark, SisalLight, RingRed, RingGreen, WireMetal, Numbers, DartPlastic, DartFlight.
+4. On each FBX importer’s Materials tab, remap **every matching source material name to that same shared material asset**. In particular, DartsBoard/WireMetal and Dart/WireMetal must both reference one shared `WireMetal.mat`. Reimport and compare actual sharedMaterial object identities, not names. The final darts count must be eight distinct Material assets across both imported renderers’ arrays.
+5. Use standard URP/Lit with a white base-colour tint, the supplied sRGB atlas as Base Map, Metallic workflow, opaque surface and Cull Back. Pool furniture materials use `PoolFurniture_BaseColor.png`; BallAtlas uses `PoolBalls_BaseColor.png`; every darts material uses `Darts_BaseColor.png`. No shader graph or packed map is required. Keep normal mipmapping enabled; cloth UVs all point at the padded green swatch centre.
+6. Scalar starting points matching the source: pool Metal metallic 0.6 / smoothness 0.52; Cloth and PocketBlack metallic 0 / smoothness 0.25; BallAtlas metallic 0 / smoothness 0.77; remaining pool materials metallic 0 / smoothness 0.52. Darts WireMetal metallic 0.7 / smoothness 0.32; other darts materials metallic 0 / smoothness 0.32. Lighting may differ from offline Cycles; these values are a starting binding, not an in-game appearance certification.
+7. Verify the named roots, cue/dart tip pivots, all six pockets, exact ball scale, front-facing rail/cushion surfaces and uncluttered cloth at player distance before replacing live visuals. Placement, interactions, networking and dynamic-handle adapters remain owned by the existing code and are not implemented by these assets.
 
 ## Integration notes, no gameplay changes
 
@@ -125,7 +139,7 @@ Do not bake S1API's `(0.50,0,1.25)` pool grid offset into the artwork. Placement
 The prototype currently uses centre pivots for cue and dart visuals, while these deliverables correctly use requested tip pivots. A **separate art adapter**, not a gameplay change, is needed:
 
 - Cue: under a legacy centre-pivot handle whose cylinder runs ±0.725 local Z, place the new tip-root child at local `+Z 0.725` with matching orientation. Alternatively place the tip directly behind the ball using the existing `0.035 + charge × 0.08` visual separation. Do not apply both corrections.
-- Dart: under a legacy centre-pivot handle whose mesh runs ±0.08 local Z, place the new tip-root child at local `−Z 0.08`. Alternatively place the new tip directly at board-face Z `0.055`. Do not apply both corrections.
+- Dart: under a legacy centre-pivot handle whose mesh runs ±0.08 local Z, place the new tip-root child at local `−Z 0.08`. Alternatively place the new tip directly at board-face root-local `(-LastX, LastY, 0.055)` using the approved scoring-to-presentation X mapping. Do not apply both corrections.
 - Balls: instantiate the exact `Pool_Ball_XX` mesh at code-owned positions. Do not retain presentation rotations/positions from review images.
 - Rack: removable visual only; the code-owned rack layout remains authoritative.
 

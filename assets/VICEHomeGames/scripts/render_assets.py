@@ -1,8 +1,8 @@
-"""Offline Cycles presentation. Renders actual source meshes; no game/Unity screenshot claims."""
+"""Offline RH Blender authoring previews. These do not certify Unity LH-camera glyph orientation; authoritative Unity review images live separately in Renders/."""
 import bpy,math,sys
 from pathlib import Path
 from mathutils import Vector,Matrix
-P=Path(__file__).resolve().parents[1];bpy.ops.wm.open_mainfile(filepath=str(P/'VICE_HomeGames.blend'))
+P=Path(__file__).resolve().parents[1];(P/'SourceAuthoringRenders').mkdir(exist_ok=True);bpy.ops.wm.open_mainfile(filepath=str(P/'VICE_HomeGames.blend'))
 s=bpy.context.scene;s.render.engine='CYCLES';s.cycles.samples=64;s.cycles.use_denoising=False;s.render.resolution_x=1400;s.render.resolution_y=1100;s.render.resolution_percentage=100
 s.world.color=(.22,.22,.22);s.view_settings.view_transform='AgX';s.view_settings.look='AgX - Medium High Contrast';s.view_settings.exposure=-.4
 s.render.image_settings.file_format='PNG';s.render.film_transparent=False
@@ -21,7 +21,7 @@ def visible(names):
 
 def render(name,pos,target,ortho=None):
  if '--' in sys.argv and name not in sys.argv[sys.argv.index('--')+1:]:return
- cam.location=pos;f=(Vector(target)-cam.location).normalized();up=Vector((0,0,1)) if abs(f.y)>.999 else Vector((0,1,0));r=f.cross(up).normalized();u=r.cross(f);cam.rotation_euler=Matrix((r,u,-f)).transposed().to_euler();camd.type='ORTHO' if ortho else 'PERSP';camd.ortho_scale=ortho or 4;camd.lens=48;s.render.filepath=str(P/'Renders'/name);bpy.ops.render.render(write_still=True)
+ cam.location=pos;f=(Vector(target)-cam.location).normalized();up=Vector((0,0,1)) if abs(f.y)>.999 else Vector((0,1,0));r=f.cross(up).normalized();u=r.cross(f);cam.rotation_euler=Matrix((r,u,-f)).transposed().to_euler();camd.type='ORTHO' if ortho else 'PERSP';camd.ortho_scale=ortho or 4;camd.lens=48;s.render.filepath=str(P/'SourceAuthoringRenders'/name);bpy.ops.render.render(write_still=True)
 # Position original display objects only in this unsaved scene.
 visible(['PoolTable','PoolAccessories'])
 for n in range(16):

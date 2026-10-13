@@ -68,7 +68,7 @@
         0.0,
         0.0
       ],
-      "triangles": 312,
+      "triangles": 276,
       "materials": [
         "Wood",
         "RailRubber",
@@ -212,7 +212,7 @@
         0.0,
         0.0
       ],
-      "triangles": 156,
+      "triangles": 146,
       "materials": [
         "CueWood",
         "CueTip"

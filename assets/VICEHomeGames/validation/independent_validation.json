@@ -1,5 +1,5 @@
 {
-  "method": "Independent Blender 4.3 binary FBX parser plus actual Blender FBX importer round-trip, normalizing Blender Z-up import coordinates back to declared Y-up FBX frame. Physical dimensions calculated from node matrices and UnitScaleFactor. Native blend identity transforms checked separately. No Unity editor round-trip performed.",
+  "method": "Independent binary FBX audit plus actual Blender importer round-trip. Source is canonical Y-up XYZ. Approved visible presentation uses a Unity camera at +Z with screen-right=-X: sector 6 at root -X, 11 at root +X, 20 at +Y. Scoring coordinates are unchanged; a future visual adapter maps (-LastX, LastY, 0.055). Serialized FBX is intentionally X-reflected with winding reversed; expected Unity coordinates apply X reflection again, based on separately observed Unity importer behavior. This script does not execute Unity and does not label predicted Unity results as actual Unity verification.",
   "checks": [
     {
       "check": "required file VICE_HomeGames.blend",
@@ -52,6 +52,14 @@
       "detail": null
     },
     {
+      "check": "Canonical source Dart_Barrel ALL cylinder side normals radially outward",
+      "pass": true,
+      "detail": {
+        "side_faces": 30,
+        "inward_faces": []
+      }
+    },
+    {
       "check": "native Dart_Barrel identity rotation/scale",
       "pass": true,
       "detail": null
@@ -67,9 +75,25 @@
       "detail": null
     },
     {
+      "check": "Canonical source Dart_Shaft ALL cylinder side normals radially outward",
+      "pass": true,
+      "detail": {
+        "side_faces": 8,
+        "inward_faces": []
+      }
+    },
+    {
       "check": "native Dart_Shaft identity rotation/scale",
       "pass": true,
       "detail": null
+    },
+    {
+      "check": "Canonical source Dart_Tip ALL cylinder side normals radially outward",
+      "pass": true,
+      "detail": {
+        "side_faces": 8,
+        "inward_faces": []
+      }
     },
     {
       "check": "native Dart_Tip identity rotation/scale",
@@ -82,6 +106,14 @@
       "detail": null
     },
     {
+      "check": "Canonical source Darts_Backplate ALL cylinder side normals radially outward",
+      "pass": true,
+      "detail": {
+        "side_faces": 64,
+        "inward_faces": []
+      }
+    },
+    {
       "check": "native Darts_Backplate identity rotation/scale",
       "pass": true,
       "detail": null
@@ -90,6 +122,14 @@
       "check": "native Darts_Board identity rotation/scale",
       "pass": true,
       "detail": null
+    },
+    {
+      "check": "Canonical source Darts_Mount ALL cylinder side normals radially outward",
+      "pass": true,
+      "detail": {
+        "side_faces": 24,
+        "inward_faces": []
+      }
     },
     {
       "check": "native Darts_Mount identity rotation/scale",
@@ -232,6 +272,14 @@
       "detail": null
     },
     {
+      "check": "Canonical source Pool_Cue ALL cylinder side normals radially outward",
+      "pass": true,
+      "detail": {
+        "side_faces": 48,
+        "inward_faces": []
+      }
+    },
+    {
       "check": "native Pool_Cue identity rotation/scale",
       "pass": true,
       "detail": null
@@ -240,6 +288,14 @@
       "check": "native Pool_Legs identity rotation/scale",
       "pass": true,
       "detail": null
+    },
+    {
+      "check": "Canonical source Pool_Pockets ALL cylinder side normals radially outward",
+      "pass": true,
+      "detail": {
+        "side_faces": 144,
+        "inward_faces": []
+      }
     },
     {
       "check": "native Pool_Pockets identity rotation/scale",
@@ -292,312 +348,515 @@
       "detail": null
     },
     {
-      "check": "Wedge 20 single clockwise colour",
+      "check": "Source retains10 exact board/dart semantic material names",
+      "pass": true,
+      "detail": [
+        "DartFlight",
+        "DartMetal",
+        "DartPlastic",
+        "MountMetal",
+        "Numbers",
+        "RingGreen",
+        "RingRed",
+        "SisalDark",
+        "SisalLight",
+        "WireMetal"
+      ]
+    },
+    {
+      "check": "Wedge 20 single visible-clockwise colour",
       "pass": true,
       "detail": "SisalDark"
     },
     {
-      "check": "Wedge 20 triple clockwise colour",
+      "check": "Wedge 20 triple visible-clockwise colour",
       "pass": true,
       "detail": "RingRed"
     },
     {
-      "check": "Wedge 20 double clockwise colour",
+      "check": "Wedge 20 double visible-clockwise colour",
       "pass": true,
       "detail": "RingRed"
     },
     {
-      "check": "Wedge 1 single clockwise colour",
+      "check": "Wedge 1 single visible-clockwise colour",
       "pass": true,
       "detail": "SisalLight"
     },
     {
-      "check": "Wedge 1 triple clockwise colour",
+      "check": "Wedge 1 triple visible-clockwise colour",
       "pass": true,
       "detail": "RingGreen"
     },
     {
-      "check": "Wedge 1 double clockwise colour",
+      "check": "Wedge 1 double visible-clockwise colour",
       "pass": true,
       "detail": "RingGreen"
     },
     {
-      "check": "Wedge 18 single clockwise colour",
+      "check": "Wedge 18 single visible-clockwise colour",
       "pass": true,
       "detail": "SisalDark"
     },
     {
-      "check": "Wedge 18 triple clockwise colour",
+      "check": "Wedge 18 triple visible-clockwise colour",
       "pass": true,
       "detail": "RingRed"
     },
     {
-      "check": "Wedge 18 double clockwise colour",
+      "check": "Wedge 18 double visible-clockwise colour",
       "pass": true,
       "detail": "RingRed"
     },
     {
-      "check": "Wedge 4 single clockwise colour",
+      "check": "Wedge 4 single visible-clockwise colour",
       "pass": true,
       "detail": "SisalLight"
     },
     {
-      "check": "Wedge 4 triple clockwise colour",
+      "check": "Wedge 4 triple visible-clockwise colour",
       "pass": true,
       "detail": "RingGreen"
     },
     {
-      "check": "Wedge 4 double clockwise colour",
+      "check": "Wedge 4 double visible-clockwise colour",
       "pass": true,
       "detail": "RingGreen"
     },
     {
-      "check": "Wedge 13 single clockwise colour",
+      "check": "Wedge 13 single visible-clockwise colour",
       "pass": true,
       "detail": "SisalDark"
     },
     {
-      "check": "Wedge 13 triple clockwise colour",
+      "check": "Wedge 13 triple visible-clockwise colour",
       "pass": true,
       "detail": "RingRed"
     },
     {
-      "check": "Wedge 13 double clockwise colour",
+      "check": "Wedge 13 double visible-clockwise colour",
       "pass": true,
       "detail": "RingRed"
     },
     {
-      "check": "Wedge 6 single clockwise colour",
+      "check": "Wedge 6 single visible-clockwise colour",
       "pass": true,
       "detail": "SisalLight"
     },
     {
-      "check": "Wedge 6 triple clockwise colour",
+      "check": "Wedge 6 triple visible-clockwise colour",
       "pass": true,
       "detail": "RingGreen"
     },
     {
-      "check": "Wedge 6 double clockwise colour",
+      "check": "Wedge 6 double visible-clockwise colour",
       "pass": true,
       "detail": "RingGreen"
     },
     {
-      "check": "Wedge 10 single clockwise colour",
+      "check": "Wedge 10 single visible-clockwise colour",
       "pass": true,
       "detail": "SisalDark"
     },
     {
-      "check": "Wedge 10 triple clockwise colour",
+      "check": "Wedge 10 triple visible-clockwise colour",
       "pass": true,
       "detail": "RingRed"
     },
     {
-      "check": "Wedge 10 double clockwise colour",
+      "check": "Wedge 10 double visible-clockwise colour",
       "pass": true,
       "detail": "RingRed"
     },
     {
-      "check": "Wedge 15 single clockwise colour",
+      "check": "Wedge 15 single visible-clockwise colour",
       "pass": true,
       "detail": "SisalLight"
     },
     {
-      "check": "Wedge 15 triple clockwise colour",
+      "check": "Wedge 15 triple visible-clockwise colour",
       "pass": true,
       "detail": "RingGreen"
     },
     {
-      "check": "Wedge 15 double clockwise colour",
+      "check": "Wedge 15 double visible-clockwise colour",
       "pass": true,
       "detail": "RingGreen"
     },
     {
-      "check": "Wedge 2 single clockwise colour",
+      "check": "Wedge 2 single visible-clockwise colour",
       "pass": true,
       "detail": "SisalDark"
     },
     {
-      "check": "Wedge 2 triple clockwise colour",
+      "check": "Wedge 2 triple visible-clockwise colour",
       "pass": true,
       "detail": "RingRed"
     },
     {
-      "check": "Wedge 2 double clockwise colour",
+      "check": "Wedge 2 double visible-clockwise colour",
       "pass": true,
       "detail": "RingRed"
     },
     {
-      "check": "Wedge 17 single clockwise colour",
+      "check": "Wedge 17 single visible-clockwise colour",
       "pass": true,
       "detail": "SisalLight"
     },
     {
-      "check": "Wedge 17 triple clockwise colour",
+      "check": "Wedge 17 triple visible-clockwise colour",
       "pass": true,
       "detail": "RingGreen"
     },
     {
-      "check": "Wedge 17 double clockwise colour",
+      "check": "Wedge 17 double visible-clockwise colour",
       "pass": true,
       "detail": "RingGreen"
     },
     {
-      "check": "Wedge 3 single clockwise colour",
+      "check": "Wedge 3 single visible-clockwise colour",
       "pass": true,
       "detail": "SisalDark"
     },
     {
-      "check": "Wedge 3 triple clockwise colour",
+      "check": "Wedge 3 triple visible-clockwise colour",
       "pass": true,
       "detail": "RingRed"
     },
     {
-      "check": "Wedge 3 double clockwise colour",
+      "check": "Wedge 3 double visible-clockwise colour",
       "pass": true,
       "detail": "RingRed"
     },
     {
-      "check": "Wedge 19 single clockwise colour",
+      "check": "Wedge 19 single visible-clockwise colour",
       "pass": true,
       "detail": "SisalLight"
     },
     {
-      "check": "Wedge 19 triple clockwise colour",
+      "check": "Wedge 19 triple visible-clockwise colour",
       "pass": true,
       "detail": "RingGreen"
     },
     {
-      "check": "Wedge 19 double clockwise colour",
+      "check": "Wedge 19 double visible-clockwise colour",
       "pass": true,
       "detail": "RingGreen"
     },
     {
-      "check": "Wedge 7 single clockwise colour",
+      "check": "Wedge 7 single visible-clockwise colour",
       "pass": true,
       "detail": "SisalDark"
     },
     {
-      "check": "Wedge 7 triple clockwise colour",
+      "check": "Wedge 7 triple visible-clockwise colour",
       "pass": true,
       "detail": "RingRed"
     },
     {
-      "check": "Wedge 7 double clockwise colour",
+      "check": "Wedge 7 double visible-clockwise colour",
       "pass": true,
       "detail": "RingRed"
     },
     {
-      "check": "Wedge 16 single clockwise colour",
+      "check": "Wedge 16 single visible-clockwise colour",
       "pass": true,
       "detail": "SisalLight"
     },
     {
-      "check": "Wedge 16 triple clockwise colour",
+      "check": "Wedge 16 triple visible-clockwise colour",
       "pass": true,
       "detail": "RingGreen"
     },
     {
-      "check": "Wedge 16 double clockwise colour",
+      "check": "Wedge 16 double visible-clockwise colour",
       "pass": true,
       "detail": "RingGreen"
     },
     {
-      "check": "Wedge 8 single clockwise colour",
+      "check": "Wedge 8 single visible-clockwise colour",
       "pass": true,
       "detail": "SisalDark"
     },
     {
-      "check": "Wedge 8 triple clockwise colour",
+      "check": "Wedge 8 triple visible-clockwise colour",
       "pass": true,
       "detail": "RingRed"
     },
     {
-      "check": "Wedge 8 double clockwise colour",
+      "check": "Wedge 8 double visible-clockwise colour",
       "pass": true,
       "detail": "RingRed"
     },
     {
-      "check": "Wedge 11 single clockwise colour",
+      "check": "Wedge 11 single visible-clockwise colour",
       "pass": true,
       "detail": "SisalLight"
     },
     {
-      "check": "Wedge 11 triple clockwise colour",
+      "check": "Wedge 11 triple visible-clockwise colour",
       "pass": true,
       "detail": "RingGreen"
     },
     {
-      "check": "Wedge 11 double clockwise colour",
+      "check": "Wedge 11 double visible-clockwise colour",
       "pass": true,
       "detail": "RingGreen"
     },
     {
-      "check": "Wedge 14 single clockwise colour",
+      "check": "Wedge 14 single visible-clockwise colour",
       "pass": true,
       "detail": "SisalDark"
     },
     {
-      "check": "Wedge 14 triple clockwise colour",
+      "check": "Wedge 14 triple visible-clockwise colour",
       "pass": true,
       "detail": "RingRed"
     },
     {
-      "check": "Wedge 14 double clockwise colour",
+      "check": "Wedge 14 double visible-clockwise colour",
       "pass": true,
       "detail": "RingRed"
     },
     {
-      "check": "Wedge 9 single clockwise colour",
+      "check": "Wedge 9 single visible-clockwise colour",
       "pass": true,
       "detail": "SisalLight"
     },
     {
-      "check": "Wedge 9 triple clockwise colour",
+      "check": "Wedge 9 triple visible-clockwise colour",
       "pass": true,
       "detail": "RingGreen"
     },
     {
-      "check": "Wedge 9 double clockwise colour",
+      "check": "Wedge 9 double visible-clockwise colour",
       "pass": true,
       "detail": "RingGreen"
     },
     {
-      "check": "Wedge 12 single clockwise colour",
+      "check": "Wedge 12 single visible-clockwise colour",
       "pass": true,
       "detail": "SisalDark"
     },
     {
-      "check": "Wedge 12 triple clockwise colour",
+      "check": "Wedge 12 triple visible-clockwise colour",
       "pass": true,
       "detail": "RingRed"
     },
     {
-      "check": "Wedge 12 double clockwise colour",
+      "check": "Wedge 12 double visible-clockwise colour",
       "pass": true,
       "detail": "RingRed"
     },
     {
-      "check": "Wedge 5 single clockwise colour",
+      "check": "Wedge 5 single visible-clockwise colour",
       "pass": true,
       "detail": "SisalLight"
     },
     {
-      "check": "Wedge 5 triple clockwise colour",
+      "check": "Wedge 5 triple visible-clockwise colour",
       "pass": true,
       "detail": "RingGreen"
     },
     {
-      "check": "Wedge 5 double clockwise colour",
+      "check": "Wedge 5 double visible-clockwise colour",
       "pass": true,
       "detail": "RingGreen"
     },
     {
-      "check": "Board front UV fixed +X right +Y up",
+      "check": "Board front UV approved Unity screen-right=-X and up=+Y",
       "pass": true,
       "detail": null
     },
     {
+      "check": "All sampled rail/cushion top surfaces face +Y (CullBack)",
+      "pass": true,
+      "detail": [
+        {
+          "x": -0.57,
+          "z": -0.4,
+          "hit": true,
+          "normal": [
+            0.0,
+            1.0,
+            -0.0
+          ],
+          "face": 11
+        },
+        {
+          "x": -0.57,
+          "z": 0.4,
+          "hit": true,
+          "normal": [
+            0.0,
+            1.0,
+            -0.0
+          ],
+          "face": 23
+        },
+        {
+          "x": -0.64,
+          "z": -0.4,
+          "hit": true,
+          "normal": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "face": 5
+        },
+        {
+          "x": -0.64,
+          "z": 0.4,
+          "hit": true,
+          "normal": [
+            0.0,
+            1.0,
+            -0.0
+          ],
+          "face": 17
+        },
+        {
+          "x": 0.57,
+          "z": -0.4,
+          "hit": true,
+          "normal": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "face": 41
+        },
+        {
+          "x": 0.57,
+          "z": 0.4,
+          "hit": true,
+          "normal": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "face": 53
+        },
+        {
+          "x": 0.64,
+          "z": -0.4,
+          "hit": true,
+          "normal": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "face": 35
+        },
+        {
+          "x": 0.64,
+          "z": 0.4,
+          "hit": true,
+          "normal": [
+            0.0,
+            1.0,
+            -0.0
+          ],
+          "face": 47
+        },
+        {
+          "x": -0.2,
+          "z": -1.13,
+          "hit": true,
+          "normal": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "face": 71
+        },
+        {
+          "x": 0.2,
+          "z": -1.13,
+          "hit": true,
+          "normal": [
+            0.0,
+            1.0,
+            -0.0
+          ],
+          "face": 71
+        },
+        {
+          "x": -0.2,
+          "z": -1.18,
+          "hit": true,
+          "normal": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "face": 65
+        },
+        {
+          "x": 0.2,
+          "z": -1.18,
+          "hit": true,
+          "normal": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "face": 65
+        },
+        {
+          "x": -0.2,
+          "z": 1.13,
+          "hit": true,
+          "normal": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "face": 86
+        },
+        {
+          "x": 0.2,
+          "z": 1.13,
+          "hit": true,
+          "normal": [
+            0.0,
+            1.0,
+            -0.0
+          ],
+          "face": 86
+        },
+        {
+          "x": -0.2,
+          "z": 1.18,
+          "hit": true,
+          "normal": [
+            0.0,
+            1.0,
+            -0.0
+          ],
+          "face": 80
+        },
+        {
+          "x": 0.2,
+          "z": 1.18,
+          "hit": true,
+          "normal": [
+            0.0,
+            1.0,
+            -0.0
+          ],
+          "face": 80
+        }
+      ]
+    },
+    {
       "check": "Rail actual ray intersections leave pocket mouths open",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Uniform cloth constant UV avoids atlas-mip streaks",
       "pass": true,
       "detail": null
     },
@@ -635,6 +894,15 @@
       }
     },
     {
+      "check": "PoolTable.fbx Pocket_E raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        -0.5600000023841858,
+        0.7799999713897705,
+        0.0
+      ]
+    },
+    {
       "check": "PoolTable.fbx Pocket_NE applied rotation/scale",
       "pass": true,
       "detail": {
@@ -649,6 +917,15 @@
           1
         ]
       }
+    },
+    {
+      "check": "PoolTable.fbx Pocket_NE raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        -0.5600000023841858,
+        0.7799999713897705,
+        1.1200000047683716
+      ]
     },
     {
       "check": "PoolTable.fbx Pocket_NW applied rotation/scale",
@@ -667,6 +944,15 @@
       }
     },
     {
+      "check": "PoolTable.fbx Pocket_NW raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.5600000023841858,
+        0.7799999713897705,
+        1.1200000047683716
+      ]
+    },
+    {
       "check": "PoolTable.fbx Pocket_SE applied rotation/scale",
       "pass": true,
       "detail": {
@@ -681,6 +967,15 @@
           1
         ]
       }
+    },
+    {
+      "check": "PoolTable.fbx Pocket_SE raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        -0.5600000023841858,
+        0.7799999713897705,
+        -1.1200000047683716
+      ]
     },
     {
       "check": "PoolTable.fbx Pocket_SW applied rotation/scale",
@@ -699,6 +994,15 @@
       }
     },
     {
+      "check": "PoolTable.fbx Pocket_SW raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.5600000023841858,
+        0.7799999713897705,
+        -1.1200000047683716
+      ]
+    },
+    {
       "check": "PoolTable.fbx Pocket_W applied rotation/scale",
       "pass": true,
       "detail": {
@@ -715,6 +1019,15 @@
       }
     },
     {
+      "check": "PoolTable.fbx Pocket_W raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.5600000023841858,
+        0.7799999713897705,
+        0.0
+      ]
+    },
+    {
       "check": "PoolTable.fbx PoolTable_Root applied rotation/scale",
       "pass": true,
       "detail": {
@@ -729,6 +1042,15 @@
           1
         ]
       }
+    },
+    {
+      "check": "PoolTable.fbx PoolTable_Root raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.0
+      ]
     },
     {
       "check": "PoolTable.fbx Pool_Body applied rotation/scale",
@@ -748,6 +1070,28 @@
     },
     {
       "check": "PoolTable.fbx Pool_Body UV map",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolTable.fbx Pool_Body serialized normals agree with winding",
+      "pass": true,
+      "detail": {
+        "opposed_corners": 0,
+        "degenerate_faces": 0
+      }
+    },
+    {
+      "check": "PoolTable.fbx Pool_Body raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "check": "PoolTable.fbx Pool_Body raw vertices equal X-reflected canonical source",
       "pass": true,
       "detail": null
     },
@@ -773,6 +1117,36 @@
       "detail": null
     },
     {
+      "check": "PoolTable.fbx Pool_Cloth serialized normals agree with winding",
+      "pass": true,
+      "detail": {
+        "opposed_corners": 0,
+        "degenerate_faces": 0
+      }
+    },
+    {
+      "check": "PoolTable.fbx Pool_Cloth all exported face normals match canonical source after X reflection",
+      "pass": true,
+      "detail": {
+        "matched_faces": 68,
+        "bad_faces": 0
+      }
+    },
+    {
+      "check": "PoolTable.fbx Pool_Cloth raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "check": "PoolTable.fbx Pool_Cloth raw vertices equal X-reflected canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
       "check": "PoolTable.fbx Pool_Legs applied rotation/scale",
       "pass": true,
       "detail": {
@@ -790,6 +1164,28 @@
     },
     {
       "check": "PoolTable.fbx Pool_Legs UV map",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolTable.fbx Pool_Legs serialized normals agree with winding",
+      "pass": true,
+      "detail": {
+        "opposed_corners": 0,
+        "degenerate_faces": 0
+      }
+    },
+    {
+      "check": "PoolTable.fbx Pool_Legs raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "check": "PoolTable.fbx Pool_Legs raw vertices equal X-reflected canonical source",
       "pass": true,
       "detail": null
     },
@@ -815,6 +1211,36 @@
       "detail": null
     },
     {
+      "check": "PoolTable.fbx Pool_Pockets serialized normals agree with winding",
+      "pass": true,
+      "detail": {
+        "opposed_corners": 0,
+        "degenerate_faces": 0
+      }
+    },
+    {
+      "check": "PoolTable.fbx expected Unity Pool_Pockets ALL cylinder side normals radially outward",
+      "pass": true,
+      "detail": {
+        "side_faces": 288,
+        "inward_faces": []
+      }
+    },
+    {
+      "check": "PoolTable.fbx Pool_Pockets raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "check": "PoolTable.fbx Pool_Pockets raw vertices equal X-reflected canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
       "check": "PoolTable.fbx Pool_Rails applied rotation/scale",
       "pass": true,
       "detail": {
@@ -832,6 +1258,41 @@
     },
     {
       "check": "PoolTable.fbx Pool_Rails UV map",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolTable.fbx Pool_Rails serialized normals agree with winding",
+      "pass": true,
+      "detail": {
+        "opposed_corners": 0,
+        "degenerate_faces": 0
+      }
+    },
+    {
+      "check": "PoolTable.fbx Pool_Rails all exported face normals match canonical source after X reflection",
+      "pass": true,
+      "detail": {
+        "matched_faces": 276,
+        "bad_faces": 0
+      }
+    },
+    {
+      "check": "Expected Unity rail tops +Y after reflection",
+      "pass": true,
+      "detail": 0
+    },
+    {
+      "check": "PoolTable.fbx Pool_Rails raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "check": "PoolTable.fbx Pool_Rails raw vertices equal X-reflected canonical source",
       "pass": true,
       "detail": null
     },
@@ -1012,6 +1473,15 @@
       }
     },
     {
+      "check": "PoolAccessories.fbx CueGrip raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        -1.0499999523162842
+      ]
+    },
+    {
       "check": "PoolAccessories.fbx CueTip applied rotation/scale",
       "pass": true,
       "detail": {
@@ -1026,6 +1496,15 @@
           1
         ]
       }
+    },
+    {
+      "check": "PoolAccessories.fbx CueTip raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.0
+      ]
     },
     {
       "check": "PoolAccessories.fbx PoolCue_Root applied rotation/scale",
@@ -1044,6 +1523,15 @@
       }
     },
     {
+      "check": "PoolAccessories.fbx PoolCue_Root raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
       "check": "PoolAccessories.fbx PoolRack_Root applied rotation/scale",
       "pass": true,
       "detail": {
@@ -1058,6 +1546,15 @@
           1
         ]
       }
+    },
+    {
+      "check": "PoolAccessories.fbx PoolRack_Root raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.0
+      ]
     },
     {
       "check": "PoolAccessories.fbx Pool_Ball_00 applied rotation/scale",
@@ -1077,6 +1574,28 @@
     },
     {
       "check": "PoolAccessories.fbx Pool_Ball_00 UV map",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_00 serialized normals agree with winding",
+      "pass": true,
+      "detail": {
+        "opposed_corners": 0,
+        "degenerate_faces": 0
+      }
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_00 raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_00 raw vertices equal X-reflected canonical source",
       "pass": true,
       "detail": null
     },
@@ -1102,6 +1621,28 @@
       "detail": null
     },
     {
+      "check": "PoolAccessories.fbx Pool_Ball_01 serialized normals agree with winding",
+      "pass": true,
+      "detail": {
+        "opposed_corners": 0,
+        "degenerate_faces": 0
+      }
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_01 raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_01 raw vertices equal X-reflected canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
       "check": "PoolAccessories.fbx Pool_Ball_02 applied rotation/scale",
       "pass": true,
       "detail": {
@@ -1119,6 +1660,28 @@
     },
     {
       "check": "PoolAccessories.fbx Pool_Ball_02 UV map",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_02 serialized normals agree with winding",
+      "pass": true,
+      "detail": {
+        "opposed_corners": 0,
+        "degenerate_faces": 0
+      }
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_02 raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_02 raw vertices equal X-reflected canonical source",
       "pass": true,
       "detail": null
     },
@@ -1144,6 +1707,28 @@
       "detail": null
     },
     {
+      "check": "PoolAccessories.fbx Pool_Ball_03 serialized normals agree with winding",
+      "pass": true,
+      "detail": {
+        "opposed_corners": 0,
+        "degenerate_faces": 0
+      }
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_03 raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_03 raw vertices equal X-reflected canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
       "check": "PoolAccessories.fbx Pool_Ball_04 applied rotation/scale",
       "pass": true,
       "detail": {
@@ -1161,6 +1746,28 @@
     },
     {
       "check": "PoolAccessories.fbx Pool_Ball_04 UV map",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_04 serialized normals agree with winding",
+      "pass": true,
+      "detail": {
+        "opposed_corners": 0,
+        "degenerate_faces": 0
+      }
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_04 raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_04 raw vertices equal X-reflected canonical source",
       "pass": true,
       "detail": null
     },
@@ -1186,6 +1793,28 @@
       "detail": null
     },
     {
+      "check": "PoolAccessories.fbx Pool_Ball_05 serialized normals agree with winding",
+      "pass": true,
+      "detail": {
+        "opposed_corners": 0,
+        "degenerate_faces": 0
+      }
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_05 raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_05 raw vertices equal X-reflected canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
       "check": "PoolAccessories.fbx Pool_Ball_06 applied rotation/scale",
       "pass": true,
       "detail": {
@@ -1203,6 +1832,28 @@
     },
     {
       "check": "PoolAccessories.fbx Pool_Ball_06 UV map",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_06 serialized normals agree with winding",
+      "pass": true,
+      "detail": {
+        "opposed_corners": 0,
+        "degenerate_faces": 0
+      }
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_06 raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_06 raw vertices equal X-reflected canonical source",
       "pass": true,
       "detail": null
     },
@@ -1228,6 +1879,28 @@
       "detail": null
     },
     {
+      "check": "PoolAccessories.fbx Pool_Ball_07 serialized normals agree with winding",
+      "pass": true,
+      "detail": {
+        "opposed_corners": 0,
+        "degenerate_faces": 0
+      }
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_07 raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_07 raw vertices equal X-reflected canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
       "check": "PoolAccessories.fbx Pool_Ball_08 applied rotation/scale",
       "pass": true,
       "detail": {
@@ -1245,6 +1918,28 @@
     },
     {
       "check": "PoolAccessories.fbx Pool_Ball_08 UV map",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_08 serialized normals agree with winding",
+      "pass": true,
+      "detail": {
+        "opposed_corners": 0,
+        "degenerate_faces": 0
+      }
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_08 raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_08 raw vertices equal X-reflected canonical source",
       "pass": true,
       "detail": null
     },
@@ -1270,6 +1965,28 @@
       "detail": null
     },
     {
+      "check": "PoolAccessories.fbx Pool_Ball_09 serialized normals agree with winding",
+      "pass": true,
+      "detail": {
+        "opposed_corners": 0,
+        "degenerate_faces": 0
+      }
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_09 raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_09 raw vertices equal X-reflected canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
       "check": "PoolAccessories.fbx Pool_Ball_10 applied rotation/scale",
       "pass": true,
       "detail": {
@@ -1287,6 +2004,28 @@
     },
     {
       "check": "PoolAccessories.fbx Pool_Ball_10 UV map",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_10 serialized normals agree with winding",
+      "pass": true,
+      "detail": {
+        "opposed_corners": 0,
+        "degenerate_faces": 0
+      }
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_10 raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_10 raw vertices equal X-reflected canonical source",
       "pass": true,
       "detail": null
     },
@@ -1312,6 +2051,28 @@
       "detail": null
     },
     {
+      "check": "PoolAccessories.fbx Pool_Ball_11 serialized normals agree with winding",
+      "pass": true,
+      "detail": {
+        "opposed_corners": 0,
+        "degenerate_faces": 0
+      }
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_11 raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_11 raw vertices equal X-reflected canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
       "check": "PoolAccessories.fbx Pool_Ball_12 applied rotation/scale",
       "pass": true,
       "detail": {
@@ -1329,6 +2090,28 @@
     },
     {
       "check": "PoolAccessories.fbx Pool_Ball_12 UV map",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_12 serialized normals agree with winding",
+      "pass": true,
+      "detail": {
+        "opposed_corners": 0,
+        "degenerate_faces": 0
+      }
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_12 raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_12 raw vertices equal X-reflected canonical source",
       "pass": true,
       "detail": null
     },
@@ -1354,6 +2137,28 @@
       "detail": null
     },
     {
+      "check": "PoolAccessories.fbx Pool_Ball_13 serialized normals agree with winding",
+      "pass": true,
+      "detail": {
+        "opposed_corners": 0,
+        "degenerate_faces": 0
+      }
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_13 raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_13 raw vertices equal X-reflected canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
       "check": "PoolAccessories.fbx Pool_Ball_14 applied rotation/scale",
       "pass": true,
       "detail": {
@@ -1371,6 +2176,28 @@
     },
     {
       "check": "PoolAccessories.fbx Pool_Ball_14 UV map",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_14 serialized normals agree with winding",
+      "pass": true,
+      "detail": {
+        "opposed_corners": 0,
+        "degenerate_faces": 0
+      }
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_14 raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_14 raw vertices equal X-reflected canonical source",
       "pass": true,
       "detail": null
     },
@@ -1396,6 +2223,28 @@
       "detail": null
     },
     {
+      "check": "PoolAccessories.fbx Pool_Ball_15 serialized normals agree with winding",
+      "pass": true,
+      "detail": {
+        "opposed_corners": 0,
+        "degenerate_faces": 0
+      }
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_15 raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_15 raw vertices equal X-reflected canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
       "check": "PoolAccessories.fbx Pool_Cue applied rotation/scale",
       "pass": true,
       "detail": {
@@ -1417,6 +2266,36 @@
       "detail": null
     },
     {
+      "check": "PoolAccessories.fbx Pool_Cue serialized normals agree with winding",
+      "pass": true,
+      "detail": {
+        "opposed_corners": 0,
+        "degenerate_faces": 0
+      }
+    },
+    {
+      "check": "PoolAccessories.fbx expected Unity Pool_Cue ALL cylinder side normals radially outward",
+      "pass": true,
+      "detail": {
+        "side_faces": 96,
+        "inward_faces": []
+      }
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Cue raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Cue raw vertices equal X-reflected canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
       "check": "PoolAccessories.fbx Pool_Rack applied rotation/scale",
       "pass": true,
       "detail": {
@@ -1434,6 +2313,28 @@
     },
     {
       "check": "PoolAccessories.fbx Pool_Rack UV map",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Rack serialized normals agree with winding",
+      "pass": true,
+      "detail": {
+        "opposed_corners": 0,
+        "degenerate_faces": 0
+      }
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Rack raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Rack raw vertices equal X-reflected canonical source",
       "pass": true,
       "detail": null
     },
@@ -1614,6 +2515,15 @@
       }
     },
     {
+      "check": "DartsBoard.fbx BoardCentre raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
       "check": "DartsBoard.fbx BoardFace applied rotation/scale",
       "pass": true,
       "detail": {
@@ -1630,6 +2540,15 @@
       }
     },
     {
+      "check": "DartsBoard.fbx BoardFace raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.054999999701976776
+      ]
+    },
+    {
       "check": "DartsBoard.fbx DartsBoard_Root applied rotation/scale",
       "pass": true,
       "detail": {
@@ -1644,6 +2563,15 @@
           1
         ]
       }
+    },
+    {
+      "check": "DartsBoard.fbx DartsBoard_Root raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.0
+      ]
     },
     {
       "check": "DartsBoard.fbx Darts_Backplate applied rotation/scale",
@@ -1663,6 +2591,36 @@
     },
     {
       "check": "DartsBoard.fbx Darts_Backplate UV map",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "DartsBoard.fbx Darts_Backplate serialized normals agree with winding",
+      "pass": true,
+      "detail": {
+        "opposed_corners": 0,
+        "degenerate_faces": 0
+      }
+    },
+    {
+      "check": "DartsBoard.fbx expected Unity Darts_Backplate ALL cylinder side normals radially outward",
+      "pass": true,
+      "detail": {
+        "side_faces": 128,
+        "inward_faces": []
+      }
+    },
+    {
+      "check": "DartsBoard.fbx Darts_Backplate raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "check": "DartsBoard.fbx Darts_Backplate raw vertices equal X-reflected canonical source",
       "pass": true,
       "detail": null
     },
@@ -1688,6 +2646,41 @@
       "detail": null
     },
     {
+      "check": "DartsBoard.fbx Darts_Board serialized normals agree with winding",
+      "pass": true,
+      "detail": {
+        "opposed_corners": 0,
+        "degenerate_faces": 0
+      }
+    },
+    {
+      "check": "DartsBoard.fbx Darts_Board all exported face normals match canonical source after X reflection",
+      "pass": true,
+      "detail": {
+        "matched_faces": 1278,
+        "bad_faces": 0
+      }
+    },
+    {
+      "check": "Darts_Board expected Unity screen-right=-X, screen-up=+Y artwork projection",
+      "pass": true,
+      "detail": 0
+    },
+    {
+      "check": "DartsBoard.fbx Darts_Board raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "check": "DartsBoard.fbx Darts_Board raw vertices equal X-reflected canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
       "check": "DartsBoard.fbx Darts_Mount applied rotation/scale",
       "pass": true,
       "detail": {
@@ -1705,6 +2698,36 @@
     },
     {
       "check": "DartsBoard.fbx Darts_Mount UV map",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "DartsBoard.fbx Darts_Mount serialized normals agree with winding",
+      "pass": true,
+      "detail": {
+        "opposed_corners": 0,
+        "degenerate_faces": 0
+      }
+    },
+    {
+      "check": "DartsBoard.fbx expected Unity Darts_Mount ALL cylinder side normals radially outward",
+      "pass": true,
+      "detail": {
+        "side_faces": 48,
+        "inward_faces": []
+      }
+    },
+    {
+      "check": "DartsBoard.fbx Darts_Mount raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "check": "DartsBoard.fbx Darts_Mount raw vertices equal X-reflected canonical source",
       "pass": true,
       "detail": null
     },
@@ -1730,6 +2753,41 @@
       "detail": null
     },
     {
+      "check": "DartsBoard.fbx Darts_NumberRing serialized normals agree with winding",
+      "pass": true,
+      "detail": {
+        "opposed_corners": 0,
+        "degenerate_faces": 0
+      }
+    },
+    {
+      "check": "DartsBoard.fbx Darts_NumberRing all exported face normals match canonical source after X reflection",
+      "pass": true,
+      "detail": {
+        "matched_faces": 40,
+        "bad_faces": 0
+      }
+    },
+    {
+      "check": "Darts_NumberRing expected Unity screen-right=-X, screen-up=+Y artwork projection",
+      "pass": true,
+      "detail": 0
+    },
+    {
+      "check": "DartsBoard.fbx Darts_NumberRing raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "check": "DartsBoard.fbx Darts_NumberRing raw vertices equal X-reflected canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
       "check": "DartsBoard.fbx Darts_Wire applied rotation/scale",
       "pass": true,
       "detail": {
@@ -1747,6 +2805,36 @@
     },
     {
       "check": "DartsBoard.fbx Darts_Wire UV map",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "DartsBoard.fbx Darts_Wire serialized normals agree with winding",
+      "pass": true,
+      "detail": {
+        "opposed_corners": 0,
+        "degenerate_faces": 0
+      }
+    },
+    {
+      "check": "DartsBoard.fbx Darts_Wire all exported face normals match canonical source after X reflection",
+      "pass": true,
+      "detail": {
+        "matched_faces": 1160,
+        "bad_faces": 0
+      }
+    },
+    {
+      "check": "DartsBoard.fbx Darts_Wire raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "check": "DartsBoard.fbx Darts_Wire raw vertices equal X-reflected canonical source",
       "pass": true,
       "detail": null
     },
@@ -1950,6 +3038,15 @@
       }
     },
     {
+      "check": "Dart.fbx DartGrip raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.05999999865889549
+      ]
+    },
+    {
       "check": "Dart.fbx Dart_Barrel applied rotation/scale",
       "pass": true,
       "detail": {
@@ -1967,6 +3064,36 @@
     },
     {
       "check": "Dart.fbx Dart_Barrel UV map",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Dart.fbx Dart_Barrel serialized normals agree with winding",
+      "pass": true,
+      "detail": {
+        "opposed_corners": 0,
+        "degenerate_faces": 0
+      }
+    },
+    {
+      "check": "Dart.fbx expected Unity Dart_Barrel ALL cylinder side normals radially outward",
+      "pass": true,
+      "detail": {
+        "side_faces": 60,
+        "inward_faces": []
+      }
+    },
+    {
+      "check": "Dart.fbx Dart_Barrel raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "check": "Dart.fbx Dart_Barrel raw vertices equal X-reflected canonical source",
       "pass": true,
       "detail": null
     },
@@ -1992,6 +3119,28 @@
       "detail": null
     },
     {
+      "check": "Dart.fbx Dart_Flights serialized normals agree with winding",
+      "pass": true,
+      "detail": {
+        "opposed_corners": 0,
+        "degenerate_faces": 0
+      }
+    },
+    {
+      "check": "Dart.fbx Dart_Flights raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "check": "Dart.fbx Dart_Flights raw vertices equal X-reflected canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
       "check": "Dart.fbx Dart_Root applied rotation/scale",
       "pass": true,
       "detail": {
@@ -2006,6 +3155,15 @@
           1
         ]
       }
+    },
+    {
+      "check": "Dart.fbx Dart_Root raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.0
+      ]
     },
     {
       "check": "Dart.fbx Dart_Shaft applied rotation/scale",
@@ -2029,6 +3187,36 @@
       "detail": null
     },
     {
+      "check": "Dart.fbx Dart_Shaft serialized normals agree with winding",
+      "pass": true,
+      "detail": {
+        "opposed_corners": 0,
+        "degenerate_faces": 0
+      }
+    },
+    {
+      "check": "Dart.fbx expected Unity Dart_Shaft ALL cylinder side normals radially outward",
+      "pass": true,
+      "detail": {
+        "side_faces": 16,
+        "inward_faces": []
+      }
+    },
+    {
+      "check": "Dart.fbx Dart_Shaft raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "check": "Dart.fbx Dart_Shaft raw vertices equal X-reflected canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
       "check": "Dart.fbx Dart_Tip applied rotation/scale",
       "pass": true,
       "detail": {
@@ -2046,6 +3234,36 @@
     },
     {
       "check": "Dart.fbx Dart_Tip UV map",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Dart.fbx Dart_Tip serialized normals agree with winding",
+      "pass": true,
+      "detail": {
+        "opposed_corners": 0,
+        "degenerate_faces": 0
+      }
+    },
+    {
+      "check": "Dart.fbx expected Unity Dart_Tip ALL cylinder side normals radially outward",
+      "pass": true,
+      "detail": {
+        "side_faces": 8,
+        "inward_faces": []
+      }
+    },
+    {
+      "check": "Dart.fbx Dart_Tip raw pivot equals X-reflected canonical source",
+      "pass": true,
+      "detail": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "check": "Dart.fbx Dart_Tip raw vertices equal X-reflected canonical source",
       "pass": true,
       "detail": null
     },
@@ -2267,7 +3485,7 @@
       "check": "PoolTable triangle budget",
       "pass": true,
       "detail": {
-        "triangles": 1484,
+        "triangles": 1448,
         "maximum": 6000
       }
     },
@@ -2381,7 +3599,7 @@
       "check": "Cue triangle budget",
       "pass": true,
       "detail": {
-        "triangles": 156,
+        "triangles": 146,
         "maximum": 500
       }
     },
@@ -3338,7 +4556,7 @@
       ]
     },
     {
-      "check": "Assembled board/dart <=8 materials",
+      "check": "Board/dart exports exactly8 unique material names (runtime identity unverified)",
       "pass": true,
       "detail": [
         "DartFlight",
@@ -3381,12 +4599,248 @@
       "detail": null
     },
     {
+      "check": "Actual atlas glyph 6 at root -X / screen-right under verified fixed projection",
+      "pass": true,
+      "detail": {
+        "mask_sha256": "9d40152cd07f67b35b4de5e9c2d4d6019dc8074a0d11a742554afa4984748e4b",
+        "expected": "9d40152cd07f67b35b4de5e9c2d4d6019dc8074a0d11a742554afa4984748e4b",
+        "crop": [
+          915,
+          487,
+          985,
+          537
+        ]
+      }
+    },
+    {
+      "check": "Actual atlas glyph 11 at root +X / screen-left under verified fixed projection",
+      "pass": true,
+      "detail": {
+        "mask_sha256": "300a5f03a1e1be4a765ab46c02c2cdbd0c04f647bee661de638fb613c9d95c82",
+        "expected": "300a5f03a1e1be4a765ab46c02c2cdbd0c04f647bee661de638fb613c9d95c82",
+        "crop": [
+          39,
+          487,
+          109,
+          537
+        ]
+      }
+    },
+    {
+      "check": "Actual atlas glyph 20 at +Y under verified fixed projection",
+      "pass": true,
+      "detail": {
+        "mask_sha256": "5599f077bd687c7428ecd40337ea640508ee10460115522649ed03227a74a422",
+        "expected": "5599f077bd687c7428ecd40337ea640508ee10460115522649ed03227a74a422",
+        "crop": [
+          477,
+          49,
+          547,
+          99
+        ]
+      }
+    },
+    {
+      "check": "PoolTable.fbx accepted reference exact mesh names",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolTable.fbx Pool_Body all geometry arrays identical to accepted reference",
+      "pass": true,
+      "detail": {
+        "current_semantic_sha256": "d46166ce4f0a723ae8743a3ab87e744466b859b720df2a861b301bd99bec62b4",
+        "reference_semantic_sha256": "d46166ce4f0a723ae8743a3ab87e744466b859b720df2a861b301bd99bec62b4"
+      }
+    },
+    {
+      "check": "PoolTable.fbx Pool_Cloth all geometry arrays identical to accepted reference",
+      "pass": true,
+      "detail": {
+        "current_semantic_sha256": "c920e2b088875a5489461f321566b7c1b1576d03dfc6f6f1937ae739d4aaeae9",
+        "reference_semantic_sha256": "c920e2b088875a5489461f321566b7c1b1576d03dfc6f6f1937ae739d4aaeae9"
+      }
+    },
+    {
+      "check": "PoolTable.fbx Pool_Legs all geometry arrays identical to accepted reference",
+      "pass": true,
+      "detail": {
+        "current_semantic_sha256": "980bab0931ebc47c997ef3b12a104ec6f454ab0389a294459ecb40d0bf730c40",
+        "reference_semantic_sha256": "980bab0931ebc47c997ef3b12a104ec6f454ab0389a294459ecb40d0bf730c40"
+      }
+    },
+    {
+      "check": "PoolTable.fbx Pool_Pockets all geometry arrays identical to accepted reference",
+      "pass": true,
+      "detail": {
+        "current_semantic_sha256": "ae06fe5a9dcbd64ced62562ef3cbe777f3c5d5ae9cba401b912a7efbe745d89c",
+        "reference_semantic_sha256": "ae06fe5a9dcbd64ced62562ef3cbe777f3c5d5ae9cba401b912a7efbe745d89c"
+      }
+    },
+    {
+      "check": "PoolTable.fbx Pool_Rails all geometry arrays identical to accepted reference",
+      "pass": true,
+      "detail": {
+        "current_semantic_sha256": "e6a3a410435b68019d935c908dc3bb4625c5839cfd1b7c670aae79bce3e84416",
+        "reference_semantic_sha256": "e6a3a410435b68019d935c908dc3bb4625c5839cfd1b7c670aae79bce3e84416"
+      }
+    },
+    {
+      "check": "PoolAccessories.fbx accepted reference exact mesh names",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_00 all geometry arrays identical to accepted reference",
+      "pass": true,
+      "detail": {
+        "current_semantic_sha256": "38da2f679619ced0ba7cedd5155f5d7cf89cc6fa77af8d4103578279b796c923",
+        "reference_semantic_sha256": "38da2f679619ced0ba7cedd5155f5d7cf89cc6fa77af8d4103578279b796c923"
+      }
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_01 all geometry arrays identical to accepted reference",
+      "pass": true,
+      "detail": {
+        "current_semantic_sha256": "de817850c1331fa30890aa309d75a6cd566aadd8d78b4ecef12799ae5ef13c91",
+        "reference_semantic_sha256": "de817850c1331fa30890aa309d75a6cd566aadd8d78b4ecef12799ae5ef13c91"
+      }
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_02 all geometry arrays identical to accepted reference",
+      "pass": true,
+      "detail": {
+        "current_semantic_sha256": "900c31db39313728d0158ea7934422dba5e11454ae5c96dd012fcac2aef41a4d",
+        "reference_semantic_sha256": "900c31db39313728d0158ea7934422dba5e11454ae5c96dd012fcac2aef41a4d"
+      }
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_03 all geometry arrays identical to accepted reference",
+      "pass": true,
+      "detail": {
+        "current_semantic_sha256": "f9da66056558fbc0b38cff822ff6edcaf7642c5a22018fef15c2e1cd82db0ef3",
+        "reference_semantic_sha256": "f9da66056558fbc0b38cff822ff6edcaf7642c5a22018fef15c2e1cd82db0ef3"
+      }
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_04 all geometry arrays identical to accepted reference",
+      "pass": true,
+      "detail": {
+        "current_semantic_sha256": "364020ed52cce05b5ae1e449046d9e0c3b411a5c526612cc77ead10edc92cbba",
+        "reference_semantic_sha256": "364020ed52cce05b5ae1e449046d9e0c3b411a5c526612cc77ead10edc92cbba"
+      }
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_05 all geometry arrays identical to accepted reference",
+      "pass": true,
+      "detail": {
+        "current_semantic_sha256": "32450d1ba7ddb0ccc09e5e89ff0ee89052fef24a0d79d99d0535dd250eda668b",
+        "reference_semantic_sha256": "32450d1ba7ddb0ccc09e5e89ff0ee89052fef24a0d79d99d0535dd250eda668b"
+      }
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_06 all geometry arrays identical to accepted reference",
+      "pass": true,
+      "detail": {
+        "current_semantic_sha256": "a41cdc8047f9c85fb37ef654ca3de7282c09368855a11d980b078eee849c7882",
+        "reference_semantic_sha256": "a41cdc8047f9c85fb37ef654ca3de7282c09368855a11d980b078eee849c7882"
+      }
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_07 all geometry arrays identical to accepted reference",
+      "pass": true,
+      "detail": {
+        "current_semantic_sha256": "d1eb3d0ffd4089b3581e8011807ffb5472cf79b94c1d49e21304583148245a30",
+        "reference_semantic_sha256": "d1eb3d0ffd4089b3581e8011807ffb5472cf79b94c1d49e21304583148245a30"
+      }
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_08 all geometry arrays identical to accepted reference",
+      "pass": true,
+      "detail": {
+        "current_semantic_sha256": "52403443662c177af6d9bcd0e65fad8b10480f9cb9eae525f0e7f0b1be73f701",
+        "reference_semantic_sha256": "52403443662c177af6d9bcd0e65fad8b10480f9cb9eae525f0e7f0b1be73f701"
+      }
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_09 all geometry arrays identical to accepted reference",
+      "pass": true,
+      "detail": {
+        "current_semantic_sha256": "d9340bb8d78a5c8d5451db89d0f7d684850841bf69207d0745ee2a68cfeb9bca",
+        "reference_semantic_sha256": "d9340bb8d78a5c8d5451db89d0f7d684850841bf69207d0745ee2a68cfeb9bca"
+      }
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_10 all geometry arrays identical to accepted reference",
+      "pass": true,
+      "detail": {
+        "current_semantic_sha256": "108b575d1534601fc2a87479f175728dc4371650a447614ddec66e294c1d112f",
+        "reference_semantic_sha256": "108b575d1534601fc2a87479f175728dc4371650a447614ddec66e294c1d112f"
+      }
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_11 all geometry arrays identical to accepted reference",
+      "pass": true,
+      "detail": {
+        "current_semantic_sha256": "75bdac67096d39f45e950a95c953a81b20859181f90fc55d82c88cc13ae3b20a",
+        "reference_semantic_sha256": "75bdac67096d39f45e950a95c953a81b20859181f90fc55d82c88cc13ae3b20a"
+      }
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_12 all geometry arrays identical to accepted reference",
+      "pass": true,
+      "detail": {
+        "current_semantic_sha256": "433b4c9f48b62f47094760cde2de479c8939a2c7523fbd709e51d80e945cadb6",
+        "reference_semantic_sha256": "433b4c9f48b62f47094760cde2de479c8939a2c7523fbd709e51d80e945cadb6"
+      }
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_13 all geometry arrays identical to accepted reference",
+      "pass": true,
+      "detail": {
+        "current_semantic_sha256": "36e2c5ffeac877aaebb385ff951943f769dee15ece484668e09c01fd613c3557",
+        "reference_semantic_sha256": "36e2c5ffeac877aaebb385ff951943f769dee15ece484668e09c01fd613c3557"
+      }
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_14 all geometry arrays identical to accepted reference",
+      "pass": true,
+      "detail": {
+        "current_semantic_sha256": "918127d66401c15dd0f5515a66c6c31171d6203627847004e310887990026371",
+        "reference_semantic_sha256": "918127d66401c15dd0f5515a66c6c31171d6203627847004e310887990026371"
+      }
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Ball_15 all geometry arrays identical to accepted reference",
+      "pass": true,
+      "detail": {
+        "current_semantic_sha256": "a7e9c80e8ab9c46127f824914280eca27bc55a66721e52fa43db805693b276a3",
+        "reference_semantic_sha256": "a7e9c80e8ab9c46127f824914280eca27bc55a66721e52fa43db805693b276a3"
+      }
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Cue all geometry arrays identical to accepted reference",
+      "pass": true,
+      "detail": {
+        "current_semantic_sha256": "f09d02d00ef846c348b2fe6b3ad084bc14790ec942275da0304e0f90a9c5f358",
+        "reference_semantic_sha256": "f09d02d00ef846c348b2fe6b3ad084bc14790ec942275da0304e0f90a9c5f358"
+      }
+    },
+    {
+      "check": "PoolAccessories.fbx Pool_Rack all geometry arrays identical to accepted reference",
+      "pass": true,
+      "detail": {
+        "current_semantic_sha256": "9632f5fb329bb3f2cc83884217dca8977970a037f25f86f46ebae8d4fde7af0b",
+        "reference_semantic_sha256": "9632f5fb329bb3f2cc83884217dca8977970a037f25f86f46ebae8d4fde7af0b"
+      }
+    },
+    {
       "check": "PoolTable.fbx actual import exact object names",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolTable.fbx actual import Pocket_E origin",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pocket_E origin",
       "pass": true,
       "detail": [
         0.5600000023841858,
@@ -3395,12 +4849,12 @@
       ]
     },
     {
-      "check": "PoolTable.fbx actual import Pocket_E hierarchy",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pocket_E hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolTable.fbx actual import Pocket_NE origin",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pocket_NE origin",
       "pass": true,
       "detail": [
         0.5600000023841858,
@@ -3409,12 +4863,12 @@
       ]
     },
     {
-      "check": "PoolTable.fbx actual import Pocket_NE hierarchy",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pocket_NE hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolTable.fbx actual import Pocket_NW origin",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pocket_NW origin",
       "pass": true,
       "detail": [
         -0.5600000023841858,
@@ -3423,12 +4877,12 @@
       ]
     },
     {
-      "check": "PoolTable.fbx actual import Pocket_NW hierarchy",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pocket_NW hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolTable.fbx actual import Pocket_SE origin",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pocket_SE origin",
       "pass": true,
       "detail": [
         0.5600000023841858,
@@ -3437,12 +4891,12 @@
       ]
     },
     {
-      "check": "PoolTable.fbx actual import Pocket_SE hierarchy",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pocket_SE hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolTable.fbx actual import Pocket_SW origin",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pocket_SW origin",
       "pass": true,
       "detail": [
         -0.5600000023841858,
@@ -3451,12 +4905,12 @@
       ]
     },
     {
-      "check": "PoolTable.fbx actual import Pocket_SW hierarchy",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pocket_SW hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolTable.fbx actual import Pocket_W origin",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pocket_W origin",
       "pass": true,
       "detail": [
         -0.5600000023841858,
@@ -3465,12 +4919,12 @@
       ]
     },
     {
-      "check": "PoolTable.fbx actual import Pocket_W hierarchy",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pocket_W hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolTable.fbx actual import PoolTable_Root origin",
+      "check": "PoolTable.fbx actual Blender import, X-normalized PoolTable_Root origin",
       "pass": true,
       "detail": [
         0.0,
@@ -3479,12 +4933,12 @@
       ]
     },
     {
-      "check": "PoolTable.fbx actual import PoolTable_Root hierarchy",
+      "check": "PoolTable.fbx actual Blender import, X-normalized PoolTable_Root hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolTable.fbx actual import Pool_Body origin",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pool_Body origin",
       "pass": true,
       "detail": [
         0.0,
@@ -3493,12 +4947,12 @@
       ]
     },
     {
-      "check": "PoolTable.fbx actual import Pool_Body hierarchy",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pool_Body hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolTable.fbx actual import Pool_Body bounds",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pool_Body bounds",
       "pass": true,
       "detail": [
         [
@@ -3514,17 +4968,17 @@
       ]
     },
     {
-      "check": "PoolTable.fbx actual import Pool_Body triangles",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pool_Body triangles",
       "pass": true,
       "detail": 120
     },
     {
-      "check": "PoolTable.fbx actual import Pool_Body UV present",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pool_Body UV present",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolTable.fbx actual import Pool_Body materials",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pool_Body materials",
       "pass": true,
       "detail": [
         "Wood",
@@ -3532,7 +4986,7 @@
       ]
     },
     {
-      "check": "PoolTable.fbx actual import Pool_Cloth origin",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pool_Cloth origin",
       "pass": true,
       "detail": [
         0.0,
@@ -3541,12 +4995,12 @@
       ]
     },
     {
-      "check": "PoolTable.fbx actual import Pool_Cloth hierarchy",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pool_Cloth hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolTable.fbx actual import Pool_Cloth bounds",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pool_Cloth bounds",
       "pass": true,
       "detail": [
         [
@@ -3562,24 +5016,24 @@
       ]
     },
     {
-      "check": "PoolTable.fbx actual import Pool_Cloth triangles",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pool_Cloth triangles",
       "pass": true,
       "detail": 68
     },
     {
-      "check": "PoolTable.fbx actual import Pool_Cloth UV present",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pool_Cloth UV present",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolTable.fbx actual import Pool_Cloth materials",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pool_Cloth materials",
       "pass": true,
       "detail": [
         "Cloth"
       ]
     },
     {
-      "check": "PoolTable.fbx actual import Pool_Legs origin",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pool_Legs origin",
       "pass": true,
       "detail": [
         0.0,
@@ -3588,12 +5042,12 @@
       ]
     },
     {
-      "check": "PoolTable.fbx actual import Pool_Legs hierarchy",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pool_Legs hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolTable.fbx actual import Pool_Legs bounds",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pool_Legs bounds",
       "pass": true,
       "detail": [
         [
@@ -3609,17 +5063,17 @@
       ]
     },
     {
-      "check": "PoolTable.fbx actual import Pool_Legs triangles",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pool_Legs triangles",
       "pass": true,
       "detail": 144
     },
     {
-      "check": "PoolTable.fbx actual import Pool_Legs UV present",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pool_Legs UV present",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolTable.fbx actual import Pool_Legs materials",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pool_Legs materials",
       "pass": true,
       "detail": [
         "Wood",
@@ -3627,7 +5081,7 @@
       ]
     },
     {
-      "check": "PoolTable.fbx actual import Pool_Pockets origin",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pool_Pockets origin",
       "pass": true,
       "detail": [
         0.0,
@@ -3636,12 +5090,12 @@
       ]
     },
     {
-      "check": "PoolTable.fbx actual import Pool_Pockets hierarchy",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pool_Pockets hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolTable.fbx actual import Pool_Pockets bounds",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pool_Pockets bounds",
       "pass": true,
       "detail": [
         [
@@ -3657,17 +5111,17 @@
       ]
     },
     {
-      "check": "PoolTable.fbx actual import Pool_Pockets triangles",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pool_Pockets triangles",
       "pass": true,
       "detail": 840
     },
     {
-      "check": "PoolTable.fbx actual import Pool_Pockets UV present",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pool_Pockets UV present",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolTable.fbx actual import Pool_Pockets materials",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pool_Pockets materials",
       "pass": true,
       "detail": [
         "Metal",
@@ -3675,7 +5129,7 @@
       ]
     },
     {
-      "check": "PoolTable.fbx actual import Pool_Rails origin",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pool_Rails origin",
       "pass": true,
       "detail": [
         0.0,
@@ -3684,12 +5138,12 @@
       ]
     },
     {
-      "check": "PoolTable.fbx actual import Pool_Rails hierarchy",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pool_Rails hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolTable.fbx actual import Pool_Rails bounds",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pool_Rails bounds",
       "pass": true,
       "detail": [
         [
@@ -3705,17 +5159,17 @@
       ]
     },
     {
-      "check": "PoolTable.fbx actual import Pool_Rails triangles",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pool_Rails triangles",
       "pass": true,
-      "detail": 312
+      "detail": 276
     },
     {
-      "check": "PoolTable.fbx actual import Pool_Rails UV present",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pool_Rails UV present",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolTable.fbx actual import Pool_Rails materials",
+      "check": "PoolTable.fbx actual Blender import, X-normalized Pool_Rails materials",
       "pass": true,
       "detail": [
         "Wood",
@@ -3726,7 +5180,7 @@
     {
       "check": "PoolTable.fbx actual import texture resolves PoolFurniture_BaseColor.png",
       "pass": true,
-      "detail": "/workspace/shared/lifestyle-assets/Textures/PoolFurniture_BaseColor.png"
+      "detail": "/workspace/shared/lifestyle-final-staging/Textures/PoolFurniture_BaseColor.png"
     },
     {
       "check": "PoolAccessories.fbx actual import exact object names",
@@ -3734,7 +5188,7 @@
       "detail": null
     },
     {
-      "check": "PoolAccessories.fbx actual import CueGrip origin",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized CueGrip origin",
       "pass": true,
       "detail": [
         0.0,
@@ -3743,12 +5197,12 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import CueGrip hierarchy",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized CueGrip hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolAccessories.fbx actual import CueTip origin",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized CueTip origin",
       "pass": true,
       "detail": [
         0.0,
@@ -3757,12 +5211,12 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import CueTip hierarchy",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized CueTip hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolAccessories.fbx actual import PoolCue_Root origin",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized PoolCue_Root origin",
       "pass": true,
       "detail": [
         0.0,
@@ -3771,12 +5225,12 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import PoolCue_Root hierarchy",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized PoolCue_Root hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolAccessories.fbx actual import PoolRack_Root origin",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized PoolRack_Root origin",
       "pass": true,
       "detail": [
         0.0,
@@ -3785,12 +5239,12 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import PoolRack_Root hierarchy",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized PoolRack_Root hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_00 origin",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_00 origin",
       "pass": true,
       "detail": [
         0.0,
@@ -3799,12 +5253,12 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_00 hierarchy",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_00 hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_00 bounds",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_00 bounds",
       "pass": true,
       "detail": [
         [
@@ -3820,12 +5274,12 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_00 triangles",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_00 triangles",
       "pass": true,
       "detail": 288
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_00 UV present",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_00 UV present",
       "pass": true,
       "detail": null
     },
@@ -3844,14 +5298,14 @@
       }
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_00 materials",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_00 materials",
       "pass": true,
       "detail": [
         "BallAtlas"
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_01 origin",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_01 origin",
       "pass": true,
       "detail": [
         0.0,
@@ -3860,12 +5314,12 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_01 hierarchy",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_01 hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_01 bounds",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_01 bounds",
       "pass": true,
       "detail": [
         [
@@ -3881,12 +5335,12 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_01 triangles",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_01 triangles",
       "pass": true,
       "detail": 288
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_01 UV present",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_01 UV present",
       "pass": true,
       "detail": null
     },
@@ -3905,14 +5359,14 @@
       }
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_01 materials",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_01 materials",
       "pass": true,
       "detail": [
         "BallAtlas"
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_02 origin",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_02 origin",
       "pass": true,
       "detail": [
         0.0,
@@ -3921,12 +5375,12 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_02 hierarchy",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_02 hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_02 bounds",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_02 bounds",
       "pass": true,
       "detail": [
         [
@@ -3942,12 +5396,12 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_02 triangles",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_02 triangles",
       "pass": true,
       "detail": 288
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_02 UV present",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_02 UV present",
       "pass": true,
       "detail": null
     },
@@ -3966,14 +5420,14 @@
       }
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_02 materials",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_02 materials",
       "pass": true,
       "detail": [
         "BallAtlas"
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_03 origin",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_03 origin",
       "pass": true,
       "detail": [
         0.0,
@@ -3982,12 +5436,12 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_03 hierarchy",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_03 hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_03 bounds",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_03 bounds",
       "pass": true,
       "detail": [
         [
@@ -4003,12 +5457,12 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_03 triangles",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_03 triangles",
       "pass": true,
       "detail": 288
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_03 UV present",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_03 UV present",
       "pass": true,
       "detail": null
     },
@@ -4027,14 +5481,14 @@
       }
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_03 materials",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_03 materials",
       "pass": true,
       "detail": [
         "BallAtlas"
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_04 origin",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_04 origin",
       "pass": true,
       "detail": [
         0.0,
@@ -4043,12 +5497,12 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_04 hierarchy",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_04 hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_04 bounds",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_04 bounds",
       "pass": true,
       "detail": [
         [
@@ -4064,12 +5518,12 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_04 triangles",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_04 triangles",
       "pass": true,
       "detail": 288
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_04 UV present",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_04 UV present",
       "pass": true,
       "detail": null
     },
@@ -4088,14 +5542,14 @@
       }
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_04 materials",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_04 materials",
       "pass": true,
       "detail": [
         "BallAtlas"
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_05 origin",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_05 origin",
       "pass": true,
       "detail": [
         0.0,
@@ -4104,12 +5558,12 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_05 hierarchy",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_05 hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_05 bounds",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_05 bounds",
       "pass": true,
       "detail": [
         [
@@ -4125,12 +5579,12 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_05 triangles",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_05 triangles",
       "pass": true,
       "detail": 288
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_05 UV present",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_05 UV present",
       "pass": true,
       "detail": null
     },
@@ -4149,14 +5603,14 @@
       }
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_05 materials",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_05 materials",
       "pass": true,
       "detail": [
         "BallAtlas"
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_06 origin",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_06 origin",
       "pass": true,
       "detail": [
         0.0,
@@ -4165,12 +5619,12 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_06 hierarchy",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_06 hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_06 bounds",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_06 bounds",
       "pass": true,
       "detail": [
         [
@@ -4186,12 +5640,12 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_06 triangles",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_06 triangles",
       "pass": true,
       "detail": 288
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_06 UV present",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_06 UV present",
       "pass": true,
       "detail": null
     },
@@ -4210,14 +5664,14 @@
       }
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_06 materials",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_06 materials",
       "pass": true,
       "detail": [
         "BallAtlas"
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_07 origin",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_07 origin",
       "pass": true,
       "detail": [
         0.0,
@@ -4226,12 +5680,12 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_07 hierarchy",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_07 hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_07 bounds",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_07 bounds",
       "pass": true,
       "detail": [
         [
@@ -4247,12 +5701,12 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_07 triangles",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_07 triangles",
       "pass": true,
       "detail": 288
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_07 UV present",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_07 UV present",
       "pass": true,
       "detail": null
     },
@@ -4271,14 +5725,14 @@
       }
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_07 materials",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_07 materials",
       "pass": true,
       "detail": [
         "BallAtlas"
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_08 origin",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_08 origin",
       "pass": true,
       "detail": [
         0.0,
@@ -4287,12 +5741,12 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_08 hierarchy",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_08 hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_08 bounds",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_08 bounds",
       "pass": true,
       "detail": [
         [
@@ -4308,12 +5762,12 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_08 triangles",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_08 triangles",
       "pass": true,
       "detail": 288
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_08 UV present",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_08 UV present",
       "pass": true,
       "detail": null
     },
@@ -4332,14 +5786,14 @@
       }
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_08 materials",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_08 materials",
       "pass": true,
       "detail": [
         "BallAtlas"
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_09 origin",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_09 origin",
       "pass": true,
       "detail": [
         0.0,
@@ -4348,12 +5802,12 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_09 hierarchy",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_09 hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_09 bounds",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_09 bounds",
       "pass": true,
       "detail": [
         [
@@ -4369,12 +5823,12 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_09 triangles",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_09 triangles",
       "pass": true,
       "detail": 288
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_09 UV present",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_09 UV present",
       "pass": true,
       "detail": null
     },
@@ -4393,14 +5847,14 @@
       }
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_09 materials",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_09 materials",
       "pass": true,
       "detail": [
         "BallAtlas"
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_10 origin",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_10 origin",
       "pass": true,
       "detail": [
         0.0,
@@ -4409,12 +5863,12 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_10 hierarchy",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_10 hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_10 bounds",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_10 bounds",
       "pass": true,
       "detail": [
         [
@@ -4430,12 +5884,12 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_10 triangles",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_10 triangles",
       "pass": true,
       "detail": 288
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_10 UV present",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_10 UV present",
       "pass": true,
       "detail": null
     },
@@ -4454,14 +5908,14 @@
       }
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_10 materials",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_10 materials",
       "pass": true,
       "detail": [
         "BallAtlas"
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_11 origin",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_11 origin",
       "pass": true,
       "detail": [
         0.0,
@@ -4470,12 +5924,12 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_11 hierarchy",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_11 hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_11 bounds",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_11 bounds",
       "pass": true,
       "detail": [
         [
@@ -4491,12 +5945,12 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_11 triangles",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_11 triangles",
       "pass": true,
       "detail": 288
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_11 UV present",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_11 UV present",
       "pass": true,
       "detail": null
     },
@@ -4515,14 +5969,14 @@
       }
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_11 materials",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_11 materials",
       "pass": true,
       "detail": [
         "BallAtlas"
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_12 origin",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_12 origin",
       "pass": true,
       "detail": [
         0.0,
@@ -4531,12 +5985,12 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_12 hierarchy",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_12 hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_12 bounds",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_12 bounds",
       "pass": true,
       "detail": [
         [
@@ -4552,12 +6006,12 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_12 triangles",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_12 triangles",
       "pass": true,
       "detail": 288
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_12 UV present",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_12 UV present",
       "pass": true,
       "detail": null
     },
@@ -4576,14 +6030,14 @@
       }
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_12 materials",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_12 materials",
       "pass": true,
       "detail": [
         "BallAtlas"
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_13 origin",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_13 origin",
       "pass": true,
       "detail": [
         0.0,
@@ -4592,12 +6046,12 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_13 hierarchy",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_13 hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_13 bounds",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_13 bounds",
       "pass": true,
       "detail": [
         [
@@ -4613,12 +6067,12 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_13 triangles",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_13 triangles",
       "pass": true,
       "detail": 288
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_13 UV present",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_13 UV present",
       "pass": true,
       "detail": null
     },
@@ -4637,14 +6091,14 @@
       }
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_13 materials",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_13 materials",
       "pass": true,
       "detail": [
         "BallAtlas"
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_14 origin",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_14 origin",
       "pass": true,
       "detail": [
         0.0,
@@ -4653,12 +6107,12 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_14 hierarchy",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_14 hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_14 bounds",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_14 bounds",
       "pass": true,
       "detail": [
         [
@@ -4674,12 +6128,12 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_14 triangles",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_14 triangles",
       "pass": true,
       "detail": 288
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_14 UV present",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_14 UV present",
       "pass": true,
       "detail": null
     },
@@ -4698,14 +6152,14 @@
       }
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_14 materials",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_14 materials",
       "pass": true,
       "detail": [
         "BallAtlas"
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_15 origin",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_15 origin",
       "pass": true,
       "detail": [
         0.0,
@@ -4714,12 +6168,12 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_15 hierarchy",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_15 hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_15 bounds",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_15 bounds",
       "pass": true,
       "detail": [
         [
@@ -4735,12 +6189,12 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_15 triangles",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_15 triangles",
       "pass": true,
       "detail": 288
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_15 UV present",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_15 UV present",
       "pass": true,
       "detail": null
     },
@@ -4759,14 +6213,14 @@
       }
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Ball_15 materials",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Ball_15 materials",
       "pass": true,
       "detail": [
         "BallAtlas"
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Cue origin",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Cue origin",
       "pass": true,
       "detail": [
         0.0,
@@ -4775,12 +6229,12 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Cue hierarchy",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Cue hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Cue bounds",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Cue bounds",
       "pass": true,
       "detail": [
         [
@@ -4796,17 +6250,17 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Cue triangles",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Cue triangles",
       "pass": true,
-      "detail": 156
+      "detail": 146
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Cue UV present",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Cue UV present",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Cue materials",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Cue materials",
       "pass": true,
       "detail": [
         "CueWood",
@@ -4814,7 +6268,7 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Rack origin",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Rack origin",
       "pass": true,
       "detail": [
         0.0,
@@ -4823,12 +6277,12 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Rack hierarchy",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Rack hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Rack bounds",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Rack bounds",
       "pass": true,
       "detail": [
         [
@@ -4844,17 +6298,17 @@
       ]
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Rack triangles",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Rack triangles",
       "pass": true,
       "detail": 24
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Rack UV present",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Rack UV present",
       "pass": true,
       "detail": null
     },
     {
-      "check": "PoolAccessories.fbx actual import Pool_Rack materials",
+      "check": "PoolAccessories.fbx actual Blender import, X-normalized Pool_Rack materials",
       "pass": true,
       "detail": [
         "RackWood"
@@ -4863,12 +6317,12 @@
     {
       "check": "PoolAccessories.fbx actual import texture resolves PoolBalls_BaseColor.png",
       "pass": true,
-      "detail": "/workspace/shared/lifestyle-assets/Textures/PoolBalls_BaseColor.png"
+      "detail": "/workspace/shared/lifestyle-final-staging/Textures/PoolBalls_BaseColor.png"
     },
     {
       "check": "PoolAccessories.fbx actual import texture resolves PoolFurniture_BaseColor.png",
       "pass": true,
-      "detail": "/workspace/shared/lifestyle-assets/Textures/PoolFurniture_BaseColor.png"
+      "detail": "/workspace/shared/lifestyle-final-staging/Textures/PoolFurniture_BaseColor.png"
     },
     {
       "check": "DartsBoard.fbx actual import exact object names",
@@ -4876,7 +6330,7 @@
       "detail": null
     },
     {
-      "check": "DartsBoard.fbx actual import BoardCentre origin",
+      "check": "DartsBoard.fbx actual Blender import, X-normalized BoardCentre origin",
       "pass": true,
       "detail": [
         0.0,
@@ -4885,12 +6339,12 @@
       ]
     },
     {
-      "check": "DartsBoard.fbx actual import BoardCentre hierarchy",
+      "check": "DartsBoard.fbx actual Blender import, X-normalized BoardCentre hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "DartsBoard.fbx actual import BoardFace origin",
+      "check": "DartsBoard.fbx actual Blender import, X-normalized BoardFace origin",
       "pass": true,
       "detail": [
         0.0,
@@ -4899,12 +6353,12 @@
       ]
     },
     {
-      "check": "DartsBoard.fbx actual import BoardFace hierarchy",
+      "check": "DartsBoard.fbx actual Blender import, X-normalized BoardFace hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "DartsBoard.fbx actual import DartsBoard_Root origin",
+      "check": "DartsBoard.fbx actual Blender import, X-normalized DartsBoard_Root origin",
       "pass": true,
       "detail": [
         0.0,
@@ -4913,12 +6367,12 @@
       ]
     },
     {
-      "check": "DartsBoard.fbx actual import DartsBoard_Root hierarchy",
+      "check": "DartsBoard.fbx actual Blender import, X-normalized DartsBoard_Root hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "DartsBoard.fbx actual import Darts_Backplate origin",
+      "check": "DartsBoard.fbx actual Blender import, X-normalized Darts_Backplate origin",
       "pass": true,
       "detail": [
         0.0,
@@ -4927,12 +6381,12 @@
       ]
     },
     {
-      "check": "DartsBoard.fbx actual import Darts_Backplate hierarchy",
+      "check": "DartsBoard.fbx actual Blender import, X-normalized Darts_Backplate hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "DartsBoard.fbx actual import Darts_Backplate bounds",
+      "check": "DartsBoard.fbx actual Blender import, X-normalized Darts_Backplate bounds",
       "pass": true,
       "detail": [
         [
@@ -4948,24 +6402,24 @@
       ]
     },
     {
-      "check": "DartsBoard.fbx actual import Darts_Backplate triangles",
+      "check": "DartsBoard.fbx actual Blender import, X-normalized Darts_Backplate triangles",
       "pass": true,
       "detail": 252
     },
     {
-      "check": "DartsBoard.fbx actual import Darts_Backplate UV present",
+      "check": "DartsBoard.fbx actual Blender import, X-normalized Darts_Backplate UV present",
       "pass": true,
       "detail": null
     },
     {
-      "check": "DartsBoard.fbx actual import Darts_Backplate materials",
+      "check": "DartsBoard.fbx actual Blender import, X-normalized Darts_Backplate materials",
       "pass": true,
       "detail": [
         "WireMetal"
       ]
     },
     {
-      "check": "DartsBoard.fbx actual import Darts_Board origin",
+      "check": "DartsBoard.fbx actual Blender import, X-normalized Darts_Board origin",
       "pass": true,
       "detail": [
         0.0,
@@ -4974,12 +6428,12 @@
       ]
     },
     {
-      "check": "DartsBoard.fbx actual import Darts_Board hierarchy",
+      "check": "DartsBoard.fbx actual Blender import, X-normalized Darts_Board hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "DartsBoard.fbx actual import Darts_Board bounds",
+      "check": "DartsBoard.fbx actual Blender import, X-normalized Darts_Board bounds",
       "pass": true,
       "detail": [
         [
@@ -4995,17 +6449,17 @@
       ]
     },
     {
-      "check": "DartsBoard.fbx actual import Darts_Board triangles",
+      "check": "DartsBoard.fbx actual Blender import, X-normalized Darts_Board triangles",
       "pass": true,
       "detail": 1278
     },
     {
-      "check": "DartsBoard.fbx actual import Darts_Board UV present",
+      "check": "DartsBoard.fbx actual Blender import, X-normalized Darts_Board UV present",
       "pass": true,
       "detail": null
     },
     {
-      "check": "DartsBoard.fbx actual import Darts_Board materials",
+      "check": "DartsBoard.fbx actual Blender import, X-normalized Darts_Board materials",
       "pass": true,
       "detail": [
         "SisalDark",
@@ -5015,7 +6469,7 @@
       ]
     },
     {
-      "check": "DartsBoard.fbx actual import Darts_Mount origin",
+      "check": "DartsBoard.fbx actual Blender import, X-normalized Darts_Mount origin",
       "pass": true,
       "detail": [
         0.0,
@@ -5024,12 +6478,12 @@
       ]
     },
     {
-      "check": "DartsBoard.fbx actual import Darts_Mount hierarchy",
+      "check": "DartsBoard.fbx actual Blender import, X-normalized Darts_Mount hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "DartsBoard.fbx actual import Darts_Mount bounds",
+      "check": "DartsBoard.fbx actual Blender import, X-normalized Darts_Mount bounds",
       "pass": true,
       "detail": [
         [
@@ -5045,24 +6499,24 @@
       ]
     },
     {
-      "check": "DartsBoard.fbx actual import Darts_Mount triangles",
+      "check": "DartsBoard.fbx actual Blender import, X-normalized Darts_Mount triangles",
       "pass": true,
       "detail": 88
     },
     {
-      "check": "DartsBoard.fbx actual import Darts_Mount UV present",
+      "check": "DartsBoard.fbx actual Blender import, X-normalized Darts_Mount UV present",
       "pass": true,
       "detail": null
     },
     {
-      "check": "DartsBoard.fbx actual import Darts_Mount materials",
+      "check": "DartsBoard.fbx actual Blender import, X-normalized Darts_Mount materials",
       "pass": true,
       "detail": [
         "WireMetal"
       ]
     },
     {
-      "check": "DartsBoard.fbx actual import Darts_NumberRing origin",
+      "check": "DartsBoard.fbx actual Blender import, X-normalized Darts_NumberRing origin",
       "pass": true,
       "detail": [
         0.0,
@@ -5071,12 +6525,12 @@
       ]
     },
     {
-      "check": "DartsBoard.fbx actual import Darts_NumberRing hierarchy",
+      "check": "DartsBoard.fbx actual Blender import, X-normalized Darts_NumberRing hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "DartsBoard.fbx actual import Darts_NumberRing bounds",
+      "check": "DartsBoard.fbx actual Blender import, X-normalized Darts_NumberRing bounds",
       "pass": true,
       "detail": [
         [
@@ -5092,24 +6546,24 @@
       ]
     },
     {
-      "check": "DartsBoard.fbx actual import Darts_NumberRing triangles",
+      "check": "DartsBoard.fbx actual Blender import, X-normalized Darts_NumberRing triangles",
       "pass": true,
       "detail": 40
     },
     {
-      "check": "DartsBoard.fbx actual import Darts_NumberRing UV present",
+      "check": "DartsBoard.fbx actual Blender import, X-normalized Darts_NumberRing UV present",
       "pass": true,
       "detail": null
     },
     {
-      "check": "DartsBoard.fbx actual import Darts_NumberRing materials",
+      "check": "DartsBoard.fbx actual Blender import, X-normalized Darts_NumberRing materials",
       "pass": true,
       "detail": [
         "Numbers"
       ]
     },
     {
-      "check": "DartsBoard.fbx actual import Darts_Wire origin",
+      "check": "DartsBoard.fbx actual Blender import, X-normalized Darts_Wire origin",
       "pass": true,
       "detail": [
         0.0,
@@ -5118,12 +6572,12 @@
       ]
     },
     {
-      "check": "DartsBoard.fbx actual import Darts_Wire hierarchy",
+      "check": "DartsBoard.fbx actual Blender import, X-normalized Darts_Wire hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "DartsBoard.fbx actual import Darts_Wire bounds",
+      "check": "DartsBoard.fbx actual Blender import, X-normalized Darts_Wire bounds",
       "pass": true,
       "detail": [
         [
@@ -5139,17 +6593,17 @@
       ]
     },
     {
-      "check": "DartsBoard.fbx actual import Darts_Wire triangles",
+      "check": "DartsBoard.fbx actual Blender import, X-normalized Darts_Wire triangles",
       "pass": true,
       "detail": 1160
     },
     {
-      "check": "DartsBoard.fbx actual import Darts_Wire UV present",
+      "check": "DartsBoard.fbx actual Blender import, X-normalized Darts_Wire UV present",
       "pass": true,
       "detail": null
     },
     {
-      "check": "DartsBoard.fbx actual import Darts_Wire materials",
+      "check": "DartsBoard.fbx actual Blender import, X-normalized Darts_Wire materials",
       "pass": true,
       "detail": [
         "WireMetal"
@@ -5158,7 +6612,7 @@
     {
       "check": "DartsBoard.fbx actual import texture resolves Darts_BaseColor.png",
       "pass": true,
-      "detail": "/workspace/shared/lifestyle-assets/Textures/Darts_BaseColor.png"
+      "detail": "/workspace/shared/lifestyle-final-staging/Textures/Darts_BaseColor.png"
     },
     {
       "check": "Dart.fbx actual import exact object names",
@@ -5166,7 +6620,7 @@
       "detail": null
     },
     {
-      "check": "Dart.fbx actual import DartGrip origin",
+      "check": "Dart.fbx actual Blender import, X-normalized DartGrip origin",
       "pass": true,
       "detail": [
         0.0,
@@ -5175,12 +6629,12 @@
       ]
     },
     {
-      "check": "Dart.fbx actual import DartGrip hierarchy",
+      "check": "Dart.fbx actual Blender import, X-normalized DartGrip hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "Dart.fbx actual import Dart_Barrel origin",
+      "check": "Dart.fbx actual Blender import, X-normalized Dart_Barrel origin",
       "pass": true,
       "detail": [
         0.0,
@@ -5189,12 +6643,12 @@
       ]
     },
     {
-      "check": "Dart.fbx actual import Dart_Barrel hierarchy",
+      "check": "Dart.fbx actual Blender import, X-normalized Dart_Barrel hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "Dart.fbx actual import Dart_Barrel bounds",
+      "check": "Dart.fbx actual Blender import, X-normalized Dart_Barrel bounds",
       "pass": true,
       "detail": [
         [
@@ -5210,24 +6664,24 @@
       ]
     },
     {
-      "check": "Dart.fbx actual import Dart_Barrel triangles",
+      "check": "Dart.fbx actual Blender import, X-normalized Dart_Barrel triangles",
       "pass": true,
       "detail": 76
     },
     {
-      "check": "Dart.fbx actual import Dart_Barrel UV present",
+      "check": "Dart.fbx actual Blender import, X-normalized Dart_Barrel UV present",
       "pass": true,
       "detail": null
     },
     {
-      "check": "Dart.fbx actual import Dart_Barrel materials",
+      "check": "Dart.fbx actual Blender import, X-normalized Dart_Barrel materials",
       "pass": true,
       "detail": [
         "WireMetal"
       ]
     },
     {
-      "check": "Dart.fbx actual import Dart_Flights origin",
+      "check": "Dart.fbx actual Blender import, X-normalized Dart_Flights origin",
       "pass": true,
       "detail": [
         0.0,
@@ -5236,12 +6690,12 @@
       ]
     },
     {
-      "check": "Dart.fbx actual import Dart_Flights hierarchy",
+      "check": "Dart.fbx actual Blender import, X-normalized Dart_Flights hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "Dart.fbx actual import Dart_Flights bounds",
+      "check": "Dart.fbx actual Blender import, X-normalized Dart_Flights bounds",
       "pass": true,
       "detail": [
         [
@@ -5257,24 +6711,24 @@
       ]
     },
     {
-      "check": "Dart.fbx actual import Dart_Flights triangles",
+      "check": "Dart.fbx actual Blender import, X-normalized Dart_Flights triangles",
       "pass": true,
       "detail": 40
     },
     {
-      "check": "Dart.fbx actual import Dart_Flights UV present",
+      "check": "Dart.fbx actual Blender import, X-normalized Dart_Flights UV present",
       "pass": true,
       "detail": null
     },
     {
-      "check": "Dart.fbx actual import Dart_Flights materials",
+      "check": "Dart.fbx actual Blender import, X-normalized Dart_Flights materials",
       "pass": true,
       "detail": [
         "DartFlight"
       ]
     },
     {
-      "check": "Dart.fbx actual import Dart_Root origin",
+      "check": "Dart.fbx actual Blender import, X-normalized Dart_Root origin",
       "pass": true,
       "detail": [
         0.0,
@@ -5283,12 +6737,12 @@
       ]
     },
     {
-      "check": "Dart.fbx actual import Dart_Root hierarchy",
+      "check": "Dart.fbx actual Blender import, X-normalized Dart_Root hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "Dart.fbx actual import Dart_Shaft origin",
+      "check": "Dart.fbx actual Blender import, X-normalized Dart_Shaft origin",
       "pass": true,
       "detail": [
         0.0,
@@ -5297,12 +6751,12 @@
       ]
     },
     {
-      "check": "Dart.fbx actual import Dart_Shaft hierarchy",
+      "check": "Dart.fbx actual Blender import, X-normalized Dart_Shaft hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "Dart.fbx actual import Dart_Shaft bounds",
+      "check": "Dart.fbx actual Blender import, X-normalized Dart_Shaft bounds",
       "pass": true,
       "detail": [
         [
@@ -5318,24 +6772,24 @@
       ]
     },
     {
-      "check": "Dart.fbx actual import Dart_Shaft triangles",
+      "check": "Dart.fbx actual Blender import, X-normalized Dart_Shaft triangles",
       "pass": true,
       "detail": 28
     },
     {
-      "check": "Dart.fbx actual import Dart_Shaft UV present",
+      "check": "Dart.fbx actual Blender import, X-normalized Dart_Shaft UV present",
       "pass": true,
       "detail": null
     },
     {
-      "check": "Dart.fbx actual import Dart_Shaft materials",
+      "check": "Dart.fbx actual Blender import, X-normalized Dart_Shaft materials",
       "pass": true,
       "detail": [
         "DartPlastic"
       ]
     },
     {
-      "check": "Dart.fbx actual import Dart_Tip origin",
+      "check": "Dart.fbx actual Blender import, X-normalized Dart_Tip origin",
       "pass": true,
       "detail": [
         0.0,
@@ -5344,12 +6798,12 @@
       ]
     },
     {
-      "check": "Dart.fbx actual import Dart_Tip hierarchy",
+      "check": "Dart.fbx actual Blender import, X-normalized Dart_Tip hierarchy",
       "pass": true,
       "detail": null
     },
     {
-      "check": "Dart.fbx actual import Dart_Tip bounds",
+      "check": "Dart.fbx actual Blender import, X-normalized Dart_Tip bounds",
       "pass": true,
       "detail": [
         [
@@ -5365,17 +6819,17 @@
       ]
     },
     {
-      "check": "Dart.fbx actual import Dart_Tip triangles",
+      "check": "Dart.fbx actual Blender import, X-normalized Dart_Tip triangles",
       "pass": true,
       "detail": 14
     },
     {
-      "check": "Dart.fbx actual import Dart_Tip UV present",
+      "check": "Dart.fbx actual Blender import, X-normalized Dart_Tip UV present",
       "pass": true,
       "detail": null
     },
     {
-      "check": "Dart.fbx actual import Dart_Tip materials",
+      "check": "Dart.fbx actual Blender import, X-normalized Dart_Tip materials",
       "pass": true,
       "detail": [
         "WireMetal"
@@ -5384,7 +6838,12 @@
     {
       "check": "Dart.fbx actual import texture resolves Darts_BaseColor.png",
       "pass": true,
-      "detail": "/workspace/shared/lifestyle-assets/Textures/Darts_BaseColor.png"
+      "detail": "/workspace/shared/lifestyle-final-staging/Textures/Darts_BaseColor.png"
+    },
+    {
+      "check": "Input files unchanged throughout validation",
+      "pass": true,
+      "detail": null
     }
   ],
   "files": {
@@ -5404,7 +6863,7 @@
           "type": "Null",
           "parent": "PoolTable_Root",
           "translation": [
-            0.5600000023841858,
+            -0.5600000023841858,
             0.7799999713897705,
             0.0
           ],
@@ -5413,15 +6872,21 @@
             0.7799999713897705,
             0.0
           ],
+          "raw_world_origin": [
+            -0.5600000023841858,
+            0.7799999713897705,
+            0.0
+          ],
           "triangles": 0,
           "bounds": null,
+          "raw_bounds": null,
           "materials": []
         },
         "Pocket_NE": {
           "type": "Null",
           "parent": "PoolTable_Root",
           "translation": [
-            0.5600000023841858,
+            -0.5600000023841858,
             0.7799999713897705,
             1.1200000047683716
           ],
@@ -5430,15 +6895,21 @@
             0.7799999713897705,
             1.1200000047683716
           ],
+          "raw_world_origin": [
+            -0.5600000023841858,
+            0.7799999713897705,
+            1.1200000047683716
+          ],
           "triangles": 0,
           "bounds": null,
+          "raw_bounds": null,
           "materials": []
         },
         "Pocket_NW": {
           "type": "Null",
           "parent": "PoolTable_Root",
           "translation": [
-            -0.5600000023841858,
+            0.5600000023841858,
             0.7799999713897705,
             1.1200000047683716
           ],
@@ -5447,15 +6918,21 @@
             0.7799999713897705,
             1.1200000047683716
           ],
+          "raw_world_origin": [
+            0.5600000023841858,
+            0.7799999713897705,
+            1.1200000047683716
+          ],
           "triangles": 0,
           "bounds": null,
+          "raw_bounds": null,
           "materials": []
         },
         "Pocket_SE": {
           "type": "Null",
           "parent": "PoolTable_Root",
           "translation": [
-            0.5600000023841858,
+            -0.5600000023841858,
             0.7799999713897705,
             -1.1200000047683716
           ],
@@ -5464,15 +6941,21 @@
             0.7799999713897705,
             -1.1200000047683716
           ],
+          "raw_world_origin": [
+            -0.5600000023841858,
+            0.7799999713897705,
+            -1.1200000047683716
+          ],
           "triangles": 0,
           "bounds": null,
+          "raw_bounds": null,
           "materials": []
         },
         "Pocket_SW": {
           "type": "Null",
           "parent": "PoolTable_Root",
           "translation": [
-            -0.5600000023841858,
+            0.5600000023841858,
             0.7799999713897705,
             -1.1200000047683716
           ],
@@ -5481,15 +6964,21 @@
             0.7799999713897705,
             -1.1200000047683716
           ],
+          "raw_world_origin": [
+            0.5600000023841858,
+            0.7799999713897705,
+            -1.1200000047683716
+          ],
           "triangles": 0,
           "bounds": null,
+          "raw_bounds": null,
           "materials": []
         },
         "Pocket_W": {
           "type": "Null",
           "parent": "PoolTable_Root",
           "translation": [
-            -0.5600000023841858,
+            0.5600000023841858,
             0.7799999713897705,
             0.0
           ],
@@ -5498,8 +6987,14 @@
             0.7799999713897705,
             0.0
           ],
+          "raw_world_origin": [
+            0.5600000023841858,
+            0.7799999713897705,
+            0.0
+          ],
           "triangles": 0,
           "bounds": null,
+          "raw_bounds": null,
           "materials": []
         },
         "PoolTable_Root": {
@@ -5515,8 +7010,14 @@
             0.0,
             0.0
           ],
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.0
+          ],
           "triangles": 0,
           "bounds": null,
+          "raw_bounds": null,
           "materials": []
         },
         "Pool_Body": {
@@ -5532,8 +7033,25 @@
             0.0,
             0.0
           ],
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.0
+          ],
           "triangles": 120,
           "bounds": [
+            [
+              -0.6959999799728394,
+              0.550000011920929,
+              -1.2519999742507935
+            ],
+            [
+              0.6959999799728394,
+              0.7549999952316284,
+              1.2519999742507935
+            ]
+          ],
+          "raw_bounds": [
             [
               -0.6959999799728394,
               0.550000011920929,
@@ -5563,8 +7081,25 @@
             0.0,
             0.0
           ],
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.0
+          ],
           "triangles": 68,
           "bounds": [
+            [
+              -0.5600000023841858,
+              0.7799999713897705,
+              -1.1200000047683716
+            ],
+            [
+              0.5600000023841858,
+              0.7799999713897705,
+              1.1200000047683716
+            ]
+          ],
+          "raw_bounds": [
             [
               -0.5600000023841858,
               0.7799999713897705,
@@ -5593,8 +7128,25 @@
             0.0,
             0.0
           ],
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.0
+          ],
           "triangles": 144,
           "bounds": [
+            [
+              -0.6380000114440918,
+              0.0,
+              -1.1579999923706055
+            ],
+            [
+              0.6380000114440918,
+              0.5600000023841858,
+              1.1579999923706055
+            ]
+          ],
+          "raw_bounds": [
             [
               -0.6380000114440918,
               0.0,
@@ -5624,8 +7176,25 @@
             0.0,
             0.0
           ],
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.0
+          ],
           "triangles": 840,
           "bounds": [
+            [
+              -0.6299999952316284,
+              0.6650000214576721,
+              -1.190000057220459
+            ],
+            [
+              0.6299999952316284,
+              0.7850000262260437,
+              1.190000057220459
+            ]
+          ],
+          "raw_bounds": [
             [
               -0.6299999952316284,
               0.6650000214576721,
@@ -5655,8 +7224,25 @@
             0.0,
             0.0
           ],
-          "triangles": 312,
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "triangles": 276,
           "bounds": [
+            [
+              -0.699999988079071,
+              0.7599999904632568,
+              -1.2599999904632568
+            ],
+            [
+              0.699999988079071,
+              0.8600000143051147,
+              1.2599999904632568
+            ]
+          ],
+          "raw_bounds": [
             [
               -0.699999988079071,
               0.7599999904632568,
@@ -5701,8 +7287,14 @@
             0.0,
             -1.0499999523162842
           ],
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            -1.0499999523162842
+          ],
           "triangles": 0,
           "bounds": null,
+          "raw_bounds": null,
           "materials": []
         },
         "CueTip": {
@@ -5718,8 +7310,14 @@
             0.0,
             0.0
           ],
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.0
+          ],
           "triangles": 0,
           "bounds": null,
+          "raw_bounds": null,
           "materials": []
         },
         "PoolCue_Root": {
@@ -5735,8 +7333,14 @@
             0.0,
             0.0
           ],
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.0
+          ],
           "triangles": 0,
           "bounds": null,
+          "raw_bounds": null,
           "materials": []
         },
         "PoolRack_Root": {
@@ -5752,8 +7356,14 @@
             0.0,
             0.0
           ],
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.0
+          ],
           "triangles": 0,
           "bounds": null,
+          "raw_bounds": null,
           "materials": []
         },
         "Pool_Ball_00": {
@@ -5769,8 +7379,25 @@
             0.0,
             0.0
           ],
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.0
+          ],
           "triangles": 288,
           "bounds": [
+            [
+              -0.028574999421834946,
+              -0.028574999421834946,
+              -0.028574999421834946
+            ],
+            [
+              0.028574999421834946,
+              0.028574999421834946,
+              0.028574999421834946
+            ]
+          ],
+          "raw_bounds": [
             [
               -0.028574999421834946,
               -0.028574999421834946,
@@ -5799,8 +7426,25 @@
             0.0,
             0.0
           ],
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.0
+          ],
           "triangles": 288,
           "bounds": [
+            [
+              -0.028574999421834946,
+              -0.028574999421834946,
+              -0.028574999421834946
+            ],
+            [
+              0.028574999421834946,
+              0.028574999421834946,
+              0.028574999421834946
+            ]
+          ],
+          "raw_bounds": [
             [
               -0.028574999421834946,
               -0.028574999421834946,
@@ -5829,8 +7473,25 @@
             0.0,
             0.0
           ],
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.0
+          ],
           "triangles": 288,
           "bounds": [
+            [
+              -0.028574999421834946,
+              -0.028574999421834946,
+              -0.028574999421834946
+            ],
+            [
+              0.028574999421834946,
+              0.028574999421834946,
+              0.028574999421834946
+            ]
+          ],
+          "raw_bounds": [
             [
               -0.028574999421834946,
               -0.028574999421834946,
@@ -5859,8 +7520,25 @@
             0.0,
             0.0
           ],
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.0
+          ],
           "triangles": 288,
           "bounds": [
+            [
+              -0.028574999421834946,
+              -0.028574999421834946,
+              -0.028574999421834946
+            ],
+            [
+              0.028574999421834946,
+              0.028574999421834946,
+              0.028574999421834946
+            ]
+          ],
+          "raw_bounds": [
             [
               -0.028574999421834946,
               -0.028574999421834946,
@@ -5889,8 +7567,25 @@
             0.0,
             0.0
           ],
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.0
+          ],
           "triangles": 288,
           "bounds": [
+            [
+              -0.028574999421834946,
+              -0.028574999421834946,
+              -0.028574999421834946
+            ],
+            [
+              0.028574999421834946,
+              0.028574999421834946,
+              0.028574999421834946
+            ]
+          ],
+          "raw_bounds": [
             [
               -0.028574999421834946,
               -0.028574999421834946,
@@ -5919,8 +7614,25 @@
             0.0,
             0.0
           ],
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.0
+          ],
           "triangles": 288,
           "bounds": [
+            [
+              -0.028574999421834946,
+              -0.028574999421834946,
+              -0.028574999421834946
+            ],
+            [
+              0.028574999421834946,
+              0.028574999421834946,
+              0.028574999421834946
+            ]
+          ],
+          "raw_bounds": [
             [
               -0.028574999421834946,
               -0.028574999421834946,
@@ -5949,8 +7661,25 @@
             0.0,
             0.0
           ],
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.0
+          ],
           "triangles": 288,
           "bounds": [
+            [
+              -0.028574999421834946,
+              -0.028574999421834946,
+              -0.028574999421834946
+            ],
+            [
+              0.028574999421834946,
+              0.028574999421834946,
+              0.028574999421834946
+            ]
+          ],
+          "raw_bounds": [
             [
               -0.028574999421834946,
               -0.028574999421834946,
@@ -5979,8 +7708,25 @@
             0.0,
             0.0
           ],
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.0
+          ],
           "triangles": 288,
           "bounds": [
+            [
+              -0.028574999421834946,
+              -0.028574999421834946,
+              -0.028574999421834946
+            ],
+            [
+              0.028574999421834946,
+              0.028574999421834946,
+              0.028574999421834946
+            ]
+          ],
+          "raw_bounds": [
             [
               -0.028574999421834946,
               -0.028574999421834946,
@@ -6009,8 +7755,25 @@
             0.0,
             0.0
           ],
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.0
+          ],
           "triangles": 288,
           "bounds": [
+            [
+              -0.028574999421834946,
+              -0.028574999421834946,
+              -0.028574999421834946
+            ],
+            [
+              0.028574999421834946,
+              0.028574999421834946,
+              0.028574999421834946
+            ]
+          ],
+          "raw_bounds": [
             [
               -0.028574999421834946,
               -0.028574999421834946,
@@ -6039,8 +7802,25 @@
             0.0,
             0.0
           ],
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.0
+          ],
           "triangles": 288,
           "bounds": [
+            [
+              -0.028574999421834946,
+              -0.028574999421834946,
+              -0.028574999421834946
+            ],
+            [
+              0.028574999421834946,
+              0.028574999421834946,
+              0.028574999421834946
+            ]
+          ],
+          "raw_bounds": [
             [
               -0.028574999421834946,
               -0.028574999421834946,
@@ -6069,8 +7849,25 @@
             0.0,
             0.0
           ],
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.0
+          ],
           "triangles": 288,
           "bounds": [
+            [
+              -0.028574999421834946,
+              -0.028574999421834946,
+              -0.028574999421834946
+            ],
+            [
+              0.028574999421834946,
+              0.028574999421834946,
+              0.028574999421834946
+            ]
+          ],
+          "raw_bounds": [
             [
               -0.028574999421834946,
               -0.028574999421834946,
@@ -6099,8 +7896,25 @@
             0.0,
             0.0
           ],
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.0
+          ],
           "triangles": 288,
           "bounds": [
+            [
+              -0.028574999421834946,
+              -0.028574999421834946,
+              -0.028574999421834946
+            ],
+            [
+              0.028574999421834946,
+              0.028574999421834946,
+              0.028574999421834946
+            ]
+          ],
+          "raw_bounds": [
             [
               -0.028574999421834946,
               -0.028574999421834946,
@@ -6129,8 +7943,25 @@
             0.0,
             0.0
           ],
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.0
+          ],
           "triangles": 288,
           "bounds": [
+            [
+              -0.028574999421834946,
+              -0.028574999421834946,
+              -0.028574999421834946
+            ],
+            [
+              0.028574999421834946,
+              0.028574999421834946,
+              0.028574999421834946
+            ]
+          ],
+          "raw_bounds": [
             [
               -0.028574999421834946,
               -0.028574999421834946,
@@ -6159,8 +7990,25 @@
             0.0,
             0.0
           ],
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.0
+          ],
           "triangles": 288,
           "bounds": [
+            [
+              -0.028574999421834946,
+              -0.028574999421834946,
+              -0.028574999421834946
+            ],
+            [
+              0.028574999421834946,
+              0.028574999421834946,
+              0.028574999421834946
+            ]
+          ],
+          "raw_bounds": [
             [
               -0.028574999421834946,
               -0.028574999421834946,
@@ -6189,8 +8037,25 @@
             0.0,
             0.0
           ],
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.0
+          ],
           "triangles": 288,
           "bounds": [
+            [
+              -0.028574999421834946,
+              -0.028574999421834946,
+              -0.028574999421834946
+            ],
+            [
+              0.028574999421834946,
+              0.028574999421834946,
+              0.028574999421834946
+            ]
+          ],
+          "raw_bounds": [
             [
               -0.028574999421834946,
               -0.028574999421834946,
@@ -6219,8 +8084,25 @@
             0.0,
             0.0
           ],
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.0
+          ],
           "triangles": 288,
           "bounds": [
+            [
+              -0.028574999421834946,
+              -0.028574999421834946,
+              -0.028574999421834946
+            ],
+            [
+              0.028574999421834946,
+              0.028574999421834946,
+              0.028574999421834946
+            ]
+          ],
+          "raw_bounds": [
             [
               -0.028574999421834946,
               -0.028574999421834946,
@@ -6249,8 +8131,25 @@
             0.0,
             0.0
           ],
-          "triangles": 156,
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "triangles": 146,
           "bounds": [
+            [
+              -0.01600000075995922,
+              -0.01600000075995922,
+              -1.4500000476837158
+            ],
+            [
+              0.01600000075995922,
+              0.01600000075995922,
+              0.0
+            ]
+          ],
+          "raw_bounds": [
             [
               -0.01600000075995922,
               -0.01600000075995922,
@@ -6280,8 +8179,25 @@
             0.0,
             0.0
           ],
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.0
+          ],
           "triangles": 24,
           "bounds": [
+            [
+              -0.16732050478458405,
+              0.0,
+              -0.09660253673791885
+            ],
+            [
+              0.16732050478458405,
+              0.02500000037252903,
+              0.1932050734758377
+            ]
+          ],
+          "raw_bounds": [
             [
               -0.16732050478458405,
               0.0,
@@ -6324,8 +8240,14 @@
             0.0,
             0.0
           ],
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.0
+          ],
           "triangles": 0,
           "bounds": null,
+          "raw_bounds": null,
           "materials": []
         },
         "BoardFace": {
@@ -6341,8 +8263,14 @@
             0.0,
             0.054999999701976776
           ],
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.054999999701976776
+          ],
           "triangles": 0,
           "bounds": null,
+          "raw_bounds": null,
           "materials": []
         },
         "DartsBoard_Root": {
@@ -6358,8 +8286,14 @@
             0.0,
             0.0
           ],
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.0
+          ],
           "triangles": 0,
           "bounds": null,
+          "raw_bounds": null,
           "materials": []
         },
         "Darts_Backplate": {
@@ -6375,8 +8309,25 @@
             0.0,
             0.0
           ],
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.0
+          ],
           "triangles": 252,
           "bounds": [
+            [
+              -0.25999999046325684,
+              -0.25999999046325684,
+              0.0
+            ],
+            [
+              0.25999999046325684,
+              0.25999999046325684,
+              0.02500000037252903
+            ]
+          ],
+          "raw_bounds": [
             [
               -0.25999999046325684,
               -0.25999999046325684,
@@ -6405,8 +8356,25 @@
             0.0,
             0.0
           ],
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.0
+          ],
           "triangles": 1278,
           "bounds": [
+            [
+              -0.22499999403953552,
+              -0.22499999403953552,
+              0.02500000037252903
+            ],
+            [
+              0.22499999403953552,
+              0.22499999403953552,
+              0.054999999701976776
+            ]
+          ],
+          "raw_bounds": [
             [
               -0.22499999403953552,
               -0.22499999403953552,
@@ -6438,8 +8406,25 @@
             0.0,
             0.0
           ],
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.0
+          ],
           "triangles": 88,
           "bounds": [
+            [
+              -0.00800000037997961,
+              -0.19300000369548798,
+              0.0020000000949949026
+            ],
+            [
+              0.00800000037997961,
+              0.19300000369548798,
+              0.014999999664723873
+            ]
+          ],
+          "raw_bounds": [
             [
               -0.00800000037997961,
               -0.19300000369548798,
@@ -6468,8 +8453,25 @@
             0.0,
             0.0
           ],
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.0
+          ],
           "triangles": 40,
           "bounds": [
+            [
+              -0.2150000035762787,
+              -0.2070000022649765,
+              0.05700000002980232
+            ],
+            [
+              0.2150000035762787,
+              0.2070000022649765,
+              0.05700000002980232
+            ]
+          ],
+          "raw_bounds": [
             [
               -0.2150000035762787,
               -0.2070000022649765,
@@ -6498,8 +8500,25 @@
             0.0,
             0.0
           ],
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.0
+          ],
           "triangles": 1160,
           "bounds": [
+            [
+              -0.21934999525547028,
+              -0.21934999525547028,
+              0.05700000002980232
+            ],
+            [
+              0.21934999525547028,
+              0.21934999525547028,
+              0.05700000002980232
+            ]
+          ],
+          "raw_bounds": [
             [
               -0.21934999525547028,
               -0.21934999525547028,
@@ -6542,8 +8561,14 @@
             0.0,
             0.05999999865889549
           ],
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.05999999865889549
+          ],
           "triangles": 0,
           "bounds": null,
+          "raw_bounds": null,
           "materials": []
         },
         "Dart_Barrel": {
@@ -6559,8 +8584,25 @@
             0.0,
             0.0
           ],
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.0
+          ],
           "triangles": 76,
           "bounds": [
+            [
+              -0.004000000189989805,
+              -0.0038042261730879545,
+              0.03200000151991844
+            ],
+            [
+              0.004000000189989805,
+              0.0038042261730879545,
+              0.0860000029206276
+            ]
+          ],
+          "raw_bounds": [
             [
               -0.004000000189989805,
               -0.0038042261730879545,
@@ -6589,8 +8631,25 @@
             0.0,
             0.0
           ],
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.0
+          ],
           "triangles": 40,
           "bounds": [
+            [
+              -0.017999999225139618,
+              -0.017999999225139618,
+              0.11599999666213989
+            ],
+            [
+              0.017999999225139618,
+              0.017999999225139618,
+              0.1599999964237213
+            ]
+          ],
+          "raw_bounds": [
             [
               -0.017999999225139618,
               -0.017999999225139618,
@@ -6619,8 +8678,14 @@
             0.0,
             0.0
           ],
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.0
+          ],
           "triangles": 0,
           "bounds": null,
+          "raw_bounds": null,
           "materials": []
         },
         "Dart_Shaft": {
@@ -6636,8 +8701,25 @@
             0.0,
             0.0
           ],
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.0
+          ],
           "triangles": 28,
           "bounds": [
+            [
+              -0.0024999999441206455,
+              -0.0024999999441206455,
+              0.0860000029206276
+            ],
+            [
+              0.0024999999441206455,
+              0.0024999999441206455,
+              0.12800000607967377
+            ]
+          ],
+          "raw_bounds": [
             [
               -0.0024999999441206455,
               -0.0024999999441206455,
@@ -6666,8 +8748,25 @@
             0.0,
             0.0
           ],
+          "raw_world_origin": [
+            0.0,
+            0.0,
+            0.0
+          ],
           "triangles": 14,
           "bounds": [
+            [
+              -0.001500000013038516,
+              -0.001500000013038516,
+              0.0
+            ],
+            [
+              0.001500000013038516,
+              0.001500000013038516,
+              0.03200000151991844
+            ]
+          ],
+          "raw_bounds": [
             [
               -0.001500000013038516,
               -0.001500000013038516,
@@ -6688,11 +8787,23 @@
   },
   "notes": [
     "A 0.30 m inside rack is decorative; a five-row rack of 0.05715 m balls requires approximately 0.328787 m inside side length.",
-    "Ten requested board/dart logical material names exceed the eight assembled material cap; README must document the consolidation mapping."
+    "Source retains ten semantic board/dart material names. FBX exports use eight unique names by aliasing MountMetal and DartMetal to WireMetal. Separate Unity imports can create distinct instances with identical names: explicit shared-material binding is required to achieve eight actual runtime material objects; this offline validator cannot verify Unity object identity."
   ],
+  "input_sha256": {
+    "VICE_HomeGames.blend": "1299df9cd5e5fe9e251fc3be15c07396d012633a8de450af76268e446a8f9583",
+    "PoolTable.fbx": "18c89a85ada1c2d48ee8db3f13b346e77055c869e15f54fd4e14eee67a9fa269",
+    "PoolAccessories.fbx": "bd4e9ce516c59f7a38360cff4252b70c2732d27f854152a47960be58b023c947",
+    "DartsBoard.fbx": "cf427fc0d9e03da9fef60b25ee8f2416f9642f9ad91ba9bca9a4a1c67e1a2bb1",
+    "Dart.fbx": "5c2f5e0ac4099c18d21f0b97da79979a8d081235bcf1dfb9c878d1d9d527262a"
+  },
+  "reference_sha256": {
+    "PoolTable.fbx": "609c3e2b2ef3893f3d410fbd3a3068d5ac753364087eb5283f46a191aa221200",
+    "PoolAccessories.fbx": "215090e1235222f50de5b43d8722679a0eac0df83a855271e0dffb45dfa22a14"
+  },
+  "pool_reference_comparison": "Geometry child records compared exactly, including vertices, polygon indices, edges, UVs/indices, normals/indices and material indices; container object IDs and creation metadata excluded.",
   "passed": true,
   "summary": {
-    "passed": 715,
+    "passed": 881,
     "failed": 0
   }
 }

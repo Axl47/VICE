@@ -12,10 +12,10 @@ def panel(canvas,path,box,title,lines):
  for i,line in enumerate(lines):d.text((x+20,y+h-82+i*26),line,font=font(19),fill=fg)
 im=Image.new('RGB',(1800,1560),bg);d=ImageDraw.Draw(im)
 d.text((55,32),'VICE LIFESTYLE / ORTHOGRAPHIC DIMENSIONS',font=font(40),fill=fg)
-d.text((55,88),'ACTUAL SOURCE MESHES • METRES • UNITY +Y UP • OFFLINE REVIEW',font=font(21),fill=muted)
+d.text((55,88),'ACTUAL SOURCE MESHES • METRES • UNITY +Y UP • UNITY EDITOR REVIEW',font=font(21),fill=muted)
 panel(im,'Pool_Top_Ortho.png',(40,135,630,995),'POOL / TOP (+Y)', ['Exterior X 1.40 × Z 2.52','Bed X 1.12 × Z 2.24; six 0.065-radius mouths'])
 panel(im,'Pool_Side_Ortho.png',(695,135,1065,410),'POOL / SIDE (+X)', ['Exterior Y 0.86; bed Y 0.78','Resting ball centre Y 0.808575'])
-panel(im,'Darts_Front_Ortho.png',(695,570,660,560),'DARTS / FRONT (+Z)', ['Backplate Ø0.52; scoring board Ø0.45','20 at +Y; clockwise order; +X to viewer right'])
+panel(im,'Darts_Front_Ortho.png',(695,570,660,560),'DARTS / FRONT (+Z)', ['Backplate Ø0.52; scoring board Ø0.45','20 at +Y; clockwise order; root -X to viewer right'])
 d.rounded_rectangle((1375,570,1760,1130),14,fill='#354039');d.text((1395,595),'SCORING RADII',font=font(24),fill=accent)
 for i,t in enumerate(['Inner bull   0.00635','Outer bull   0.01590','Triple in     0.099','Triple out   0.107','Double in   0.162','Double out 0.170','','Wall plane    Z 0','Backplate     Z 0–0.025','Board face   Z 0.055','Wire face     Z 0.057']):d.text((1395,647+i*36),t,font=font(19),fill=fg)
 d.rounded_rectangle((40,1155,1760,1460),14,fill='#354039');d.text((62,1178),'ACCESSORIES / EXACT LOCAL CONTRACT',font=font(27),fill=accent)
@@ -25,7 +25,7 @@ d.text((55,1500),'Views are independently scaled for readability. Values describ
 im.save(P/'Orthographic_Dimensions.png')
 # Contact sheet with actual finished meshes. No concept imagery mixed into model evidence.
 shots=[('Pool_Isometric.png','POOL / ASSEMBLED'),('Pool_PlayerView.png','POOL / PLAYER VIEW'),('Pool_Accessories.png','ACCESSORIES / NUMBER CHECK'),('Darts_Front_Ortho.png','DARTS / FRONT'),('Darts_Oblique.png','DARTS / DEPTH'),('Dart_Detail.png','DART / TIP PIVOT')]
-im=Image.new('RGB',(1800,1530),bg);d=ImageDraw.Draw(im);d.text((40,25),'VICE LIFESTYLE / ACTUAL MODEL REVIEW',font=font(38),fill=fg);d.text((42,80),'Offline Cycles renders of the deliverable meshes • no gameplay screenshot claims',font=font(22),fill=muted)
+im=Image.new('RGB',(1800,1530),bg);d=ImageDraw.Draw(im);d.text((40,25),'VICE LIFESTYLE / ACTUAL MODEL REVIEW',font=font(38),fill=fg);d.text((42,80),'Ordinary-camera Unity editor renders • imported deliverable meshes • not in-game screenshots',font=font(22),fill=muted)
 for i,(name,label) in enumerate(shots):
  x=35+(i%3)*590;y=135+(i//3)*675;d.text((x,y),label,font=font(24),fill=accent);src=fit(Image.open(P/'Renders'/name).convert('RGB'),(560,600));im.paste(src,(x+(560-src.width)//2,y+45+(600-src.height)//2))
 im.save(P/'Model_Review_ContactSheet.png')

@@ -36,8 +36,8 @@ class Build:
    p=(rr*math.cos(angle),t,rr*math.sin(angle)) if axis=='Y' else (rr*math.cos(angle),rr*math.sin(angle),t)
    return tuple(center[j]+p[j] for j in range(3))
   a=[pt(i*2*math.pi/n,r,low) for i in range(n)];b=[pt(i*2*math.pi/n,r2,high) for i in range(n)]
-  self.poly(a[::-1],slot,cell=cell,dcell=dcell);self.poly(b,slot,cell=cell,dcell=dcell)
-  for i in range(n):j=(i+1)%n;self.poly([a[i],a[j],b[j],b[i]],slot,cell=cell,dcell=dcell)
+  self.poly(a if axis=='Y' else a[::-1],slot,cell=cell,dcell=dcell);self.poly(b[::-1] if axis=='Y' else b,slot,cell=cell,dcell=dcell)
+  for i in range(n):j=(i+1)%n;self.poly(([a[i],a[j],b[j],b[i]][::-1] if axis=='Y' else [a[i],a[j],b[j],b[i]]),slot,cell=cell,dcell=dcell)
  def done(self):
   me=bpy.data.meshes.new(self.name);me.from_pydata(self.v,[],self.f);me.materials.clear()
   for s in self.slots:me.materials.append(mats[s])
@@ -79,7 +79,7 @@ pts.append((-.56,.78,-1.12+r))
 for k in range(1,9):a=math.pi/2-k*math.pi/16;pts.append((-.56+r*math.cos(a),.78,-1.12+r*math.sin(a)))
 b=Build('Pool_Cloth',['Cloth'],root)
 for t in tessellate_polygon([[Vector(p) for p in pts]]):
- cs=[pts[p] if isinstance(p,int) else tuple(p) for p in t];b.poly(cs,cell=1)
+ cs=[pts[p] if isinstance(p,int) else tuple(p) for p in t];b.poly(cs,uv=[palette(1)]*3)
 b.done()
 # Cushion rubber has exact .09 corner and .18 centre mouth clearances.
 b=Build('Pool_Rails',['Wood','RailRubber','Metal'],root)
@@ -88,11 +88,11 @@ for s in (-1,1):
   lo,hi=sorted((s*.592,s*.70));b.box((lo,.78,a),(hi,.858,c),0,0)
   lo,hi=sorted((s*.56,s*.592));b.box((lo,.78,a),(hi,.825,c),1,2)
  for z in [-.78,-.48,-.25,.25,.48,.78]:
-  b.box((s*.641-.006,.8600,z-.011),(s*.641+.006,.8600,z+.011),2,4)
+  b.poly([(s*.641-.006,.86,z-.011),(s*.641-.006,.86,z+.011),(s*.641+.006,.86,z+.011),(s*.641+.006,.86,z-.011)],2,cell=4)
 for s in (-1,1):
  lo,hi=sorted((s*1.152,s*1.26));b.box((-.47,.78,lo),(.47,.858,hi),0,0)
  lo,hi=sorted((s*1.12,s*1.152));b.box((-.47,.78,lo),(.47,.825,hi),1,2)
- for x in [-.28,0,.28]:b.box((x-.006,.86,s*1.201-.011),(x+.006,.86,s*1.201+.011),2,4)
+ for x in [-.28,0,.28]:b.poly([(x-.006,.86,s*1.201-.011),(x-.006,.86,s*1.201+.011),(x+.006,.86,s*1.201+.011),(x+.006,.86,s*1.201-.011)],2,cell=4)
 # Outer corner blocks stay outside radius-.065 pocket circle.
 for x in (-1,1):
  for z in (-1,1):
@@ -105,7 +105,7 @@ for name,x,z in [('NW',-.56,1.12),('NE',.56,1.12),('W',-.56,0),('E',.56,0),('SW'
  # Open black rim ring, no cap covering opening.
  for i in range(24):
   aa=i*math.tau/24;bb=(i+1)*math.tau/24
-  b.poly([(x+rr*math.cos(t),.785,z+rr*math.sin(t)) for rr,t in [(.065,aa),(.070,aa),(.070,bb),(.065,bb)]],cell=3)
+  b.poly([(x+rr*math.cos(t),.785,z+rr*math.sin(t)) for rr,t in [(.065,bb),(.070,bb),(.070,aa),(.065,aa)]],cell=3)
 b.done()
 b=Build('Pool_Legs',['Wood','Metal'],root)
 for x in (-.56,.56):
@@ -133,7 +133,7 @@ for n in range(16):
  b=Build(f'Pool_Ball_{n:02d}',['BallAtlas'],None);radius=.028575
  def pt(i,j):
   a=i*math.tau/16;t=j*math.pi/10;return (radius*math.sin(t)*math.cos(a),radius*math.cos(t),radius*math.sin(t)*math.sin(a))
- def uv(i,j):return ((n%4+1-i/16)/4,1-(n//4+j/10)/4)
+ def uv(i,j):return ((n%4+i/16)/4,1-(n//4+j/10)/4)
  for i in range(16):
   b.poly([pt(i,0),pt(i+1,1),pt(i,1)],uv=[uv(i+.5,0),uv(i+1,1),uv(i,1)])
   for j in range(1,9):b.poly([pt(i,j),pt(i+1,j),pt(i+1,j+1),pt(i,j+1)],uv=[uv(i,j),uv(i+1,j),uv(i+1,j+1),uv(i,j+1)])
@@ -198,17 +198,25 @@ for os in groups.values():
   bm=bmesh.new();bm.from_mesh(o.data)
   if o.name=='Dart_Barrel':
    bmesh.ops.delete(bm,geom=[f for f in bm.faces if any(all(abs(v.co.z-z)<1e-7 for v in f.verts) for z in [.039,.079])],context='FACES_ONLY')
-  bmesh.ops.remove_doubles(bm,verts=list(bm.verts),dist=1e-8);bmesh.ops.dissolve_degenerate(bm,edges=list(bm.edges),dist=1e-10);bmesh.ops.delete(bm,geom=[e for e in bm.edges if not e.link_faces],context='EDGES');bmesh.ops.recalc_face_normals(bm,faces=list(bm.faces));bm.to_mesh(o.data);bm.free()
-for name in ['Pool_Body','Pool_Legs','Pool_Rails']:
- o=bpy.data.objects[name];bpy.context.view_layer.objects.active=o
- mod=o.modifiers.new('Applied broad edge chamfer','BEVEL');mod.width=.0025;mod.segments=1;mod.use_clamp_overlap=False
- bpy.ops.object.modifier_apply(modifier=mod.name)
+  
+  if o.name not in ['Pool_Body','Pool_Rails','Pool_Legs']:bmesh.ops.remove_doubles(bm,verts=list(bm.verts),dist=1e-6)
+  bmesh.ops.dissolve_degenerate(bm,edges=list(bm.edges),dist=1e-10);bmesh.ops.delete(bm,geom=[e for e in bm.edges if not e.link_faces],context='EDGES');
+  if o.name in ['Pool_Rack','Darts_Board','Dart_Flights'] or o.name.startswith('Pool_Ball_'):bmesh.ops.recalc_face_normals(bm,faces=list(bm.faces))
+  bm.to_mesh(o.data);o.data.update();bm.free()
 # Open panels get intended outward normals where graph topology cannot infer them.
 for name in ['Pool_Cloth','Darts_Board','Darts_NumberRing','Darts_Wire']:
  o=bpy.data.objects[name]
  for poly in o.data.polygons:
   if name=='Pool_Cloth' and poly.normal.y<0:poly.flip()
   elif name!='Pool_Cloth' and all(abs(o.data.vertices[v].co.z-(.055 if name=='Darts_Board' else .057))<1e-7 for v in poly.vertices) and poly.normal.z<0:poly.flip()
+# Approved presentation contract: an ordinary Unity camera on +Z sees screen-right at root -X.
+# Reflect board artwork only; 6 is root -X and 11 root +X. Scoring stays unchanged.
+# Future visual adapter: display (-LastX, LastY, 0.055). This script adds no gameplay code.
+for o in groups['DartsBoard']:
+ if o.type=='MESH':
+  bm=bmesh.new();bm.from_mesh(o.data)
+  for v in bm.verts:v.co.x=-v.co.x
+  bmesh.ops.reverse_faces(bm,faces=list(bm.faces));bm.to_mesh(o.data);o.data.update();bm.free()
 # Source collections separate all identity/local origins; accessories intentionally overlap at world origin.
 for name,os in groups.items():
  col=bpy.data.collections.new(name);bpy.context.scene.collection.children.link(col)
@@ -235,7 +243,17 @@ for name in ['Darts_Backplate','Darts_Mount','Dart_Tip','Dart_Barrel']:
  o=bpy.data.objects[name]
  for i,m in enumerate(o.data.materials):
   if m.name in ['MountMetal','DartMetal']:o.data.materials[i]=mats['WireMetal']
-# Exports carry raw Unity coordinates, identity local transforms and metre metadata.
+# Export-only RH-to-LH bridge. Unity importer reflects FBX X; pre-reflect vertices, pivots, and winding.
+for os in groups.values():
+ for o in os:
+  o.location.x=-o.location.x
+  if o.type=='MESH':
+   bm=bmesh.new();bm.from_mesh(o.data)
+   for v in bm.verts:v.co.x=-v.co.x
+   bmesh.ops.reverse_faces(bm,faces=list(bm.faces))
+   bmesh.ops.triangulate(bm,faces=list(bm.faces))
+   bm.to_mesh(o.data);o.data.update();bm.free()
+# Exports carry pre-reflected FBX X, identity transforms and metre metadata; Unity restores canonical signed positions.
 for name,os in groups.items():
  bpy.ops.object.select_all(action='DESELECT')
  for o in os:o.select_set(True)
