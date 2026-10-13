@@ -62,7 +62,7 @@ Back up or restore the entire save, including **Players and Modded/VICE/Poker**,
 
 ## Build and validation
 
-Use the normal `scripts/Build-VICE.ps1 -Modules Lifestyle` export. The existing Lifestyle test executable covers poker automatically. Add `--exhaustive-poker` to its runtime arguments to enumerate all 2,598,960 five-card combinations. The model-worker contract is [vice-poker-model-worker-prompt.md](vice-poker-model-worker-prompt.md).
+Use the normal `scripts/Build-VICE.ps1 -Modules Lifestyle` export, which preserves the committed 0.2.2 pool/darts cameras and accepted artwork. On a clean checkout without its ignored bundle or Unity, add `-PrimitiveHomeGames` to build the complete poker prototype with pool/darts fallback meshes. The existing Lifestyle test executable covers poker automatically. Add `--exhaustive-poker` to its runtime arguments to enumerate all 2,598,960 five-card combinations. The model-worker contract is [vice-poker-model-worker-prompt.md](vice-poker-model-worker-prompt.md).
 
 Automated checks cover all nine hand categories and kickers/ties, heads-up/four-seat flow, short and cumulative raises, varying-stack all-ins, side pots, odd-dollar splits, uncalled refunds, randomized cash conservation, private snapshots, duplicate/stale requests, departure/all-in eligibility, control lease restoration and journal recovery before/after a native write. Native patch address sharing is checked against the installed Cpp2IL metadata. Build and export fixtures check the current Core/Lifestyle pair.
 

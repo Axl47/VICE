@@ -25,3 +25,8 @@ assets/S1LSDComparisonAudio/Logs/
 assets/S1LSDComparisonAudio/UserSettings/
 src/S1LSDComparison/Assets/*.manifest
 src/S1LSDComparison/Assets/Assets
+src/VICE.Lifestyle/Assets/homegames.bundle
+src/VICE.Lifestyle/Assets/homegames.bundle.manifest
+src/VICE.Lifestyle/Assets/homegames.contract.json
+src/VICE.Lifestyle/Assets/Assets
+src/VICE.Lifestyle/Assets/Assets.manifest

@@ -35,10 +35,10 @@ Seats advance clockwise, viewed from above with +Z at the top: south, west, nort
 
 | Seat | Seat anchor | Yaw | Camera position | Camera looks at |
 | --- | --- | --- | --- | --- |
-| 0, south | `(0,.430,-1.080)` | 0° | `(0,1.450,-1.350)` | `(0,.770,0)` |
-| 1, west | `(-1.080,.430,0)` | 90° | `(-1.350,1.450,0)` | `(0,.770,0)` |
-| 2, north | `(0,.430,1.080)` | 180° | `(0,1.450,1.350)` | `(0,.770,0)` |
-| 3, east | `(1.080,.430,0)` | 270° | `(1.350,1.450,0)` | `(0,.770,0)` |
+| 0, south | `(0,.430,-1.080)` | 0° | `(0,1.500,-1.400)` | `(0,.770,0)` |
+| 1, west | `(-1.080,.430,0)` | 90° | `(-1.400,1.500,0)` | `(0,.770,0)` |
+| 2, north | `(0,.430,1.080)` | 180° | `(0,1.500,1.400)` | `(0,.770,0)` |
+| 3, east | `(1.080,.430,0)` | 270° | `(1.400,1.500,0)` | `(0,.770,0)` |
 
 Preview cameras use vertical FOV 70°, near clip .025 m, world +Y up. Empties named `Seat_0`…`Seat_3` and `Camera_0`…`Camera_3` may be supplied as reference helpers. The runtime derives these from `PokerGeometry`; changing artist empties will not change seating or camera behavior.
 
@@ -59,7 +59,7 @@ The runtime supplies and moves these objects. Leave the named spaces clear; do n
 - Side-pot amounts are text owned by code; provide no fixed pot compartments.
 - Stack bundles use their seat's yaw. Their label is .024 m above the stack anchor, in a .37×.10 m area.
 - Bet bundles use their seat's yaw, .014 m below the bet anchor. Their label area is .26×.10 m.
-- The private action console has a 0.84×0.272 m world-space face. Seat-0 console centre is `(0,.820,-.800)`, Unity Euler rotation `(70,0,0)`. Other seats rotate its position and orientation by their seat yaw. Leave those four volumes and their seat-camera sightlines clear. **Do not model the console or its buttons.**
+- The private action console has a 0.84×0.272 m world-space face. Seat-0 console centre is `(0,.780,-.850)`, Unity Euler rotation `(70,0,0)`. Other seats rotate its position and orientation by their seat yaw. Leave those four volumes and their seat-camera sightlines clear. **Do not model the console or its buttons.**
 - Reference empties may be named `Hole_0_0`, `Hole_0_1` etc., `Community_0`…`Community_4`, `Stack_0`…`Stack_3`, `Bet_0`…`Bet_3`, `Button_0`…`Button_3`, `Deck`, `Pot`, `Controls_0`…`Controls_3`. Put them in a separate `Reference_Anchors` collection. Exporting helpers is optional; their coordinates are informational.
 
 ## Accessory files and pivots

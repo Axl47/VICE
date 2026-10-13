@@ -11,6 +11,7 @@ ReliableOutboxTests.Run(Check);
 AmenityTests.Run(Check);
 PokerTests.Run(Check);
 if(args.Contains("--exhaustive-poker")) PokerTests.Exhaustive(Check);
+PresentationTests.Run(Check);
 YouTubeTests.Run(Check);
 var image=Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aMs4AAAAASUVORK5CYII=");
 var hash=ImageCache.Hash(image);

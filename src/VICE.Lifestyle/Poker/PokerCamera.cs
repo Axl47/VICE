@@ -66,7 +66,7 @@ internal sealed class PokerCamera : IDisposable
     internal void Pose(Transform visual, int seat)
     {
         if(!Active || !visual)return;
-        var position=PokerGeometry.Rotate(new Vector3(0,1.45f,-1.35f),seat);
+        var position=PokerGeometry.Rotate(new Vector3(0,1.50f,-1.40f),seat);
         View.transform.position=visual.TransformPoint(position);
         View.transform.rotation=Quaternion.LookRotation(visual.TransformPoint(new Vector3(0,.77f,0))-View.transform.position,visual.up);
         View.fieldOfView=Fov;

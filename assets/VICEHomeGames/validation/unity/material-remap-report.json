@@ -1,0 +1,53 @@
+{
+    "shader": "Standard (isolated Built-in editor preview; native URP unverified)",
+    "method": "Persistent shared .mat assets and ModelImporter.AddRemap; actual sharedMaterial object identities counted across both FBXs",
+    "uniqueDartsObjects": 8,
+    "dartsSlots": 12,
+    "materials": [
+        {
+            "name": "DartFlight",
+            "path": "Assets/SharedMaterials/DartFlight.mat",
+            "id": -3038
+        },
+        {
+            "name": "DartPlastic",
+            "path": "Assets/SharedMaterials/DartPlastic.mat",
+            "id": -3024
+        },
+        {
+            "name": "Numbers",
+            "path": "Assets/SharedMaterials/Numbers.mat",
+            "id": -2856
+        },
+        {
+            "name": "RingGreen",
+            "path": "Assets/SharedMaterials/RingGreen.mat",
+            "id": -2814
+        },
+        {
+            "name": "RingRed",
+            "path": "Assets/SharedMaterials/RingRed.mat",
+            "id": -2828
+        },
+        {
+            "name": "SisalDark",
+            "path": "Assets/SharedMaterials/SisalDark.mat",
+            "id": -2842
+        },
+        {
+            "name": "SisalLight",
+            "path": "Assets/SharedMaterials/SisalLight.mat",
+            "id": -2870
+        },
+        {
+            "name": "WireMetal",
+            "path": "Assets/SharedMaterials/WireMetal.mat",
+            "id": -2800
+        }
+    ],
+    "textureSettings": [
+        "PoolFurniture_BaseColor: sRGB, mipmaps enabled, bilinear, anisotropy 8",
+        "PoolBalls_BaseColor: sRGB, mipmaps enabled, bilinear, anisotropy 8",
+        "Darts_BaseColor: sRGB, mipmaps enabled, bilinear, anisotropy 8"
+    ]
+}

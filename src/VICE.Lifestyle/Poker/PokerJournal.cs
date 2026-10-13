@@ -23,7 +23,7 @@ internal static class PokerInventory
         var pocket = Read(json).Pocket;
         var value = pocket["DataType"]?.GetValue<string>() == "CashData" ? pocket["CashBalance"]!.GetValue<double>() : 0;
         if (!double.IsFinite(value) || value < 0 || value > 1000000000) throw new InvalidDataException("Native cash is outside the supported range.");
-        return value;
+        return (double)(float)value; // Native JSON may print a short decimal; the actual wallet is a float.
     }
     internal static string WithCash(string json, double amount)
     {
@@ -115,9 +115,10 @@ internal sealed class PokerJournal
         if (Document.Transfer is not null) throw new InvalidOperationException("An interrupted wallet transfer needs recovery before more cash can move.");
         var nativePath = AtomicDocument.Within(Root, relativeInventory);
         var before = PokerInventory.Cash(liveInventory); var target = PokerInventory.Target(before, delta);
-        Document.Transfer = new() { Token = token, Player = player, Inventory = relativeInventory, Before = before, After = target,
+        var transfer = new PokerTransfer { Token = token, Player = player, Inventory = relativeInventory, Before = before, After = target,
             NativeAfter = PokerInventory.WithCash(liveInventory, target), TableAfter = after,
             NativeBeforeHash = File.Exists(nativePath) ? Hash(File.ReadAllText(nativePath)) : "" };
+        ValidateTransfer(transfer); Document.Transfer = transfer;
         Save(); // Intent must exist before touching native cash.
         AtomicDocument.Write(nativePath, Document.Transfer.NativeAfter);
         Commit(); // A crash before this point is recovered by inspecting the native cash value.
@@ -131,6 +132,7 @@ internal sealed class PokerJournal
     private void Recover()
     {
         if (Document.Transfer is not { } transfer) return;
+        ValidateTransfer(transfer);
         var inventory = AtomicDocument.Within(Root, transfer.Inventory);
         if (!File.Exists(inventory) && transfer.NativeBeforeHash.Length == 0) { Document.Transfer = null; Save(); return; }
         var native = File.ReadAllText(inventory);
@@ -138,6 +140,19 @@ internal sealed class PokerJournal
         var cash = PokerInventory.Cash(native);
         if (cash == transfer.After) { Commit(); return; }
         throw new InvalidDataException("Interrupted poker cash differs from both journal values. Preserve the ledger and inventory; automatic replay is blocked.");
+    }
+    private void ValidateTransfer(PokerTransfer transfer)
+    {
+        if (!Document.Tables.TryGetValue(transfer.TableAfter.Id, out var before)) throw new InvalidDataException("Transfer has no original table.");
+        var delta = transfer.After - transfer.Before;
+        if (!double.IsFinite(delta) || delta != Math.Floor(delta) || transfer.TableAfter.Held - before.Held != -delta || PokerInventory.Cash(transfer.NativeAfter) != transfer.After)
+            throw new InvalidDataException("Native wallet and proposed table transfer do not conserve cash.");
+        foreach (var owner in before.Seats.Concat(transfer.TableAfter.Seats).Select(s => s.Player).Where(p => p.Length > 0).Distinct())
+        {
+            var oldFunds = before.Seats.Where(s => s.Player == owner).Sum(s => s.Stack + s.Contribution);
+            var newFunds = transfer.TableAfter.Seats.Where(s => s.Player == owner).Sum(s => s.Stack + s.Contribution);
+            if (newFunds - oldFunds != (owner == transfer.Player ? -delta : 0)) throw new InvalidDataException("Wallet transfer changed another player's funds.");
+        }
     }
     private static string Hash(string text) => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(text)));
 }

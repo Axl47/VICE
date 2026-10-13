@@ -150,6 +150,8 @@ internal sealed class PokerTable
             if (Seats.Count(s => s.InHand && !s.Folded) == 1) { Settle(false); return; }
             // A sole player with chips only acts if facing a wager. No betting into an all-in opponent.
             var actors = Seats.Where(CanAct).ToArray();
+            if (actors.Length == 1)
+                CurrentBet = Math.Max(actors[0].Wager, Seats.Where(s => s != actors[0] && s.InHand && !s.Folded).Select(s => s.Wager).DefaultIfEmpty(0).Max());
             if (actors.Length <= 1 && actors.All(s => s.Wager >= Seats.Where(other => other != s && other.InHand && !other.Folded).Select(other => other.Wager).DefaultIfEmpty(0).Max())) Turn = -1;
             else if (Seats.Any(NeedsAction)) { if (Turn < 0 || !NeedsAction(Seats[Turn])) Turn = Next(Dealer, NeedsAction); return; }
             RefundUncalled();

@@ -65,6 +65,8 @@ internal sealed class AmenitySession
         // Leave must work even when the client's snapshot is stale.
         if(command.Action=="leave")
         {if(Seats.Contains(actor)&&actor>=0)Reset("Player left — table released.");return;}
+        if(command.Action=="cancel")
+        {if(Charging==actor){Charging=-1;Heartbeats[actor]=now;}return;}
         if(command.Revision!=Revision)throw new InvalidOperationException("Turn changed. Wait for the host's latest state.");
         switch(command.Action)
         {

@@ -23,7 +23,7 @@ internal static class PokerGeometry
     internal static Vector3 Button(int seat) => Rotate(new Vector3(.35f, .784f, -.45f), seat);
     internal static Vector3 Deck => new(.48f, .795f, .18f);
     internal static Vector3 Pot => new(-.38f, .795f, .18f);
-    internal static Vector3 Controls(int seat) => Rotate(new Vector3(0, .82f, -.80f), seat);
+    internal static Vector3 Controls(int seat) => Rotate(new Vector3(0, .78f, -.85f), seat);
 }
 internal static class PokerContent
 {

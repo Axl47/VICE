@@ -5,6 +5,8 @@
     <Version>0.3.0</Version><Authors>Axl47</Authors>
   </PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Assets/homegames.bundle" LogicalName="VICE.Lifestyle.HomeGames.bundle" Condition="Exists('Assets/homegames.bundle') And '$(PrimitiveHomeGames)' != 'True'" />
+    <EmbeddedResource Include="Assets/Icons/*.png" LogicalName="VICE.Lifestyle.HomeGames.Icon.%(Filename).png" />
     <Compile Include="../Networking/SynchronousPacketPayload.cs" Link="Networking/SynchronousPacketPayload.cs" />
     <Compile Include="../Networking/ReplicatedFurnitureVisuals.cs" Link="Networking/ReplicatedFurnitureVisuals.cs" />
     <Compile Include="../Networking/ReliableOutbox.cs" Link="Networking/ReliableOutbox.cs" />

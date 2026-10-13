@@ -72,6 +72,9 @@ internal static class PokerTests
         check(t.Held==600&&t.Pots.Sum(p=>p.Amount)==25&&t.Seats[0].Stack==215,"Folded blinds remain; excess raise refunded.");
         t=Table(20,20);t.Seats[1].Stack=3;t.Start("p0",0);
         check(!t.Active&&t.Held==23,"Heads-up short blind runs out without a phantom call.");
+        t=Table(100,20);t.Seats[1].Stack=6;t.Start("p0",0);
+        check(t.CurrentBet==6&&t.Turn==0&&t.CurrentBet-t.Seats[0].Wager==1,"Sole active player faces the actual short blind, not a nominal full blind.");
+        t.Act("p0","call",0,1);check(!t.Active&&t.Held==106,"Calling a short heads-up blind settles without over-collecting.");
         t=Table(200,200,200,200);t.Start("p0",0);t.Leave("p3",1);t.Leave("p1",1);t.Leave("p2",1);
         check(!t.Active&&t.Held==800&&t.Seats[0].Stack==210,"Sole eligible player can win blinds without having contributed or revealed.");
 
@@ -148,6 +151,11 @@ internal static class PokerTests
             check(JsonDocument.Parse(PokerInventory.WithCash(zero,200)).RootElement.GetProperty("Items")[0].GetString()==items[0],"Physical cash in a hotbar slot is preserved and never used as the pocket wallet.");
             Reject(()=>PokerInventory.Cash("{\"Items\":[]}"),check,"Changed native inventory layout blocked.");
             var journal=new PokerJournal(root);var t=Table(200,200);journal.Document.Tables[t.Id]=t; journal.Save();
+            var invalid=t.Copy();invalid.Seats[0].Stack+=100;
+            Reject(()=>journal.Transfer("bad","p0",relative,inventory,invalid,-50),check,"Wallet and stack imbalance rejected before native write.");
+            invalid=t.Copy();invalid.Seats[1].Stack+=100;
+            Reject(()=>journal.Transfer("wrong-owner","p0",relative,inventory,invalid,-100),check,"Transfer cannot credit another owner's stack.");
+            check(journal.Document.Transfer is null&&PokerInventory.Cash(File.ReadAllText(native))==1000,"Rejected transfer leaves no native debit or prepared intent.");
             var after=t.Copy();after.Add("p0","Player0",0,100);var token="p0/"+Guid.NewGuid();journal.Transfer(token,"p0",relative,inventory,after,-100);
             check(PokerInventory.Cash(File.ReadAllText(native))==900&&journal.Document.Tables[t.Id].Held==500,"Write-through cash debit matches stack credit.");
             journal.Transfer(token,"p0",relative,inventory,after,-100);check(PokerInventory.Cash(File.ReadAllText(native))==900,"Duplicate transfer cannot debit twice.");
@@ -170,7 +178,8 @@ internal static class PokerTests
             var saveAs=Path.Combine(root,"CopiedSave");AtomicDocument.Write(AtomicDocument.Within(saveAs,relative),File.ReadAllText(native));journal.CheckpointTo(saveAs);
             var paired=new PokerJournal(saveAs);check(paired.Document.Tables[t.Id].Held==300&&PokerInventory.Cash(File.ReadAllText(AtomicDocument.Within(saveAs,relative)))==1100,"Save to another folder carries paired stack and wallet checkpoint.");
             // A crash before the native write cancels intent by the exact original-file hash.
-            var old=File.ReadAllText(native);intent=new(){Token="before",Player="p1",Inventory=relative,Before=1100,After=1000,NativeAfter=PokerInventory.WithCash(old,1000),TableAfter=after.Copy(),NativeBeforeHash=Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(old)))};
+            var old=File.ReadAllText(native);var intended=journal.Document.Tables[t.Id].Copy();intended.Seats[1].Stack+=100;
+            intent=new(){Token="before",Player="p1",Inventory=relative,Before=1100,After=1000,NativeAfter=PokerInventory.WithCash(old,1000),TableAfter=intended,NativeBeforeHash=Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(old)))};
             journal.Document.Transfer=intent;journal.Save();journal=new(root);check(journal.Document.Transfer is null&&!journal.Document.Completed.Contains("before")&&PokerInventory.Cash(File.ReadAllText(native))==1100,"Crash before native write preserves original wallet and ledger.");
             intent.NativeBeforeHash="wrong";journal.Document.Transfer=intent;journal.Save();AtomicDocument.Write(native,PokerInventory.WithCash(old,777));
             Reject(()=>new PokerJournal(root),check,"Ambiguous native cash quarantines recovery.");

@@ -1,0 +1,2441 @@
+{
+    "unity": "2022.3.62f2",
+    "files": [
+        {
+            "file": "PoolTable",
+            "globalScale": 1.0,
+            "fileScale": 1.0,
+            "useFileScale": true,
+            "bakeAxisConversion": false,
+            "parts": [
+                {
+                    "name": "PoolTable",
+                    "parent": "",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "max": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "triangles": 0,
+                    "slots": 0,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [],
+                    "textures": [],
+                    "materialIds": []
+                },
+                {
+                    "name": "PoolTable_Root",
+                    "parent": "PoolTable",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "max": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "triangles": 0,
+                    "slots": 0,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [],
+                    "textures": [],
+                    "materialIds": []
+                },
+                {
+                    "name": "Pocket_E",
+                    "parent": "PoolTable_Root",
+                    "localPosition": {
+                        "x": 0.5600000023841858,
+                        "y": 0.7799999713897705,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.5600000023841858,
+                        "y": 0.7799999713897705,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "max": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "triangles": 0,
+                    "slots": 0,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [],
+                    "textures": [],
+                    "materialIds": []
+                },
+                {
+                    "name": "Pocket_NE",
+                    "parent": "PoolTable_Root",
+                    "localPosition": {
+                        "x": 0.5600000023841858,
+                        "y": 0.7799999713897705,
+                        "z": 1.1200000047683716
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.5600000023841858,
+                        "y": 0.7799999713897705,
+                        "z": 1.1200000047683716
+                    },
+                    "min": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "max": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "triangles": 0,
+                    "slots": 0,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [],
+                    "textures": [],
+                    "materialIds": []
+                },
+                {
+                    "name": "Pocket_NW",
+                    "parent": "PoolTable_Root",
+                    "localPosition": {
+                        "x": -0.5600000023841858,
+                        "y": 0.7799999713897705,
+                        "z": 1.1200000047683716
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": -0.5600000023841858,
+                        "y": 0.7799999713897705,
+                        "z": 1.1200000047683716
+                    },
+                    "min": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "max": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "triangles": 0,
+                    "slots": 0,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [],
+                    "textures": [],
+                    "materialIds": []
+                },
+                {
+                    "name": "Pocket_SE",
+                    "parent": "PoolTable_Root",
+                    "localPosition": {
+                        "x": 0.5600000023841858,
+                        "y": 0.7799999713897705,
+                        "z": -1.1200000047683716
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.5600000023841858,
+                        "y": 0.7799999713897705,
+                        "z": -1.1200000047683716
+                    },
+                    "min": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "max": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "triangles": 0,
+                    "slots": 0,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [],
+                    "textures": [],
+                    "materialIds": []
+                },
+                {
+                    "name": "Pocket_SW",
+                    "parent": "PoolTable_Root",
+                    "localPosition": {
+                        "x": -0.5600000023841858,
+                        "y": 0.7799999713897705,
+                        "z": -1.1200000047683716
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": -0.5600000023841858,
+                        "y": 0.7799999713897705,
+                        "z": -1.1200000047683716
+                    },
+                    "min": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "max": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "triangles": 0,
+                    "slots": 0,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [],
+                    "textures": [],
+                    "materialIds": []
+                },
+                {
+                    "name": "Pocket_W",
+                    "parent": "PoolTable_Root",
+                    "localPosition": {
+                        "x": -0.5600000023841858,
+                        "y": 0.7799999713897705,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": -0.5600000023841858,
+                        "y": 0.7799999713897705,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "max": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "triangles": 0,
+                    "slots": 0,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [],
+                    "textures": [],
+                    "materialIds": []
+                },
+                {
+                    "name": "Pool_Body",
+                    "parent": "PoolTable_Root",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": -0.6959999799728394,
+                        "y": 0.550000011920929,
+                        "z": -1.2519999742507935
+                    },
+                    "max": {
+                        "x": 0.6959999799728394,
+                        "y": 0.7549999952316284,
+                        "z": 1.2519999742507935
+                    },
+                    "triangles": 120,
+                    "slots": 2,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [
+                        "Wood",
+                        "Metal"
+                    ],
+                    "textures": [
+                        "Assets/Models/Textures/PoolFurniture_BaseColor.png",
+                        "Assets/Models/Textures/PoolFurniture_BaseColor.png"
+                    ],
+                    "materialIds": [
+                        -2300,
+                        -2286
+                    ]
+                },
+                {
+                    "name": "Pool_Cloth",
+                    "parent": "PoolTable_Root",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": -0.5600000023841858,
+                        "y": 0.7799999713897705,
+                        "z": -1.1200000047683716
+                    },
+                    "max": {
+                        "x": 0.5600000023841858,
+                        "y": 0.7799999713897705,
+                        "z": 1.1200000047683716
+                    },
+                    "triangles": 68,
+                    "slots": 1,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [
+                        "Cloth"
+                    ],
+                    "textures": [
+                        "Assets/Models/Textures/PoolFurniture_BaseColor.png"
+                    ],
+                    "materialIds": [
+                        -2328
+                    ]
+                },
+                {
+                    "name": "Pool_Legs",
+                    "parent": "PoolTable_Root",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": -0.6380000114440918,
+                        "y": 0.0,
+                        "z": -1.1579999923706055
+                    },
+                    "max": {
+                        "x": 0.6380000114440918,
+                        "y": 0.5600000023841858,
+                        "z": 1.1579999923706055
+                    },
+                    "triangles": 144,
+                    "slots": 2,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [
+                        "Wood",
+                        "Metal"
+                    ],
+                    "textures": [
+                        "Assets/Models/Textures/PoolFurniture_BaseColor.png",
+                        "Assets/Models/Textures/PoolFurniture_BaseColor.png"
+                    ],
+                    "materialIds": [
+                        -2300,
+                        -2286
+                    ]
+                },
+                {
+                    "name": "Pool_Pockets",
+                    "parent": "PoolTable_Root",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": -0.6299999952316284,
+                        "y": 0.6650000214576721,
+                        "z": -1.190000057220459
+                    },
+                    "max": {
+                        "x": 0.6299999952316284,
+                        "y": 0.7850000262260437,
+                        "z": 1.190000057220459
+                    },
+                    "triangles": 840,
+                    "slots": 1,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [
+                        "PocketBlack"
+                    ],
+                    "textures": [
+                        "Assets/Models/Textures/PoolFurniture_BaseColor.png"
+                    ],
+                    "materialIds": [
+                        -2272
+                    ]
+                },
+                {
+                    "name": "Pool_Rails",
+                    "parent": "PoolTable_Root",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": -0.699999988079071,
+                        "y": 0.7599999904632568,
+                        "z": -1.2599999904632569
+                    },
+                    "max": {
+                        "x": 0.699999988079071,
+                        "y": 0.8600000143051148,
+                        "z": 1.2599999904632569
+                    },
+                    "triangles": 276,
+                    "slots": 3,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [
+                        "Wood",
+                        "RailRubber",
+                        "Metal"
+                    ],
+                    "textures": [
+                        "Assets/Models/Textures/PoolFurniture_BaseColor.png",
+                        "Assets/Models/Textures/PoolFurniture_BaseColor.png",
+                        "Assets/Models/Textures/PoolFurniture_BaseColor.png"
+                    ],
+                    "materialIds": [
+                        -2300,
+                        -2314,
+                        -2286
+                    ]
+                }
+            ]
+        },
+        {
+            "file": "PoolAccessories",
+            "globalScale": 1.0,
+            "fileScale": 1.0,
+            "useFileScale": true,
+            "bakeAxisConversion": false,
+            "parts": [
+                {
+                    "name": "PoolAccessories",
+                    "parent": "",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "max": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "triangles": 0,
+                    "slots": 0,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [],
+                    "textures": [],
+                    "materialIds": []
+                },
+                {
+                    "name": "Pool_Ball_00",
+                    "parent": "PoolAccessories",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": -0.028574999421834947,
+                        "y": -0.028574999421834947,
+                        "z": -0.028574999421834947
+                    },
+                    "max": {
+                        "x": 0.028574999421834947,
+                        "y": 0.028574999421834947,
+                        "z": 0.028574999421834947
+                    },
+                    "triangles": 288,
+                    "slots": 1,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [
+                        "BallAtlas"
+                    ],
+                    "textures": [
+                        "Assets/Models/Textures/PoolBalls_BaseColor.png"
+                    ],
+                    "materialIds": [
+                        -2490
+                    ]
+                },
+                {
+                    "name": "Pool_Ball_01",
+                    "parent": "PoolAccessories",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": -0.028574999421834947,
+                        "y": -0.028574999421834947,
+                        "z": -0.028574999421834947
+                    },
+                    "max": {
+                        "x": 0.028574999421834947,
+                        "y": 0.028574999421834947,
+                        "z": 0.028574999421834947
+                    },
+                    "triangles": 288,
+                    "slots": 1,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [
+                        "BallAtlas"
+                    ],
+                    "textures": [
+                        "Assets/Models/Textures/PoolBalls_BaseColor.png"
+                    ],
+                    "materialIds": [
+                        -2490
+                    ]
+                },
+                {
+                    "name": "Pool_Ball_02",
+                    "parent": "PoolAccessories",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": -0.028574999421834947,
+                        "y": -0.028574999421834947,
+                        "z": -0.028574999421834947
+                    },
+                    "max": {
+                        "x": 0.028574999421834947,
+                        "y": 0.028574999421834947,
+                        "z": 0.028574999421834947
+                    },
+                    "triangles": 288,
+                    "slots": 1,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [
+                        "BallAtlas"
+                    ],
+                    "textures": [
+                        "Assets/Models/Textures/PoolBalls_BaseColor.png"
+                    ],
+                    "materialIds": [
+                        -2490
+                    ]
+                },
+                {
+                    "name": "Pool_Ball_03",
+                    "parent": "PoolAccessories",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": -0.028574999421834947,
+                        "y": -0.028574999421834947,
+                        "z": -0.028574999421834947
+                    },
+                    "max": {
+                        "x": 0.028574999421834947,
+                        "y": 0.028574999421834947,
+                        "z": 0.028574999421834947
+                    },
+                    "triangles": 288,
+                    "slots": 1,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [
+                        "BallAtlas"
+                    ],
+                    "textures": [
+                        "Assets/Models/Textures/PoolBalls_BaseColor.png"
+                    ],
+                    "materialIds": [
+                        -2490
+                    ]
+                },
+                {
+                    "name": "Pool_Ball_04",
+                    "parent": "PoolAccessories",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": -0.028574999421834947,
+                        "y": -0.028574999421834947,
+                        "z": -0.028574999421834947
+                    },
+                    "max": {
+                        "x": 0.028574999421834947,
+                        "y": 0.028574999421834947,
+                        "z": 0.028574999421834947
+                    },
+                    "triangles": 288,
+                    "slots": 1,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [
+                        "BallAtlas"
+                    ],
+                    "textures": [
+                        "Assets/Models/Textures/PoolBalls_BaseColor.png"
+                    ],
+                    "materialIds": [
+                        -2490
+                    ]
+                },
+                {
+                    "name": "Pool_Ball_05",
+                    "parent": "PoolAccessories",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": -0.028574999421834947,
+                        "y": -0.028574999421834947,
+                        "z": -0.028574999421834947
+                    },
+                    "max": {
+                        "x": 0.028574999421834947,
+                        "y": 0.028574999421834947,
+                        "z": 0.028574999421834947
+                    },
+                    "triangles": 288,
+                    "slots": 1,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [
+                        "BallAtlas"
+                    ],
+                    "textures": [
+                        "Assets/Models/Textures/PoolBalls_BaseColor.png"
+                    ],
+                    "materialIds": [
+                        -2490
+                    ]
+                },
+                {
+                    "name": "Pool_Ball_06",
+                    "parent": "PoolAccessories",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": -0.028574999421834947,
+                        "y": -0.028574999421834947,
+                        "z": -0.028574999421834947
+                    },
+                    "max": {
+                        "x": 0.028574999421834947,
+                        "y": 0.028574999421834947,
+                        "z": 0.028574999421834947
+                    },
+                    "triangles": 288,
+                    "slots": 1,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [
+                        "BallAtlas"
+                    ],
+                    "textures": [
+                        "Assets/Models/Textures/PoolBalls_BaseColor.png"
+                    ],
+                    "materialIds": [
+                        -2490
+                    ]
+                },
+                {
+                    "name": "Pool_Ball_07",
+                    "parent": "PoolAccessories",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": -0.028574999421834947,
+                        "y": -0.028574999421834947,
+                        "z": -0.028574999421834947
+                    },
+                    "max": {
+                        "x": 0.028574999421834947,
+                        "y": 0.028574999421834947,
+                        "z": 0.028574999421834947
+                    },
+                    "triangles": 288,
+                    "slots": 1,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [
+                        "BallAtlas"
+                    ],
+                    "textures": [
+                        "Assets/Models/Textures/PoolBalls_BaseColor.png"
+                    ],
+                    "materialIds": [
+                        -2490
+                    ]
+                },
+                {
+                    "name": "Pool_Ball_08",
+                    "parent": "PoolAccessories",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": -0.028574999421834947,
+                        "y": -0.028574999421834947,
+                        "z": -0.028574999421834947
+                    },
+                    "max": {
+                        "x": 0.028574999421834947,
+                        "y": 0.028574999421834947,
+                        "z": 0.028574999421834947
+                    },
+                    "triangles": 288,
+                    "slots": 1,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [
+                        "BallAtlas"
+                    ],
+                    "textures": [
+                        "Assets/Models/Textures/PoolBalls_BaseColor.png"
+                    ],
+                    "materialIds": [
+                        -2490
+                    ]
+                },
+                {
+                    "name": "Pool_Ball_09",
+                    "parent": "PoolAccessories",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": -0.028574999421834947,
+                        "y": -0.028574999421834947,
+                        "z": -0.028574999421834947
+                    },
+                    "max": {
+                        "x": 0.028574999421834947,
+                        "y": 0.028574999421834947,
+                        "z": 0.028574999421834947
+                    },
+                    "triangles": 288,
+                    "slots": 1,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [
+                        "BallAtlas"
+                    ],
+                    "textures": [
+                        "Assets/Models/Textures/PoolBalls_BaseColor.png"
+                    ],
+                    "materialIds": [
+                        -2490
+                    ]
+                },
+                {
+                    "name": "Pool_Ball_10",
+                    "parent": "PoolAccessories",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": -0.028574999421834947,
+                        "y": -0.028574999421834947,
+                        "z": -0.028574999421834947
+                    },
+                    "max": {
+                        "x": 0.028574999421834947,
+                        "y": 0.028574999421834947,
+                        "z": 0.028574999421834947
+                    },
+                    "triangles": 288,
+                    "slots": 1,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [
+                        "BallAtlas"
+                    ],
+                    "textures": [
+                        "Assets/Models/Textures/PoolBalls_BaseColor.png"
+                    ],
+                    "materialIds": [
+                        -2490
+                    ]
+                },
+                {
+                    "name": "Pool_Ball_11",
+                    "parent": "PoolAccessories",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": -0.028574999421834947,
+                        "y": -0.028574999421834947,
+                        "z": -0.028574999421834947
+                    },
+                    "max": {
+                        "x": 0.028574999421834947,
+                        "y": 0.028574999421834947,
+                        "z": 0.028574999421834947
+                    },
+                    "triangles": 288,
+                    "slots": 1,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [
+                        "BallAtlas"
+                    ],
+                    "textures": [
+                        "Assets/Models/Textures/PoolBalls_BaseColor.png"
+                    ],
+                    "materialIds": [
+                        -2490
+                    ]
+                },
+                {
+                    "name": "Pool_Ball_12",
+                    "parent": "PoolAccessories",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": -0.028574999421834947,
+                        "y": -0.028574999421834947,
+                        "z": -0.028574999421834947
+                    },
+                    "max": {
+                        "x": 0.028574999421834947,
+                        "y": 0.028574999421834947,
+                        "z": 0.028574999421834947
+                    },
+                    "triangles": 288,
+                    "slots": 1,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [
+                        "BallAtlas"
+                    ],
+                    "textures": [
+                        "Assets/Models/Textures/PoolBalls_BaseColor.png"
+                    ],
+                    "materialIds": [
+                        -2490
+                    ]
+                },
+                {
+                    "name": "Pool_Ball_13",
+                    "parent": "PoolAccessories",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": -0.028574999421834947,
+                        "y": -0.028574999421834947,
+                        "z": -0.028574999421834947
+                    },
+                    "max": {
+                        "x": 0.028574999421834947,
+                        "y": 0.028574999421834947,
+                        "z": 0.028574999421834947
+                    },
+                    "triangles": 288,
+                    "slots": 1,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [
+                        "BallAtlas"
+                    ],
+                    "textures": [
+                        "Assets/Models/Textures/PoolBalls_BaseColor.png"
+                    ],
+                    "materialIds": [
+                        -2490
+                    ]
+                },
+                {
+                    "name": "Pool_Ball_14",
+                    "parent": "PoolAccessories",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": -0.028574999421834947,
+                        "y": -0.028574999421834947,
+                        "z": -0.028574999421834947
+                    },
+                    "max": {
+                        "x": 0.028574999421834947,
+                        "y": 0.028574999421834947,
+                        "z": 0.028574999421834947
+                    },
+                    "triangles": 288,
+                    "slots": 1,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [
+                        "BallAtlas"
+                    ],
+                    "textures": [
+                        "Assets/Models/Textures/PoolBalls_BaseColor.png"
+                    ],
+                    "materialIds": [
+                        -2490
+                    ]
+                },
+                {
+                    "name": "Pool_Ball_15",
+                    "parent": "PoolAccessories",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": -0.028574999421834947,
+                        "y": -0.028574999421834947,
+                        "z": -0.028574999421834947
+                    },
+                    "max": {
+                        "x": 0.028574999421834947,
+                        "y": 0.028574999421834947,
+                        "z": 0.028574999421834947
+                    },
+                    "triangles": 288,
+                    "slots": 1,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [
+                        "BallAtlas"
+                    ],
+                    "textures": [
+                        "Assets/Models/Textures/PoolBalls_BaseColor.png"
+                    ],
+                    "materialIds": [
+                        -2490
+                    ]
+                },
+                {
+                    "name": "PoolCue_Root",
+                    "parent": "PoolAccessories",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "max": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "triangles": 0,
+                    "slots": 0,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [],
+                    "textures": [],
+                    "materialIds": []
+                },
+                {
+                    "name": "CueGrip",
+                    "parent": "PoolCue_Root",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": -1.0499999523162842
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": -1.0499999523162842
+                    },
+                    "min": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "max": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "triangles": 0,
+                    "slots": 0,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [],
+                    "textures": [],
+                    "materialIds": []
+                },
+                {
+                    "name": "CueTip",
+                    "parent": "PoolCue_Root",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "max": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "triangles": 0,
+                    "slots": 0,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [],
+                    "textures": [],
+                    "materialIds": []
+                },
+                {
+                    "name": "Pool_Cue",
+                    "parent": "PoolCue_Root",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": -0.01600000075995922,
+                        "y": -0.01600000075995922,
+                        "z": -1.4500000476837159
+                    },
+                    "max": {
+                        "x": 0.01600000075995922,
+                        "y": 0.01600000075995922,
+                        "z": 0.0
+                    },
+                    "triangles": 146,
+                    "slots": 2,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [
+                        "CueWood",
+                        "CueTip"
+                    ],
+                    "textures": [
+                        "Assets/Models/Textures/PoolFurniture_BaseColor.png",
+                        "Assets/Models/Textures/PoolFurniture_BaseColor.png"
+                    ],
+                    "materialIds": [
+                        -2504,
+                        -2518
+                    ]
+                },
+                {
+                    "name": "PoolRack_Root",
+                    "parent": "PoolAccessories",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "max": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "triangles": 0,
+                    "slots": 0,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [],
+                    "textures": [],
+                    "materialIds": []
+                },
+                {
+                    "name": "Pool_Rack",
+                    "parent": "PoolRack_Root",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": -0.16732050478458405,
+                        "y": 0.0,
+                        "z": -0.09660253673791886
+                    },
+                    "max": {
+                        "x": 0.16732050478458405,
+                        "y": 0.02500000037252903,
+                        "z": 0.1932050734758377
+                    },
+                    "triangles": 24,
+                    "slots": 1,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [
+                        "RackWood"
+                    ],
+                    "textures": [
+                        "Assets/Models/Textures/PoolFurniture_BaseColor.png"
+                    ],
+                    "materialIds": [
+                        -2532
+                    ]
+                }
+            ]
+        },
+        {
+            "file": "DartsBoard",
+            "globalScale": 1.0,
+            "fileScale": 1.0,
+            "useFileScale": true,
+            "bakeAxisConversion": false,
+            "parts": [
+                {
+                    "name": "DartsBoard",
+                    "parent": "",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "max": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "triangles": 0,
+                    "slots": 0,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [],
+                    "textures": [],
+                    "materialIds": []
+                },
+                {
+                    "name": "DartsBoard_Root",
+                    "parent": "DartsBoard",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "max": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "triangles": 0,
+                    "slots": 0,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [],
+                    "textures": [],
+                    "materialIds": []
+                },
+                {
+                    "name": "BoardCentre",
+                    "parent": "DartsBoard_Root",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "max": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "triangles": 0,
+                    "slots": 0,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [],
+                    "textures": [],
+                    "materialIds": []
+                },
+                {
+                    "name": "BoardFace",
+                    "parent": "DartsBoard_Root",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.054999999701976779
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.054999999701976779
+                    },
+                    "min": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "max": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "triangles": 0,
+                    "slots": 0,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [],
+                    "textures": [],
+                    "materialIds": []
+                },
+                {
+                    "name": "Darts_Backplate",
+                    "parent": "DartsBoard_Root",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": -0.25999999046325686,
+                        "y": -0.25999999046325686,
+                        "z": 0.0
+                    },
+                    "max": {
+                        "x": 0.25999999046325686,
+                        "y": 0.25999999046325686,
+                        "z": 0.02500000037252903
+                    },
+                    "triangles": 252,
+                    "slots": 1,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [
+                        "WireMetal"
+                    ],
+                    "textures": [
+                        "Assets/Models/Textures/Darts_BaseColor.png"
+                    ],
+                    "materialIds": [
+                        -2800
+                    ]
+                },
+                {
+                    "name": "Darts_Board",
+                    "parent": "DartsBoard_Root",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": -0.22499999403953553,
+                        "y": -0.22499999403953553,
+                        "z": 0.02500000037252903
+                    },
+                    "max": {
+                        "x": 0.22499999403953553,
+                        "y": 0.22499999403953553,
+                        "z": 0.054999999701976779
+                    },
+                    "triangles": 1278,
+                    "slots": 4,
+                    "frontUvVertexCount": 721,
+                    "frontUvMaxPositiveXError": 0.9765625,
+                    "frontUvMaxReflectedXError": 0.96484375,
+                    "materials": [
+                        "RingRed",
+                        "RingGreen",
+                        "SisalDark",
+                        "SisalLight"
+                    ],
+                    "textures": [
+                        "Assets/Models/Textures/Darts_BaseColor.png",
+                        "Assets/Models/Textures/Darts_BaseColor.png",
+                        "Assets/Models/Textures/Darts_BaseColor.png",
+                        "Assets/Models/Textures/Darts_BaseColor.png"
+                    ],
+                    "materialIds": [
+                        -2828,
+                        -2814,
+                        -2842,
+                        -2870
+                    ]
+                },
+                {
+                    "name": "Darts_Mount",
+                    "parent": "DartsBoard_Root",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": -0.00800000037997961,
+                        "y": -0.19300000369548798,
+                        "z": 0.0020000000949949028
+                    },
+                    "max": {
+                        "x": 0.00800000037997961,
+                        "y": 0.19300000369548798,
+                        "z": 0.014999999664723874
+                    },
+                    "triangles": 88,
+                    "slots": 1,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [
+                        "WireMetal"
+                    ],
+                    "textures": [
+                        "Assets/Models/Textures/Darts_BaseColor.png"
+                    ],
+                    "materialIds": [
+                        -2800
+                    ]
+                },
+                {
+                    "name": "Darts_NumberRing",
+                    "parent": "DartsBoard_Root",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": -0.2150000035762787,
+                        "y": -0.2070000022649765,
+                        "z": 0.05700000002980232
+                    },
+                    "max": {
+                        "x": 0.2150000035762787,
+                        "y": 0.2070000022649765,
+                        "z": 0.05700000002980232
+                    },
+                    "triangles": 40,
+                    "slots": 1,
+                    "frontUvVertexCount": 80,
+                    "frontUvMaxPositiveXError": 0.9331597685813904,
+                    "frontUvMaxReflectedXError": 3.570174200717702e-8,
+                    "materials": [
+                        "Numbers"
+                    ],
+                    "textures": [
+                        "Assets/Models/Textures/Darts_BaseColor.png"
+                    ],
+                    "materialIds": [
+                        -2856
+                    ]
+                },
+                {
+                    "name": "Darts_Wire",
+                    "parent": "DartsBoard_Root",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": -0.21934999525547028,
+                        "y": -0.21934999525547028,
+                        "z": 0.05700000002980232
+                    },
+                    "max": {
+                        "x": 0.21934999525547028,
+                        "y": 0.21934999525547028,
+                        "z": 0.05700000002980232
+                    },
+                    "triangles": 1160,
+                    "slots": 1,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [
+                        "WireMetal"
+                    ],
+                    "textures": [
+                        "Assets/Models/Textures/Darts_BaseColor.png"
+                    ],
+                    "materialIds": [
+                        -2800
+                    ]
+                }
+            ]
+        },
+        {
+            "file": "Dart",
+            "globalScale": 1.0,
+            "fileScale": 1.0,
+            "useFileScale": true,
+            "bakeAxisConversion": false,
+            "parts": [
+                {
+                    "name": "Dart",
+                    "parent": "",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "max": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "triangles": 0,
+                    "slots": 0,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [],
+                    "textures": [],
+                    "materialIds": []
+                },
+                {
+                    "name": "Dart_Root",
+                    "parent": "Dart",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "max": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "triangles": 0,
+                    "slots": 0,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [],
+                    "textures": [],
+                    "materialIds": []
+                },
+                {
+                    "name": "Dart_Barrel",
+                    "parent": "Dart_Root",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": -0.004000000189989805,
+                        "y": -0.0038042261730879547,
+                        "z": 0.03200000151991844
+                    },
+                    "max": {
+                        "x": 0.004000000189989805,
+                        "y": 0.0038042261730879547,
+                        "z": 0.0860000029206276
+                    },
+                    "triangles": 76,
+                    "slots": 1,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [
+                        "WireMetal"
+                    ],
+                    "textures": [
+                        "Assets/Models/Textures/Darts_BaseColor.png"
+                    ],
+                    "materialIds": [
+                        -2800
+                    ]
+                },
+                {
+                    "name": "Dart_Flights",
+                    "parent": "Dart_Root",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": -0.017999999225139619,
+                        "y": -0.017999999225139619,
+                        "z": 0.11599999666213989
+                    },
+                    "max": {
+                        "x": 0.017999999225139619,
+                        "y": 0.017999999225139619,
+                        "z": 0.1599999964237213
+                    },
+                    "triangles": 40,
+                    "slots": 1,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [
+                        "DartFlight"
+                    ],
+                    "textures": [
+                        "Assets/Models/Textures/Darts_BaseColor.png"
+                    ],
+                    "materialIds": [
+                        -3038
+                    ]
+                },
+                {
+                    "name": "Dart_Shaft",
+                    "parent": "Dart_Root",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": -0.0024999999441206457,
+                        "y": -0.0024999999441206457,
+                        "z": 0.0860000029206276
+                    },
+                    "max": {
+                        "x": 0.0024999999441206457,
+                        "y": 0.0024999999441206457,
+                        "z": 0.12800000607967378
+                    },
+                    "triangles": 28,
+                    "slots": 1,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [
+                        "DartPlastic"
+                    ],
+                    "textures": [
+                        "Assets/Models/Textures/Darts_BaseColor.png"
+                    ],
+                    "materialIds": [
+                        -3024
+                    ]
+                },
+                {
+                    "name": "Dart_Tip",
+                    "parent": "Dart_Root",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "min": {
+                        "x": -0.001500000013038516,
+                        "y": -0.001500000013038516,
+                        "z": 0.0
+                    },
+                    "max": {
+                        "x": 0.001500000013038516,
+                        "y": 0.001500000013038516,
+                        "z": 0.03200000151991844
+                    },
+                    "triangles": 14,
+                    "slots": 1,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [
+                        "WireMetal"
+                    ],
+                    "textures": [
+                        "Assets/Models/Textures/Darts_BaseColor.png"
+                    ],
+                    "materialIds": [
+                        -2800
+                    ]
+                },
+                {
+                    "name": "DartGrip",
+                    "parent": "Dart_Root",
+                    "localPosition": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.05999999865889549
+                    },
+                    "localRotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "localScale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "origin": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.05999999865889549
+                    },
+                    "min": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "max": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "triangles": 0,
+                    "slots": 0,
+                    "frontUvVertexCount": 0,
+                    "frontUvMaxPositiveXError": 0.0,
+                    "frontUvMaxReflectedXError": 0.0,
+                    "materials": [],
+                    "textures": [],
+                    "materialIds": []
+                }
+            ]
+        }
+    ]
+}

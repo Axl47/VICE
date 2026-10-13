@@ -320,6 +320,7 @@ internal sealed class TelevisionFeature
     internal void Notice(string text)=>Panel?.Notice(text);
     private static void SaveStarted(string saveFolderPath)
     {
+        if(!Amenities.HomeGamesDiagnostic.SaveAllowed(saveFolderPath))return;
         var mod=Current;if(mod?.Ready!=true||!TVNetwork.Host)return;
         mod.Document.Validate();mod.SaveSnapshot=mod.Document.SaveJson();mod.SaveTarget=Path.Combine(saveFolderPath,"Modded","PersonalTV","Screens.json");
         var approved=SaveManager.Instance.ApprovedBaseLevelPaths;if(!approved.Contains("Modded"))approved.Add("Modded");
