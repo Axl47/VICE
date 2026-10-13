@@ -84,7 +84,7 @@ internal sealed class AmenityPanel : IDisposable
             AimLine.useWorldSpace=false;AimLine.positionCount=2;AimLine.startWidth=AimLine.endWidth=.003f;AimLine.sharedMaterial=AmenityContent.Material("aimline",new(.7f,.95f,1));
             Opened=true;Root.SetActive(true);NextHeartbeat=0;Title.text=Kind=="darts"?"DARTS · 301":"POOL · CASUAL EIGHT-BALL";ShowOptions(true);
             ViewOption.GetComponentInChildren<TextMeshProUGUI>().text=Kind=="pool"?"Angled / overhead":"Reset zoom";
-            Notice("Choose a seat, or spectate.");if(!AmenityNetwork.Host)AmenityNetwork.Submit(new());
+            NoticeText="";NoticeUntil=0;if(!AmenityNetwork.Host)AmenityNetwork.Submit(new());
         }
         catch{Rig?.Dispose();Rig=null;if(Guides)Object.Destroy(Guides);Guides=null;Target=null;AimLine=null;Table="";Opened=false;Holding=false;Root.SetActive(false);throw;}
     }
@@ -119,7 +119,7 @@ internal sealed class AmenityPanel : IDisposable
         if(AmenityNetwork.Now>=NextHeartbeat){NextHeartbeat=AmenityNetwork.Now+2;if(!spectator)Send("heartbeat");}
         Status.text=Kind=="darts"?$"P1 {state.Darts.Remaining[0]}   P2 {state.Darts.Remaining[1]}  ·  Player {state.Turn+1}, dart {Math.Min(3,state.Darts.Darts+1)}/3  ·  {(spectator?"Spectating":"Your seat: "+(seat+1))}"
             :$"P1 {Group(state.Pool.Groups[0])}   P2 {Group(state.Pool.Groups[1])}  ·  Player {state.Turn+1}  ·  {(state.Moving?"Rolling":state.Pool.BallInHand?"Ball in hand":"Ready")}  ·  {(spectator?"Spectating":"Your seat: "+(seat+1))}";
-        Feedback.text=AmenityNetwork.Now<NoticeUntil?NoticeText:state.Feedback;
+        Feedback.text=AmenityNetwork.Now<NoticeUntil?NoticeText:state.Mode=="idle"?"Choose a seat, or spectate.":state.Feedback;
         var keyboard=Keyboard.current;var mouse=Mouse.current;
         if(keyboard?.escapeKey.wasPressedThisFrame==true){Close();return;}
         if(PauseMenu.Instance&&PauseMenu.Instance.IsPaused){Close();return;}

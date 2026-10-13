@@ -73,13 +73,32 @@ internal static class AmenityContent
             if(radius<=.0159)color=radius<=.00635?new Color(.7f,.12f,.1f):new Color(.06f,.5f,.28f);
             pixels[y*512+x]=color;
         }
+        // Labels belong to the fallback texture now that aiming happens in the world.
+        // This keeps its legacy +X analytical frame, including the face's mirrored U.
+        string[] digits={"01110/10001/10011/10101/11001/10001/01110","00100/01100/00100/00100/00100/00100/01110","01110/10001/00001/00010/00100/01000/11111","11110/00001/00001/01110/00001/00001/11110","00010/00110/01010/10010/11111/00010/00010","11111/10000/10000/11110/00001/00001/11110","01110/10000/10000/11110/10001/10001/01110","11111/00001/00010/00100/01000/01000/01000","01110/10001/10001/01110/10001/10001/01110","01110/10001/10001/01111/00001/00001/01110"};
+        const int scale=3;
+        for(var wedge=0;wedge<20;wedge++)
+        {
+            var angle=wedge*Math.PI/10;var text=DartsRules.Score(Math.Sin(angle)*.12,Math.Cos(angle)*.12).Number.ToString();
+            var cx=(int)Math.Round(255.5+Math.Sin(angle)*.194/.45*512);var cy=(int)Math.Round(255.5+Math.Cos(angle)*.194/.45*512);
+            var left=cx-(text.Length*6-1)*scale/2;
+            for(var digit=0;digit<text.Length;digit++)
+            {
+                var rows=digits[text[digit]-'0'].Split('/');
+                for(var row=0;row<7;row++)for(var col=0;col<5;col++)if(rows[row][col]=='1')
+                    for(var sy=0;sy<scale;sy++)for(var sx=0;sx<scale;sx++)
+                    // Counter the face's legacy U flip so the numbers themselves read normally.
+                    {var px=left+(text.Length-1-digit)*6*scale+(4-col)*scale+sx;var py=cy+(3-row)*scale+sy;if(px is >=0 and <512&&py is >=0 and <512)pixels[py*512+px]=new(.92f,.90f,.82f);}
+            }
+        }
         tex.SetPixels(pixels);tex.Apply();BoardArt=tex;return tex;
     }
     private static void Board(Transform root)
     {
         var wood=Material("mount",new(.22f,.13f,.08f));
         var back=Primitive(root,"Darts_Backplate",PrimitiveType.Cylinder,new(0,0,.0125f),new(.52f,.0125f,.52f),wood);back.transform.localRotation=Quaternion.Euler(90,0,0);
-        var board=Primitive(root,"Darts_Board",PrimitiveType.Cube,new(0,0,.04f),new(.45f,.45f,.03f),Material("boardedge",new(.06f,.065f,.07f)));
+        // Leave 1 mm between the cube front and scoring face; coplanar surfaces hid the texture.
+        var board=Primitive(root,"Darts_Board",PrimitiveType.Cube,new(0,0,.039f),new(.45f,.45f,.03f),Material("boardedge",new(.06f,.065f,.07f)));
         var faceMat=Material("boardface",Color.white);faceMat.SetTexture("_BaseMap",BoardTexture());
         var face=Primitive(root,"Darts_Face",PrimitiveType.Quad,new(0,0,.055f),new(.45f,.45f,1),faceMat);face.transform.localRotation=Quaternion.Euler(0,180,0);
         // Quad viewed from +Z has mirrored local U after the 180-degree turn. Flip U back.
