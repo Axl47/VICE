@@ -1,0 +1,294 @@
+{
+  "passed": 72,
+  "failed": 0,
+  "checks": [
+    [
+      "Pool_Ball_00 Vertices",
+      true
+    ],
+    [
+      "Pool_Ball_00 PolygonVertexIndex",
+      true
+    ],
+    [
+      "Pool_Ball_00 normals",
+      true
+    ],
+    [
+      "Pool_Ball_00 only U reversed within tile",
+      true
+    ],
+    [
+      "Pool_Ball_01 Vertices",
+      true
+    ],
+    [
+      "Pool_Ball_01 PolygonVertexIndex",
+      true
+    ],
+    [
+      "Pool_Ball_01 normals",
+      true
+    ],
+    [
+      "Pool_Ball_01 only U reversed within tile",
+      true
+    ],
+    [
+      "Pool_Ball_02 Vertices",
+      true
+    ],
+    [
+      "Pool_Ball_02 PolygonVertexIndex",
+      true
+    ],
+    [
+      "Pool_Ball_02 normals",
+      true
+    ],
+    [
+      "Pool_Ball_02 only U reversed within tile",
+      true
+    ],
+    [
+      "Pool_Ball_03 Vertices",
+      true
+    ],
+    [
+      "Pool_Ball_03 PolygonVertexIndex",
+      true
+    ],
+    [
+      "Pool_Ball_03 normals",
+      true
+    ],
+    [
+      "Pool_Ball_03 only U reversed within tile",
+      true
+    ],
+    [
+      "Pool_Ball_04 Vertices",
+      true
+    ],
+    [
+      "Pool_Ball_04 PolygonVertexIndex",
+      true
+    ],
+    [
+      "Pool_Ball_04 normals",
+      true
+    ],
+    [
+      "Pool_Ball_04 only U reversed within tile",
+      true
+    ],
+    [
+      "Pool_Ball_05 Vertices",
+      true
+    ],
+    [
+      "Pool_Ball_05 PolygonVertexIndex",
+      true
+    ],
+    [
+      "Pool_Ball_05 normals",
+      true
+    ],
+    [
+      "Pool_Ball_05 only U reversed within tile",
+      true
+    ],
+    [
+      "Pool_Ball_06 Vertices",
+      true
+    ],
+    [
+      "Pool_Ball_06 PolygonVertexIndex",
+      true
+    ],
+    [
+      "Pool_Ball_06 normals",
+      true
+    ],
+    [
+      "Pool_Ball_06 only U reversed within tile",
+      true
+    ],
+    [
+      "Pool_Ball_07 Vertices",
+      true
+    ],
+    [
+      "Pool_Ball_07 PolygonVertexIndex",
+      true
+    ],
+    [
+      "Pool_Ball_07 normals",
+      true
+    ],
+    [
+      "Pool_Ball_07 only U reversed within tile",
+      true
+    ],
+    [
+      "Pool_Ball_08 Vertices",
+      true
+    ],
+    [
+      "Pool_Ball_08 PolygonVertexIndex",
+      true
+    ],
+    [
+      "Pool_Ball_08 normals",
+      true
+    ],
+    [
+      "Pool_Ball_08 only U reversed within tile",
+      true
+    ],
+    [
+      "Pool_Ball_09 Vertices",
+      true
+    ],
+    [
+      "Pool_Ball_09 PolygonVertexIndex",
+      true
+    ],
+    [
+      "Pool_Ball_09 normals",
+      true
+    ],
+    [
+      "Pool_Ball_09 only U reversed within tile",
+      true
+    ],
+    [
+      "Pool_Ball_10 Vertices",
+      true
+    ],
+    [
+      "Pool_Ball_10 PolygonVertexIndex",
+      true
+    ],
+    [
+      "Pool_Ball_10 normals",
+      true
+    ],
+    [
+      "Pool_Ball_10 only U reversed within tile",
+      true
+    ],
+    [
+      "Pool_Ball_11 Vertices",
+      true
+    ],
+    [
+      "Pool_Ball_11 PolygonVertexIndex",
+      true
+    ],
+    [
+      "Pool_Ball_11 normals",
+      true
+    ],
+    [
+      "Pool_Ball_11 only U reversed within tile",
+      true
+    ],
+    [
+      "Pool_Ball_12 Vertices",
+      true
+    ],
+    [
+      "Pool_Ball_12 PolygonVertexIndex",
+      true
+    ],
+    [
+      "Pool_Ball_12 normals",
+      true
+    ],
+    [
+      "Pool_Ball_12 only U reversed within tile",
+      true
+    ],
+    [
+      "Pool_Ball_13 Vertices",
+      true
+    ],
+    [
+      "Pool_Ball_13 PolygonVertexIndex",
+      true
+    ],
+    [
+      "Pool_Ball_13 normals",
+      true
+    ],
+    [
+      "Pool_Ball_13 only U reversed within tile",
+      true
+    ],
+    [
+      "Pool_Ball_14 Vertices",
+      true
+    ],
+    [
+      "Pool_Ball_14 PolygonVertexIndex",
+      true
+    ],
+    [
+      "Pool_Ball_14 normals",
+      true
+    ],
+    [
+      "Pool_Ball_14 only U reversed within tile",
+      true
+    ],
+    [
+      "Pool_Ball_15 Vertices",
+      true
+    ],
+    [
+      "Pool_Ball_15 PolygonVertexIndex",
+      true
+    ],
+    [
+      "Pool_Ball_15 normals",
+      true
+    ],
+    [
+      "Pool_Ball_15 only U reversed within tile",
+      true
+    ],
+    [
+      "Pool_Cue Vertices",
+      true
+    ],
+    [
+      "Pool_Cue PolygonVertexIndex",
+      true
+    ],
+    [
+      "Pool_Cue normals",
+      true
+    ],
+    [
+      "Pool_Cue UV unchanged",
+      true
+    ],
+    [
+      "Pool_Rack Vertices",
+      true
+    ],
+    [
+      "Pool_Rack PolygonVertexIndex",
+      true
+    ],
+    [
+      "Pool_Rack normals",
+      true
+    ],
+    [
+      "Pool_Rack UV unchanged",
+      true
+    ]
+  ]
+}

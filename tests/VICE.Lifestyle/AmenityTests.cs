@@ -120,6 +120,16 @@ internal static class AmenityTests
         replica.SentSync(next.SyncToken,199);Check(replica.Accept(next,out _,out changed)==AmenityReceipt.Sync&&changed,"next save accepts reset sequence with fresh nonce");
         message.Sequence=100;Check(replica.Accept(message,out _,out _)==AmenityReceipt.Ignore,"old save epoch ignored even at higher sequence");
         replica.Reset();Check(replica.KnownIds.Count==0&&replica.Epoch.Length==0,"scene cleanup resets replica");
+        var positive=HomeGameVisualContract.Dart(.12,0,true);var negative=HomeGameVisualContract.Dart(-.12,0,true);
+        Check(DartsRules.Score(.12,0).Number==6&&positive.X==-.12&&positive.Z==.055,"analytical six maps once to accepted root -X artwork");
+        Check(DartsRules.Score(-.12,0).Number==11&&negative.X==.12,"analytical eleven maps once to accepted root +X artwork");
+        Check(HomeGameVisualContract.Dart(.12,.03,false).X==.12&&HomeGameVisualContract.Dart(.12,.03,true).Y==.03,"primitive mapping and vertical coordinates preserved");
+        foreach(var duration in new[]{0.0,.5,1.5,3.0})
+            Check(Math.Abs(HomeGameVisualContract.CueDistance(duration,false)-.725-HomeGameVisualContract.CueDistance(duration,true))<1e-9,"tip cue matches legacy centre handle separation");
+        Check(Math.Abs(HomeGameVisualContract.BallCentreY-(.78+PoolSimulation.Radius))<1e-9,"visual sphere exactly rests on authoritative cloth");
+        Check(HomeGameVisualContract.CanonicalMaterial("DartMetal")=="WireMetal"&&HomeGameVisualContract.CanonicalMaterial("MountMetal")=="WireMetal","darts shared metal identity contract");
+        Check(HomeGameVisualContract.Surface("BallAtlas").Smoothness==.77f&&HomeGameVisualContract.Surface("Cloth").Smoothness==.25f,"native surface scalar contract");
+        Reject(()=>HomeGameVisualContract.Surface("Unknown"),"unknown material rejected for visible fallback");
         foreach(var solo in new[]{true,false})
         {
             session=new(){Id=Guid.NewGuid().ToString()};double time=1000;

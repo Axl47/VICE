@@ -1,0 +1,13 @@
+{
+  "accepted_artwork_commit": "b6b148e0c2bdf171f8eab9da5b4edddcbd1d9a18",
+  "sha256": {
+    "PoolTable.fbx": "18c89a85ada1c2d48ee8db3f13b346e77055c869e15f54fd4e14eee67a9fa269",
+    "PoolAccessories.fbx": "bd4e9ce516c59f7a38360cff4252b70c2732d27f854152a47960be58b023c947",
+    "DartsBoard.fbx": "cf427fc0d9e03da9fef60b25ee8f2416f9642f9ad91ba9bca9a4a1c67e1a2bb1",
+    "Dart.fbx": "5c2f5e0ac4099c18d21f0b97da79979a8d081235bcf1dfb9c878d1d9d527262a",
+    "VICE_HomeGames.blend": "1299df9cd5e5fe9e251fc3be15c07396d012633a8de450af76268e446a8f9583",
+    "Textures/PoolFurniture_BaseColor.png": "a2d33ae733acb68e3b961096d121de23b579a64cf3c29517ef2f9eb523f7a1e6",
+    "Textures/PoolBalls_BaseColor.png": "0e56227f11409e63e3c5ed03f925527cf20dec3ab1dc509f5eaf9092fcc7b45e",
+    "Textures/Darts_BaseColor.png": "21edcedb2bc77ab8d5f1e100432d848c40fb07a784f6d75649c2c5ebd7dbf25e"
+  }
+}

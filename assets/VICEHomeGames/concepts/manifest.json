@@ -1,0 +1,36 @@
+{
+  "purpose": "Original AI-generated visual concept references for VICE Lifestyle artwork; not game screenshots, not geometry-validation evidence, not measurement sheets.",
+  "method": "Built-in imagegen tool; original pool generation plus one precise pocket-placement correction; original darts generation.",
+  "final_images": [
+    {
+      "file": "VICE_Lifestyle_Pool_Concept_v2.png",
+      "library_file_id": "libfile_6fbd3e1030a881919477e7906c2ec3a1",
+      "views": [
+        "Full object",
+        "Player view",
+        "Cue, rack and sample balls"
+      ],
+      "review": "Main illustration contains six pockets. Player inset's erroneous short-rail centre pocket was removed in v2. Sample ball numerals 8, 1 and 9 readable.",
+      "style": "Chunky worn oak, forest-green cloth, restrained brass, simple bevels and broad edge wear."
+    },
+    {
+      "file": "VICE_Lifestyle_Darts_Concept.png",
+      "library_file_id": "libfile_69884c62dcd88191a2af821990676e7d",
+      "views": [
+        "Thrower-facing board",
+        "Shallow three-quarter profile",
+        "Wall-distance inset",
+        "Dart silhouettes and side view"
+      ],
+      "review": "Main front illustration visually checked: 20 on top; clockwise number sequence 20,1,18,4,13,6,10,15,2,17,3,19,7,16,8,11,14,9,12,5.",
+      "style": "Faceted dark backplate, ivory/charcoal singles, red/green bands, restrained silver wires and green flights."
+    }
+  ],
+  "source_prompts": "prompts.json",
+  "revision_prompt": "pool-revision-prompt.txt",
+  "superseded": [
+    "VICE_Lifestyle_Pool_Concept.png"
+  ],
+  "limitations": "These images guide silhouette, palette and material hierarchy only. Contract geometry, dimensions, axes, pivots, scoring radii, mesh/material names and triangle budgets must be constructed and independently validated in exported assets. Neither image establishes numerical compliance.",
+  "created_utc": "2026-10-13"
+}

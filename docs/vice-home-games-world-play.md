@@ -1,0 +1,61 @@
+# Home-games presentation candidate — Lifestyle 0.2.2
+
+This pass updates draft PR #8. Inventory/placement selection now uses transparent 512px renders of the accepted models instead of 64px green silhouettes. Play uses a dedicated world camera, world aim/placement guides, cue strokes, rolling ball visuals and dart flight. A small menu chooses seats, restart and view angle; a score strip retains turn, scoring/foul feedback and power/timing. Rules, host simulation, saved furniture IDs and accepted art bytes are preserved.
+
+## Controls and ownership
+
+Interact near an owned table/board, choose a seat or Spectate/Resume, then aim on the world surface. Mouse movement aims; arrows provide an alternative and follow screen-right for both authored and primitive board frames. Hold left click or Space, then release. With ball in hand, click or press Space to place on clear cloth. Wheel zooms. Tab opens options and cancels a charge; right click cancels; Esc leaves; F1 toggles help. Menu buttons use native keyboard selection. A short activation delay prevents a menu submission from also starting a shot. Charges retain the 0.1–3 second rules.
+
+The lower 18% of the camera viewport is reserved for score/options, keeping near pockets clear of the HUD. Pool offers angled and overhead views; darts uses a throw-line view. UI clicks cannot aim/fire through the score/menu/help regions. A participant lease remains active while the world view is open. Spectators cannot shoot. Losing a participant seat, removal/packing, distance/ownership failure, death/sleep and scene changes close the view. Native pause closes it; loss of application focus cancels a charge.
+
+`AmenityCameraRig` copies the native view to a local camera, inheriting renderer, MSAA permission, AA mode/quality/TAA settings, postprocessing and volume settings. It does not change the native transform, FOV, global AA or pipeline asset. Main/overlay enabled flags, look/movement/inventory/equipping/typing, cursor and crosshair state are captured. The owned camera is destroyed on exit, including partially failed entry. Entry is rejected during an existing native override; a later override, freecam/avatar view, renderer replacement or UI takeover causes the play view to yield.
+
+If another activity captured the home-game lease's disabled flags, a deferred restore repairs those flags after that activity closes. Rendering is yielded immediately. Restoration waits for native UI/override ownership to end and the original camera to return; it is tied to the same player/controller and discarded on scene/player replacement. Deferred work is pumped before another home-game entry. The isolated native run below exercises another UI and the native FOV override/return coroutine. Camera replacement with a null native Camera yields safely and releases the UI key independently of rendering cleanup.
+
+The actor-bound `cancel` command accepts a stale revision and clears only that actor's charge without scoring, changing a turn or firing. Release afterward is rejected. Animations are presentation only; peers still use host outcomes. Authored darts retain `(-LastX, LastY, 0.055)` and the tip wrapper. The primitive board retains its legacy frame; ray conversion and keyboard direction account for that difference.
+
+## Highlights and evidence
+
+No accepted geometry, normals, UVs or atlas bytes were changed. A new actual Unity import audit found pool normals unit-length and averaged vertex normals aligned with their triangle faces (minimum dot 1.0). That provides no basis for repairing geometry to address the reported white lines; it does not certify all native lighting behavior.
+
+The previous runtime used smoothness 0.52 on wood/rubber and metallic 0.6 on metal. The candidate isolates eight pool furniture materials: wood/rack 0.22 smoothness, rubber 0.14, cloth/pockets 0.25, cue wood/tip 0.25, and metal 0.25 metallic / 0.28 smoothness. Direct specular is disabled on wood/rack/rubber/cloth/pockets, and environment reflections are disabled on the eight furniture materials. Ball sheen and all eight darts materials retain their accepted tuning. Pool furniture atlas sampling uses trilinear filtering; there is no global sharpening or AA change.
+
+URP offers separate [specular and environment reflection controls](https://docs.unity3d.com/Packages/com.unity.render-pipelines.universal@14.0/manual/lit-shader.html); corresponding floats and shader keywords are bound. The existing native Packaging Station comparison used by LSD Studio informed the reflection setting. LSD code/assets were not modified.
+
+Review artifacts in `artifacts/home-games-presentation/`:
+
+- `Pool_AcceptedScalars_MSAA1.png` / `Pool_AcceptedScalars_MSAA4.png`: materials fixed, raster AA varied.
+- `Pool_CandidateMatte_MSAA1.png` / `Pool_CandidateMatte_MSAA4.png`: same geometry, candidate material policy.
+- `Pool_DirectSpecularOff_MSAA4.png` / `Pool_EnvironmentReflectionOff_MSAA4.png`: independent switches under a controlled synthetic reflection environment.
+- `Pool_CandidateMatte_Shadowless_MSAA4.png`: same candidate with cast shadows disabled in the diagnostic only, isolating the cloth-side shadow stepping.
+- `Pool_World_Angled.png`, `Pool_World_Overhead.png`, `Darts_World_20_6_11.png`: imported world-view/pivot diagnostics, not game camera or UI lifecycle tests.
+- `Imported_Normal_Audit.txt`, `Icon_Alpha_Validation.txt`: actual imported normals and icon RGBA coverage.
+
+These are ordinary Unity 2022.3.62f2 / URP 14.0.12 renders, not native Schedule I screenshots. MSAA changes silhouette stepping while the accepted material's bright cap/sight highlights remain; the matte policy restrains that brightness without geometry changes. Serrated cloth-side shadows remain a separate shadow-map/lighting issue. Icons use 1024px supersampling, 4x MSAA, transparent background and 512px output, with candidate pool finish and unchanged darts tuning. World previews use a 1600 × 900 target and the same 18% reserved viewport as runtime. Native screenshots below separately show the candidate under the game's lighting and inherited SMAA; they do not reproduce every native exposure/reflection setting or prove the reported white-line artifact is eliminated in every scene.
+
+## Authorized isolated native checks
+
+The user selected save 5 and authorized tests after closing the game. `scripts/Test-VICEHomeGamesNative.ps1` copies that folder read-only into workspace artifacts and launches the installed Steam executable with a separate loader profile. This candidate is not installed into production. Each run hashes all 49 original save files plus production Lifestyle/Core DLLs and Melon preferences before/after; the recorded runs leave those hashes unchanged.
+
+Paths are `artifacts/home-games-native-<DLL-hash>-<timestamp>-<mode>/Profile/`, `.../CopiedSave/SaveGame_5/`, and `.../Evidence/`. Installed MelonLoader 0.7.3 documentation supports `--melonloader.basedir`; inspection of its actual managed `MelonEnvironment` confirms Mods, UserLibs, UserData, MelonLoader and logs derive from that base. Each profile contains a regular loader/dependency/interop copy, only candidate Lifestyle/current Core/S1API, and a minimal new preferences file. Production secrets/media are not copied. This is a base Lifestyle check, not a certification of the entire installed mod suite; missing LSD-provider warnings concern only the disposable copy.
+
+`HomeGamesDiagnostic` activates only with `--home-games-check`. It validates/logs the resolved loader paths, accepts only the canonical copy in `LoadManager.StartGame`, guards both explicit and automatic saves, blocks native save backups, and continuously verifies `LoadedGameFolderPath`. TV's save preparation also respects the guard. Failed initialization/isolation/patch installation requests game exit before ordinary loading. The base-directory flag alone does not redirect native save enumeration; the explicit guards supply that boundary. `-RejectInitialization` tests refusal with an invalid diagnostic root.
+
+Native checks create actual grid pool/wall darts furniture in owned properties through the native building APIs, open the darts furniture's real interaction, invoke menu callbacks and host commands, and inspect native render/control state. They cover embedded icons, selected menu element, solo seat, angled/overhead cameras and all four rail corners, inherited AA, screen/ray projection, cancel-without-shot, ball-in-hand placement, charged cue alignment, host simulation and rolling meshes, timed 20/6/11 throws, settled hit mapping, UI-blocked entry/takeover/return, native FOV override/return, null-camera replacement, furniture destruction and menu/reload. Every measured restoration checks main/overlay, look/movement/inventory/equipping/typing, cursor, crosshair and FOV; local native pose is measured with a 2 cm / 0.1° tolerance. Source inspection separately confirms presentation code never writes native camera pose. Screenshots wait for completion before changing the scene/view.
+
+These are single-host, programmatic interactions. Physical mouse/keyboard accessibility, focus/right-click input, purchase/placement ghost workflow, pause/death/sleep/packing, full matches, other aspect ratios and genuine co-op (host/guest/spectator, latency, disconnect and late join) remain follow-ups. The game chose 2560 × 1440 despite requested startup dimensions; evidence records actual Screen/pixelRect/aspect. It inherited `SubpixelMorphologicalAntiAliasing`, and the viewport aspect is 2.16802. No new global AA setting is applied.
+
+## Validation scope
+
+Recorded 2026-10-13: the full Lifestyle build/export passed with zero C# warnings/errors; 342 fresh Unity import/bundle checks, 183 accepted-evidence replay assertions, 228 amenity plus 48 presentation assertions (426 Lifestyle total), 55 Core, 53 metadata, nine native patch declarations, hashed export and 13 isolated installer checks. The candidate export is `artifacts/VICE-Lifestyle-9cef91ae.zip`. No accepted artwork bytes changed.
+
+The same candidate DLL (`8fa954d386f6…`) passed **82 native checks in each mode**, with two loaded sessions per run:
+
+- Artwork: `artifacts/home-games-native-8fa954d386f6-20261013-184053-artwork/Evidence/`.
+- Primitives: `artifacts/home-games-native-8fa954d386f6-20261013-184209-primitive/Evidence/`.
+
+Each folder has `passed.txt`, `loader-paths.json`, `isolation-proof.json`, projection/viewport/pose measurements and actual screenshots (`pool-angled`, `pool-overhead`, `pool-charge`, `pool-rolling`, `darts-world`, `darts-impact`). Maximum measured projection error was below 0.8 mm; each restored local camera pose measured 0 m / 0°. The native run also caught and fixed the primitive board being mistaken for artwork because both roots shared a name; artwork detection now uses its accepted `BoardFace` marker.
+
+The invalid-root initialization check also passed: `artifacts/home-games-native-8fa954d386f6-20261013-184339-artwork/Evidence/`. Its loader log confirms refusal and process exit before any copied-save load; its hash proof confirms original save/production preservation. The six normal-mode screenshots are absent from this refusal run by design.
+
+Pure tests cover lease entry, disabled prior states, exact-once cleanup, partial failure, deferred takeover restore, stale-owner discard, both board frames/keyboard direction, bounded aim/zoom, animation endpoints, unchanged darts/ball tuning, actor-bound cancel and rejected release afterward. Metadata checks cover late-update forwarding, embedded icons and camera copying without native transform/FOV/AA overrides. Existing darts, pool, media and network contracts remain in the runner. Unity/import/pure/package checks are distinct from the native evidence and genuine co-op.

@@ -47,6 +47,17 @@ for (var save = 0; save < 3; save++)
 var root = Path.Combine(Path.GetTempPath(), "vice-core-test-" + Guid.NewGuid().ToString("N"));
 try
 {
+    var atomic = AtomicDocument.Within(root, "atomic.json");
+    AtomicDocument.Write(atomic, "original"); AtomicDocument.Write(atomic, "replacement");
+    Check(File.ReadAllText(atomic) == "replacement" && File.ReadAllText(atomic + ".bak") == "original", "Atomic writes retain a recoverable previous document.");
+    if (OperatingSystem.IsWindows())
+    {
+        using var held = new FileStream(atomic, FileMode.Open, FileAccess.Read, FileShare.Read);
+        try { AtomicDocument.Write(atomic, "failed"); throw new InvalidOperationException("Locked file was replaced."); }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
+        Check(File.ReadAllText(atomic) == "replacement", "Failed atomic replacement preserves the existing primary.");
+    }
     DefaultFiles.Seed(Assembly.GetExecutingAssembly(), "TestDefaults/", root);
     var settings = Path.Combine(root, "settings.json");
     Check(File.ReadAllText(settings).Contains("true"), "First launch should seed embedded defaults.");

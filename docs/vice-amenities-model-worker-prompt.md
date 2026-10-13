@@ -1,5 +1,7 @@
 # Model worker prompt — VICE Lifestyle home games
 
+Integration note: [PR #7's accepted asset README](https://github.com/Axl47/ScheduleOne-Mods/blob/a885844e925e7cc415c7fbb0c0f594297cc4d7d7/assets/VICEHomeGames/README.md) clarifies the original viewer-right ambiguity below. For an ordinary Unity camera facing the board from +Z, root −X is screen-right. Accepted artwork keeps 6 at root −X and 11 at root +X; Lifestyle's visual adapter maps recorded hits to `(-LastX, LastY, 0.055)` once, leaving scoring/panel/packets unchanged. The accepted 0.30 m rack is decorative. See the [0.2.1 integration guide](vice-home-games-art-integration.md). The original worker prompt follows for reference.
+
 Create replaceable low-poly Schedule I artwork for a playable pool table and darts board. The gameplay prototype already defines its dimensions. Do not implement rules, scoring, physics, networking or Unity components. Supply artwork only; no finished model is required to build or play the prototype.
 
 ## Coordinates and files

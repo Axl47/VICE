@@ -27,6 +27,7 @@ internal sealed class AmenitiesFeature
     internal void Initialize(HarmonyLib.Harmony harmony)
     {
         Current=this;Enabled=ModSupport.Entry(MelonPreferences.CreateCategory("VICE.Lifestyle.Amenities"),"EnablePrototypes",false,"Opt in to playable pool/darts placeholder furniture at Herbert's boutique. Definitions remain available for saved furniture.");
+        HomeGameAssets.Enabled=ModSupport.Entry(MelonPreferences.CreateCategory("VICE.Lifestyle.Amenities"),"UseModelArtwork",true,"Use the embedded PR #7 model artwork. Disable and restart to compare primitive visuals; rules and saves are unchanged.").Value;
         ModSupport.Patch(harmony,typeof(InteractableObject),"StartInteract",typeof(AmenitiesFeature),prefix:nameof(Interact));
         GameLifecycle.OnPreLoad+=Preload;GameLifecycle.OnLoadComplete+=Loaded;GameLifecycle.OnPreSceneChange+=Clear;
         BuildEvents.OnBuildableItemInitialized+=Restore;
@@ -54,6 +55,7 @@ internal sealed class AmenitiesFeature
     }
     internal void OnUpdate()
     {
+        AmenityCameraRig.PumpRestoration();
         if(!Ready||!LoadManager.Instance||LoadManager.Instance.IsLoading||!LoadManager.Instance.IsGameLoaded)return;
         try
         {
@@ -85,6 +87,7 @@ internal sealed class AmenitiesFeature
         var player=Player.PlayerList.ToArray().FirstOrDefault(p=>p&&p.PlayerLoaded&&p.Owner.ClientId==actor);
         return player&&CanUse(player!,id);
     }
+    internal void OnLateUpdate()=>Panel?.LateTick();
     internal bool CanUse(Player player,string id)=>Views.TryGetValue(id,out var view)&&view.Item&&view.Item.Initialized&&!view.Item.IsDestroyed&&!view.Item.isGhost
         &&view.Item.ParentProperty&&view.Item.ParentProperty.IsOwned&&player&&player.PlayerLoaded&&!player.IsSleeping
         &&player.Health&&player.Health.IsAlive
@@ -130,7 +133,7 @@ internal sealed class AmenitiesFeature
     }
     private void Clear()
     {
-        Panel?.Dispose();Panel=null;Ready=false;
+        Panel?.Dispose();Panel=null;Ready=false;AmenityCameraRig.ClearPending();
         foreach(var view in Views.Values)view.Dispose();Views.Clear();States.Clear();AmenityNetwork.Reset();NextScan=NextPublish=NextFullPublish=0;Accumulator=0;
     }
     internal void OnDeinitializeMelon(){Clear();Subscriptions.Dispose();Current=null;}

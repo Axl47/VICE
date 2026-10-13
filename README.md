@@ -70,7 +70,9 @@ The private weapon bundle is embedded in Arsenal using the existing resource ide
 
 **Television** adds a $450 Wall Screen at Herbert's Bleuball's Boutique. Place it on a wall, interact with it, and select an image, direct HTTP(S) video URL, Relay episode, or local MP4. Playback controls include pause, seeking, volume, favorites, and a larger viewing mode. Local MP4 selections share metadata first; Play transfers the selected file through the host and waits for connected peers. See the [video sharing guide](docs/vice-lifestyle-video-sharing.md).
 
-**Home games (0.2.0 prototype)** adds opt-in $150 darts boards and $800 pool tables at the boutique, using ordinary furniture placement and placeholder primitives. Darts implements 301 with double-out; pool implements a scoped casual eight-ball ruleset and host-only simulation. Both have solo practice, actual co-op seats, spectators and cleanup. Set `EnablePrototypes=true` under `VICE.Lifestyle.Amenities` to reveal shop listings. See [controls, rules and validation limits](docs/vice-lifestyle-home-games.md) and the [model-worker prompt](docs/vice-amenities-model-worker-prompt.md). Native playtests and a genuine two-player session remain outstanding; no finished models or wagers are included.
+**Home games (0.2.2 prototype)** adds opt-in $150 darts boards and $800 pool tables at the boutique, using ordinary furniture placement and PR #7's embedded artwork, with a primitive fallback. Transparent model thumbnails, world cameras/aim guides and small seat/options menus replace the temporary play panel. Pool furniture has a quieter matte finish; ball/darts tuning is preserved. Darts implements 301 with double-out; pool implements a scoped casual eight-ball ruleset and host-only simulation. Both have solo practice, co-op seats, spectators and cleanup. Set `EnablePrototypes=true` under `VICE.Lifestyle.Amenities` to reveal shop listings. See [controls and rules](docs/vice-lifestyle-home-games.md), [presentation/native-test evidence](docs/vice-home-games-world-play.md), [artwork integration](docs/vice-home-games-art-integration.md), and the [model-worker prompt](docs/vice-amenities-model-worker-prompt.md). Genuine two-player testing remains outstanding; wagers are not included.
+
+**Cash poker (0.3.0 prototype)** adds a $900 placeable four-seat table with two-to-four-player no-limit Texas Hold'em, native pocket-cash buy-ins, separate table stacks, side pots, rebuys and cash-out. The host validates play and durable settlement; private card snapshots are recipient-specific. Primitive cards/cash and a seat camera with table-edge controls work without an artwork bundle. See [controls, money recovery and outstanding live checks](docs/vice-lifestyle-poker.md) and the [poker model-worker prompt](docs/vice-poker-model-worker-prompt.md). Automated rules and recovery checks pass; a genuine multi-client playtest remains outstanding.
 
 Starting with Lifestyle 0.1.8, [single-player YouTube playback](docs/vice-lifestyle-youtube.md) is an optional **VICE YouTube development add-on**. The base Lifestyle package includes no browser player, companion installer or YouTube development guide. Images, MP4s, direct media URLs and Relay work independently. Install `VICE.YouTube.dll` and the separately supplied Build-A-Base 0.4.26 TV companion to reveal the YouTube option, captions and chapters. Neither release bundles the roughly 489 MiB companion. Saved YouTube IDs and favorites are preserved when the add-on is absent.
 
@@ -162,7 +164,7 @@ src/VICE.Enforcement/           Police
 src/VICE.Syndicate/             Cartel and organized crime
 src/VICE.Commerce/              Trading, Purchasing, Warehouse
 src/VICE.Arsenal/               Guns
-src/VICE.Lifestyle/             Casino, Television, Amenities
+src/VICE.Lifestyle/             Casino, Television, Amenities, Poker
 src/VICE.Interface/             Hud
 src/LSDGameplay/, LSDPreview/   Current Substances development
 ```
