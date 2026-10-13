@@ -16,7 +16,7 @@ This repository is for private use. VICE includes adaptations of existing mods a
 | **VICE.Commerce** | Buying, selling, and business transactions | Highballer negotiations and delivery automation, Gas Purchases shopping lists, and Warehouse access/catalogue changes. |
 | **VICE.Substances** | Drugs, production, and consumption effects | The destination for LSD Gameplay and its visual/audio treatment, with room for future drugs. **Reserved; the LSD projects have not been migrated.** |
 | **VICE.Arsenal** | Weapons and ammunition | More Guns: AK47, minigun, magazines, automatic firing, weapon presentation, and tuning. |
-| **VICE.Lifestyle** | Entertainment and home amenities | Casino wager limits and placeable TV screens with images, local video, direct media URLs, and Relay integration. |
+| **VICE.Lifestyle** | Entertainment and home amenities | Casino wager limits, placeable TV screens, and opt-in playable darts/pool prototypes. |
 | **VICE.Interface** | General HUD, maps, and information display | UI Enhancements: minimap, tracked-deal payouts, known-customer portraits, and multiplayer compass labels. |
 
 The intended suite has eight modules. Substances is an architectural destination, not an existing `VICE.Substances.dll`; its current builds remain `Personal.LSDGameplay.dll` and `Personal.LSDPreview.dll` while that work continues.
@@ -69,6 +69,8 @@ The private weapon bundle is embedded in Arsenal using the existing resource ide
 **Casino** raises the Blackjack and Ride the Bus wager limits to $100,000 by default. Available cash and native payouts still apply. Slot machines retain their original behavior. Preferences remain under `PersonalCasino`.
 
 **Television** adds a $450 Wall Screen at Herbert's Bleuball's Boutique. Place it on a wall, interact with it, and select an image, direct HTTP(S) video URL, Relay episode, or local MP4. Playback controls include pause, seeking, volume, favorites, and a larger viewing mode. Local MP4 selections share metadata first; Play transfers the selected file through the host and waits for connected peers. See the [video sharing guide](docs/vice-lifestyle-video-sharing.md).
+
+**Home games (0.2.0 prototype)** adds opt-in $150 darts boards and $800 pool tables at the boutique, using ordinary furniture placement and placeholder primitives. Darts implements 301 with double-out; pool implements a scoped casual eight-ball ruleset and host-only simulation. Both have solo practice, actual co-op seats, spectators and cleanup. Set `EnablePrototypes=true` under `VICE.Lifestyle.Amenities` to reveal shop listings. See [controls, rules and validation limits](docs/vice-lifestyle-home-games.md) and the [model-worker prompt](docs/vice-amenities-model-worker-prompt.md). Native playtests and a genuine two-player session remain outstanding; no finished models or wagers are included.
 
 Starting with Lifestyle 0.1.8, [single-player YouTube playback](docs/vice-lifestyle-youtube.md) is an optional **VICE YouTube development add-on**. The base Lifestyle package includes no browser player, companion installer or YouTube development guide. Images, MP4s, direct media URLs and Relay work independently. Install `VICE.YouTube.dll` and the separately supplied Build-A-Base 0.4.26 TV companion to reveal the YouTube option, captions and chapters. Neither release bundles the roughly 489 MiB companion. Saved YouTube IDs and favorites are preserved when the add-on is absent.
 
@@ -158,7 +160,7 @@ src/VICE.Enforcement/           Police
 src/VICE.Syndicate/             Cartel and organized crime
 src/VICE.Commerce/              Trading, Purchasing, Warehouse
 src/VICE.Arsenal/               Guns
-src/VICE.Lifestyle/             Casino, Television
+src/VICE.Lifestyle/             Casino, Television, Amenities
 src/VICE.Interface/             Hud
 src/LSDGameplay/, LSDPreview/   Current Substances development
 ```

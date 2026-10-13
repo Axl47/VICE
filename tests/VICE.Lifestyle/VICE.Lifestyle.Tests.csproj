@@ -1,6 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><TargetFramework>net8.0</TargetFramework><OutputType>Exe</OutputType><AssemblyName>VICE.Lifestyle.Tests</AssemblyName><PlatformTarget>AnyCPU</PlatformTarget></PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../src/VICE.Lifestyle/Amenities/DartsRules.cs" Link="DartsRules.cs" />
+    <Compile Include="../../src/VICE.Lifestyle/Amenities/PoolRules.cs" Link="PoolRules.cs" />
+    <Compile Include="../../src/VICE.Lifestyle/Amenities/PoolSimulation.cs" Link="PoolSimulation.cs" />
+    <Compile Include="../../src/VICE.Lifestyle/Amenities/AmenitySession.cs" Link="AmenitySession.cs" />
+    <Compile Include="../../src/VICE.Lifestyle/Amenities/AmenityProtocol.cs" Link="AmenityProtocol.cs" />
+    <Compile Include="../../src/VICE.Lifestyle/Amenities/AmenityDelivery.cs" Link="AmenityDelivery.cs" />
     <Compile Include="../../src/Networking/SynchronousPacketPayload.cs" Link="SynchronousPacketPayload.cs" />
     <Compile Include="../../src/Networking/ReliableOutbox.cs" Link="ReliableOutbox.cs" />
     <Compile Include="../Networking/SynchronousPacketPayloadTests.cs" Link="SynchronousPacketPayloadTests.cs" />

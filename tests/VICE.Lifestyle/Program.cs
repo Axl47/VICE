@@ -8,6 +8,7 @@ void Check(bool condition,string message){if(!condition)throw new Exception(mess
 void Reject(Action action,string message){try{action();}catch(InvalidDataException){checks++;return;}throw new Exception(message);}
 SynchronousPacketPayloadTests.Run(Check);
 ReliableOutboxTests.Run(Check);
+AmenityTests.Run(Check);
 YouTubeTests.Run(Check);
 var image=Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aMs4AAAAASUVORK5CYII=");
 var hash=ImageCache.Hash(image);
@@ -99,7 +100,7 @@ using(var fixture=JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.Ba
     fixtureHandler.Conflict=true;
     try{await relay.Create(selection,Guid.NewGuid().ToString(),default);throw new Exception("409 conflict accepted.");}catch(InvalidOperationException error){Check(error.Message.Contains("selection")&&!error.Message.Contains("request_conflict"),"Relay conflict did not receive a safe, useful message.");}
 }
-Console.WriteLine($"PASS: {checks} TV state, image/video transfer, on-demand playback, cache, clock, path and Relay contract checks.");
+Console.WriteLine($"PASS: {checks} Lifestyle amenities, TV state, media transfer, cache, clock, path and Relay contract checks.");
 
 sealed class MergedRelayFixture(JsonElement root) : HttpMessageHandler
 {

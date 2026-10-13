@@ -58,8 +58,11 @@ var callbacks = new Dictionary<string, (string Callback, string Feature, string 
     {
         ("OnInitializeMelon", "CasinoFeature", "Initialize"),
         ("OnInitializeMelon", "TelevisionFeature", "Initialize"),
+        ("OnInitializeMelon", "AmenitiesFeature", "Initialize"),
         ("OnUpdate", "TelevisionFeature", "OnUpdate"),
-        ("OnDeinitializeMelon", "TelevisionFeature", "OnDeinitializeMelon")
+        ("OnUpdate", "AmenitiesFeature", "OnUpdate"),
+        ("OnDeinitializeMelon", "TelevisionFeature", "OnDeinitializeMelon"),
+        ("OnDeinitializeMelon", "AmenitiesFeature", "OnDeinitializeMelon")
     },
     ["Interface"] = new[]
     {
