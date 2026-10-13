@@ -1,4 +1,4 @@
-# VICE Core 0.1.2
+# VICE Core 0.1.3
 
 Shared .NET 6 library for the owner's VICE family. Install one `VICE.Core.dll` in the game's `UserLibs`, with each module's DLL in `Mods`. Core has no `MelonInfo` and owns no police, cartel or other gameplay hooks. Do not duplicate Core in both directories.
 
@@ -13,6 +13,7 @@ The public contract is:
 - `ModSupport.MigratedEntry<T>(category, name, value, description, legacyCategory)` supplies the old category's value as the initial default; an existing new-category value wins.
 - `ModSupport.WarnOnce(key, message)` avoids repeated warnings across VICE modules.
 - `SubscriptionScope.Add(Action release)` registers cleanup; `Dispose()` invokes releases in reverse order, continues after an invalid native owner, and permits reuse for another loaded save.
+- `AtomicDocument.Write(path, contents)` flushes a same-directory temporary file, then atomically replaces the destination with a `.bak` of its previous contents. `AtomicDocument.Within(root, relative)` rejects paths outside the named root. Poker uses these services for its per-save settlement journal and native inventory cash checkpoint.
 - `DefaultFiles.Seed(Assembly, prefix, directory)` writes embedded defaults only where no file exists and rejects paths outside the destination.
 - `UserDataFolders.Prepare(userData, module, feature, params legacyFolders)` returns `UserData/VICE/<module>/<feature>` and moves existing legacy folders there. Existing destination files win; conflicting source files are moved into `VICE/MigrationConflicts` with their relative paths. It rejects traversal and linked folders, and repeated calls preserve migrated edits. It depends only on .NET filesystem APIs, so migration tests can run without the game.
 - `UserDataFolders.PrepareModule(userData, module, params legacyFolders)` returns `UserData/VICE/<module>` with the same migration safeguards. Enforcement and Syndicate call it before seeding defaults or loading settings.

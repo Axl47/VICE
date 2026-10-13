@@ -72,6 +72,8 @@ The private weapon bundle is embedded in Arsenal using the existing resource ide
 
 **Home games (0.2.0 prototype)** adds opt-in $150 darts boards and $800 pool tables at the boutique, using ordinary furniture placement and placeholder primitives. Darts implements 301 with double-out; pool implements a scoped casual eight-ball ruleset and host-only simulation. Both have solo practice, actual co-op seats, spectators and cleanup. Set `EnablePrototypes=true` under `VICE.Lifestyle.Amenities` to reveal shop listings. See [controls, rules and validation limits](docs/vice-lifestyle-home-games.md) and the [model-worker prompt](docs/vice-amenities-model-worker-prompt.md). Native playtests and a genuine two-player session remain outstanding; no finished models or wagers are included.
 
+**Cash poker (0.3.0 prototype)** adds a $900 placeable four-seat table with two-to-four-player no-limit Texas Hold'em, native pocket-cash buy-ins, separate table stacks, side pots, rebuys and cash-out. The host validates play and durable settlement; private card snapshots are recipient-specific. Primitive cards/cash and a seat camera with table-edge controls work without an artwork bundle. See [controls, money recovery and outstanding live checks](docs/vice-lifestyle-poker.md) and the [poker model-worker prompt](docs/vice-poker-model-worker-prompt.md). Automated rules and recovery checks pass; a genuine multi-client playtest remains outstanding.
+
 Starting with Lifestyle 0.1.8, [single-player YouTube playback](docs/vice-lifestyle-youtube.md) is an optional **VICE YouTube development add-on**. The base Lifestyle package includes no browser player, companion installer or YouTube development guide. Images, MP4s, direct media URLs and Relay work independently. Install `VICE.YouTube.dll` and the separately supplied Build-A-Base 0.4.26 TV companion to reveal the YouTube option, captions and chapters. Neither release bundles the roughly 489 MiB companion. Saved YouTube IDs and favorites are preserved when the add-on is absent.
 
 Lifestyle 0.1.2 stores local images, videos and caches under `UserData/VICE/Lifestyle/Television`, automatically moving existing `PersonalTV` data on initialization. TV preferences remain under `PersonalTV`, including the local Relay configuration. Screen state and images remain in each host save's `Modded/PersonalTV` folder. Playback grants and Relay tokens are excluded from saves. Existing furniture IDs and saved-media formats remain unchanged.
@@ -162,7 +164,7 @@ src/VICE.Enforcement/           Police
 src/VICE.Syndicate/             Cartel and organized crime
 src/VICE.Commerce/              Trading, Purchasing, Warehouse
 src/VICE.Arsenal/               Guns
-src/VICE.Lifestyle/             Casino, Television, Amenities
+src/VICE.Lifestyle/             Casino, Television, Amenities, Poker
 src/VICE.Interface/             Hud
 src/LSDGameplay/, LSDPreview/   Current Substances development
 ```

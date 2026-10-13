@@ -1,6 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><TargetFramework>net8.0</TargetFramework><OutputType>Exe</OutputType><AssemblyName>VICE.Lifestyle.Tests</AssemblyName><PlatformTarget>AnyCPU</PlatformTarget></PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../src/VICE.Core/AtomicDocument.cs" Link="AtomicDocument.cs" />
+    <Compile Include="../../src/VICE.Lifestyle/Poker/PokerCards.cs" Link="PokerCards.cs" />
+    <Compile Include="../../src/VICE.Lifestyle/Poker/PokerTable.cs" Link="PokerTable.cs" />
+    <Compile Include="../../src/VICE.Lifestyle/Poker/PokerProtocol.cs" Link="PokerProtocol.cs" />
+    <Compile Include="../../src/VICE.Lifestyle/Poker/PokerJournal.cs" Link="PokerJournal.cs" />
+    <Compile Include="../../src/VICE.Lifestyle/Poker/PresentationLease.cs" Link="PokerPresentationLease.cs" />
     <Compile Include="../../src/VICE.Lifestyle/Amenities/DartsRules.cs" Link="DartsRules.cs" />
     <Compile Include="../../src/VICE.Lifestyle/Amenities/PoolRules.cs" Link="PoolRules.cs" />
     <Compile Include="../../src/VICE.Lifestyle/Amenities/PoolSimulation.cs" Link="PoolSimulation.cs" />
