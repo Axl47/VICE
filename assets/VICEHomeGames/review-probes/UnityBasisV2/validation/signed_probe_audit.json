@@ -1,0 +1,803 @@
+{
+  "summary": {
+    "passed": 117,
+    "failed": 0
+  },
+  "counts": {
+    "PoolTable": {
+      "Pool_Body": 120,
+      "Pool_Cloth": 68,
+      "Pool_Legs": 144,
+      "Pool_Pockets": 840,
+      "Pool_Rails": 276
+    },
+    "PoolAccessories": {
+      "Pool_Ball_00": 288,
+      "Pool_Ball_01": 288,
+      "Pool_Ball_02": 288,
+      "Pool_Ball_03": 288,
+      "Pool_Ball_04": 288,
+      "Pool_Ball_05": 288,
+      "Pool_Ball_06": 288,
+      "Pool_Ball_07": 288,
+      "Pool_Ball_08": 288,
+      "Pool_Ball_09": 288,
+      "Pool_Ball_10": 288,
+      "Pool_Ball_11": 288,
+      "Pool_Ball_12": 288,
+      "Pool_Ball_13": 288,
+      "Pool_Ball_14": 288,
+      "Pool_Ball_15": 288,
+      "Pool_Cue": 156,
+      "Pool_Rack": 24
+    },
+    "DartsBoard": {
+      "Darts_Backplate": 252,
+      "Darts_Board": 1278,
+      "Darts_Mount": 88,
+      "Darts_NumberRing": 40,
+      "Darts_Wire": 1160
+    },
+    "Dart": {
+      "Dart_Barrel": 76,
+      "Dart_Flights": 40,
+      "Dart_Shaft": 28,
+      "Dart_Tip": 14
+    }
+  },
+  "checks": [
+    {
+      "check": "rail top (-0.57, -0.4)",
+      "pass": true,
+      "detail": [
+        0.0,
+        1.0,
+        -0.0
+      ]
+    },
+    {
+      "check": "rail top (-0.57, 0.4)",
+      "pass": true,
+      "detail": [
+        0.0,
+        1.0,
+        -0.0
+      ]
+    },
+    {
+      "check": "rail top (-0.64, -0.4)",
+      "pass": true,
+      "detail": [
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "check": "rail top (-0.64, 0.4)",
+      "pass": true,
+      "detail": [
+        0.0,
+        1.0,
+        -0.0
+      ]
+    },
+    {
+      "check": "rail top (0.57, -0.4)",
+      "pass": true,
+      "detail": [
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "check": "rail top (0.57, 0.4)",
+      "pass": true,
+      "detail": [
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "check": "rail top (0.64, -0.4)",
+      "pass": true,
+      "detail": [
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "check": "rail top (0.64, 0.4)",
+      "pass": true,
+      "detail": [
+        0.0,
+        1.0,
+        -0.0
+      ]
+    },
+    {
+      "check": "rail top (-0.2, -1.13)",
+      "pass": true,
+      "detail": [
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "check": "rail top (0.2, -1.13)",
+      "pass": true,
+      "detail": [
+        0.0,
+        1.0,
+        -0.0
+      ]
+    },
+    {
+      "check": "rail top (-0.2, -1.18)",
+      "pass": true,
+      "detail": [
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "check": "rail top (0.2, -1.18)",
+      "pass": true,
+      "detail": [
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "check": "rail top (-0.2, 1.13)",
+      "pass": true,
+      "detail": [
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "check": "rail top (0.2, 1.13)",
+      "pass": true,
+      "detail": [
+        0.0,
+        1.0,
+        -0.0
+      ]
+    },
+    {
+      "check": "rail top (-0.2, 1.18)",
+      "pass": true,
+      "detail": [
+        0.0,
+        1.0,
+        -0.0
+      ]
+    },
+    {
+      "check": "rail top (0.2, 1.18)",
+      "pass": true,
+      "detail": [
+        0.0,
+        1.0,
+        -0.0
+      ]
+    },
+    {
+      "check": "source NE positive X",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "cloth constant centre UV",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Body export triangle count",
+      "pass": true,
+      "detail": [
+        120,
+        120
+      ]
+    },
+    {
+      "check": "Pool_Body Unity reflected vertices equal canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Body raw face crosses agree explicit normals",
+      "pass": true,
+      "detail": 0
+    },
+    {
+      "check": "Pool_Cloth export triangle count",
+      "pass": true,
+      "detail": [
+        68,
+        68
+      ]
+    },
+    {
+      "check": "Pool_Cloth Unity reflected vertices equal canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Cloth raw face crosses agree explicit normals",
+      "pass": true,
+      "detail": 0
+    },
+    {
+      "check": "Pool_Legs export triangle count",
+      "pass": true,
+      "detail": [
+        144,
+        144
+      ]
+    },
+    {
+      "check": "Pool_Legs Unity reflected vertices equal canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Legs raw face crosses agree explicit normals",
+      "pass": true,
+      "detail": 0
+    },
+    {
+      "check": "Pool_Pockets export triangle count",
+      "pass": true,
+      "detail": [
+        840,
+        840
+      ]
+    },
+    {
+      "check": "Pool_Pockets Unity reflected vertices equal canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Pockets raw face crosses agree explicit normals",
+      "pass": true,
+      "detail": 0
+    },
+    {
+      "check": "Pool_Rails export triangle count",
+      "pass": true,
+      "detail": [
+        276,
+        276
+      ]
+    },
+    {
+      "check": "Pool_Rails Unity reflected vertices equal canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Rails raw face crosses agree explicit normals",
+      "pass": true,
+      "detail": 0
+    },
+    {
+      "check": "FBX rail top normals +Y (unchanged by X reflection)",
+      "pass": true,
+      "detail": {
+        "faces": 76,
+        "bad": 0
+      }
+    },
+    {
+      "check": "FBX NE reflects to Unity positive X",
+      "pass": true,
+      "detail": [
+        -0.5600000023841858,
+        0.7799999713897705,
+        1.1200000047683716
+      ]
+    },
+    {
+      "check": "Pool_Ball_00 export triangle count",
+      "pass": true,
+      "detail": [
+        288,
+        288
+      ]
+    },
+    {
+      "check": "Pool_Ball_00 Unity reflected vertices equal canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_00 raw face crosses agree explicit normals",
+      "pass": true,
+      "detail": 0
+    },
+    {
+      "check": "Pool_Ball_01 export triangle count",
+      "pass": true,
+      "detail": [
+        288,
+        288
+      ]
+    },
+    {
+      "check": "Pool_Ball_01 Unity reflected vertices equal canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_01 raw face crosses agree explicit normals",
+      "pass": true,
+      "detail": 0
+    },
+    {
+      "check": "Pool_Ball_02 export triangle count",
+      "pass": true,
+      "detail": [
+        288,
+        288
+      ]
+    },
+    {
+      "check": "Pool_Ball_02 Unity reflected vertices equal canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_02 raw face crosses agree explicit normals",
+      "pass": true,
+      "detail": 0
+    },
+    {
+      "check": "Pool_Ball_03 export triangle count",
+      "pass": true,
+      "detail": [
+        288,
+        288
+      ]
+    },
+    {
+      "check": "Pool_Ball_03 Unity reflected vertices equal canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_03 raw face crosses agree explicit normals",
+      "pass": true,
+      "detail": 0
+    },
+    {
+      "check": "Pool_Ball_04 export triangle count",
+      "pass": true,
+      "detail": [
+        288,
+        288
+      ]
+    },
+    {
+      "check": "Pool_Ball_04 Unity reflected vertices equal canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_04 raw face crosses agree explicit normals",
+      "pass": true,
+      "detail": 0
+    },
+    {
+      "check": "Pool_Ball_05 export triangle count",
+      "pass": true,
+      "detail": [
+        288,
+        288
+      ]
+    },
+    {
+      "check": "Pool_Ball_05 Unity reflected vertices equal canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_05 raw face crosses agree explicit normals",
+      "pass": true,
+      "detail": 0
+    },
+    {
+      "check": "Pool_Ball_06 export triangle count",
+      "pass": true,
+      "detail": [
+        288,
+        288
+      ]
+    },
+    {
+      "check": "Pool_Ball_06 Unity reflected vertices equal canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_06 raw face crosses agree explicit normals",
+      "pass": true,
+      "detail": 0
+    },
+    {
+      "check": "Pool_Ball_07 export triangle count",
+      "pass": true,
+      "detail": [
+        288,
+        288
+      ]
+    },
+    {
+      "check": "Pool_Ball_07 Unity reflected vertices equal canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_07 raw face crosses agree explicit normals",
+      "pass": true,
+      "detail": 0
+    },
+    {
+      "check": "Pool_Ball_08 export triangle count",
+      "pass": true,
+      "detail": [
+        288,
+        288
+      ]
+    },
+    {
+      "check": "Pool_Ball_08 Unity reflected vertices equal canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_08 raw face crosses agree explicit normals",
+      "pass": true,
+      "detail": 0
+    },
+    {
+      "check": "Pool_Ball_09 export triangle count",
+      "pass": true,
+      "detail": [
+        288,
+        288
+      ]
+    },
+    {
+      "check": "Pool_Ball_09 Unity reflected vertices equal canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_09 raw face crosses agree explicit normals",
+      "pass": true,
+      "detail": 0
+    },
+    {
+      "check": "Pool_Ball_10 export triangle count",
+      "pass": true,
+      "detail": [
+        288,
+        288
+      ]
+    },
+    {
+      "check": "Pool_Ball_10 Unity reflected vertices equal canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_10 raw face crosses agree explicit normals",
+      "pass": true,
+      "detail": 0
+    },
+    {
+      "check": "Pool_Ball_11 export triangle count",
+      "pass": true,
+      "detail": [
+        288,
+        288
+      ]
+    },
+    {
+      "check": "Pool_Ball_11 Unity reflected vertices equal canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_11 raw face crosses agree explicit normals",
+      "pass": true,
+      "detail": 0
+    },
+    {
+      "check": "Pool_Ball_12 export triangle count",
+      "pass": true,
+      "detail": [
+        288,
+        288
+      ]
+    },
+    {
+      "check": "Pool_Ball_12 Unity reflected vertices equal canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_12 raw face crosses agree explicit normals",
+      "pass": true,
+      "detail": 0
+    },
+    {
+      "check": "Pool_Ball_13 export triangle count",
+      "pass": true,
+      "detail": [
+        288,
+        288
+      ]
+    },
+    {
+      "check": "Pool_Ball_13 Unity reflected vertices equal canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_13 raw face crosses agree explicit normals",
+      "pass": true,
+      "detail": 0
+    },
+    {
+      "check": "Pool_Ball_14 export triangle count",
+      "pass": true,
+      "detail": [
+        288,
+        288
+      ]
+    },
+    {
+      "check": "Pool_Ball_14 Unity reflected vertices equal canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_14 raw face crosses agree explicit normals",
+      "pass": true,
+      "detail": 0
+    },
+    {
+      "check": "Pool_Ball_15 export triangle count",
+      "pass": true,
+      "detail": [
+        288,
+        288
+      ]
+    },
+    {
+      "check": "Pool_Ball_15 Unity reflected vertices equal canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_15 raw face crosses agree explicit normals",
+      "pass": true,
+      "detail": 0
+    },
+    {
+      "check": "Pool_Cue export triangle count",
+      "pass": true,
+      "detail": [
+        156,
+        156
+      ]
+    },
+    {
+      "check": "Pool_Cue Unity reflected vertices equal canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Cue raw face crosses agree explicit normals",
+      "pass": true,
+      "detail": 0
+    },
+    {
+      "check": "Pool_Rack export triangle count",
+      "pass": true,
+      "detail": [
+        24,
+        24
+      ]
+    },
+    {
+      "check": "Pool_Rack Unity reflected vertices equal canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Rack raw face crosses agree explicit normals",
+      "pass": true,
+      "detail": 0
+    },
+    {
+      "check": "Darts_Backplate export triangle count",
+      "pass": true,
+      "detail": [
+        252,
+        252
+      ]
+    },
+    {
+      "check": "Darts_Backplate Unity reflected vertices equal canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Darts_Backplate raw face crosses agree explicit normals",
+      "pass": true,
+      "detail": 0
+    },
+    {
+      "check": "Darts_Board export triangle count",
+      "pass": true,
+      "detail": [
+        1278,
+        1278
+      ]
+    },
+    {
+      "check": "Darts_Board Unity reflected vertices equal canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Darts_Board raw face crosses agree explicit normals",
+      "pass": true,
+      "detail": 0
+    },
+    {
+      "check": "Unity +X preserves right-hand artwork UV (6 wedge)",
+      "pass": true,
+      "detail": 0
+    },
+    {
+      "check": "Darts_Mount export triangle count",
+      "pass": true,
+      "detail": [
+        88,
+        88
+      ]
+    },
+    {
+      "check": "Darts_Mount Unity reflected vertices equal canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Darts_Mount raw face crosses agree explicit normals",
+      "pass": true,
+      "detail": 0
+    },
+    {
+      "check": "Darts_NumberRing export triangle count",
+      "pass": true,
+      "detail": [
+        40,
+        40
+      ]
+    },
+    {
+      "check": "Darts_NumberRing Unity reflected vertices equal canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Darts_NumberRing raw face crosses agree explicit normals",
+      "pass": true,
+      "detail": 0
+    },
+    {
+      "check": "Darts_Wire export triangle count",
+      "pass": true,
+      "detail": [
+        1160,
+        1160
+      ]
+    },
+    {
+      "check": "Darts_Wire Unity reflected vertices equal canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Darts_Wire raw face crosses agree explicit normals",
+      "pass": true,
+      "detail": 0
+    },
+    {
+      "check": "Dart_Barrel export triangle count",
+      "pass": true,
+      "detail": [
+        76,
+        76
+      ]
+    },
+    {
+      "check": "Dart_Barrel Unity reflected vertices equal canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Dart_Barrel raw face crosses agree explicit normals",
+      "pass": true,
+      "detail": 0
+    },
+    {
+      "check": "Dart_Flights export triangle count",
+      "pass": true,
+      "detail": [
+        40,
+        40
+      ]
+    },
+    {
+      "check": "Dart_Flights Unity reflected vertices equal canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Dart_Flights raw face crosses agree explicit normals",
+      "pass": true,
+      "detail": 0
+    },
+    {
+      "check": "Dart_Shaft export triangle count",
+      "pass": true,
+      "detail": [
+        28,
+        28
+      ]
+    },
+    {
+      "check": "Dart_Shaft Unity reflected vertices equal canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Dart_Shaft raw face crosses agree explicit normals",
+      "pass": true,
+      "detail": 0
+    },
+    {
+      "check": "Dart_Tip export triangle count",
+      "pass": true,
+      "detail": [
+        14,
+        14
+      ]
+    },
+    {
+      "check": "Dart_Tip Unity reflected vertices equal canonical source",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Dart_Tip raw face crosses agree explicit normals",
+      "pass": true,
+      "detail": 0
+    }
+  ],
+  "scope": "Offline signed prediction using Unity-observed X reflection. Actual Unity CullBack review remains required."
+}
