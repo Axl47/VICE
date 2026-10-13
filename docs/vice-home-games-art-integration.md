@@ -1,5 +1,7 @@
 # Lifestyle home-games artwork integration — 0.2.1
 
+The 0.2.2 [world-play presentation candidate](vice-home-games-world-play.md) replaces the temporary play surface, adds model inventory thumbnails and tunes pool-only highlights. The accepted asset contract below remains intact; current native-test permission/access requirements are recorded in that candidate guide.
+
 Lifestyle now embeds the accepted artwork from [PR #7](https://github.com/Axl47/ScheduleOne-Mods/pull/7). The reviewed art is commit `b6b148e0c2bdf171f8eab9da5b4edddcbd1d9a18`; the imported source/evidence head is `a885844e925e7cc415c7fbb0c0f594297cc4d7d7`. The original Blender, four production FBXs and three atlases retain their accepted SHA-256 values. Historical probes and review renders are source evidence and are not bundled into the mod.
 
 ## Build and use
@@ -37,4 +39,4 @@ Pure .NET tests additionally pin six/eleven visual mapping while preserving anal
 
 Recorded on 2026-10-13: 342 new Unity editor/import/bundle assertions; 183 accepted-evidence replay assertions; 228 amenity assertions and 378 total Lifestyle assertions; 55 Core assertions; 49 module metadata assertions; five native patch-address declarations; hashed-export validation; and 13 installer assertions in an isolated fixture. The build completed with zero warnings/errors. The editor uses the exact game Unity version but is a separate process/project, not an instance of Schedule I.
 
-Before using a valued save, test an isolated copy in the native game: shop/placement ghosts, outward material rendering, readable board and ball numbers, cue/dart pivot alignment, all six pockets, idle rack removal, furniture culling/packing, reload, and `UseModelArtwork=false`. A genuine co-op check must compare host/guest visuals and settled state, including donor-prefab recovery and late join while balls move. This integration does not certify native URP appearance or multiplayer, does not install into the Steam game, and does not merge or deploy PR #7.
+The original 0.2.1 integration did not launch the native game. The 0.2.2 [presentation pass](vice-home-games-world-play.md) now records authorized native checks on copies of save 5, including world cameras, timed 20/6/11 hits, cue/ball presentation, control restoration and reload. Production DLLs/preferences and original-save hashes remain unchanged by that pass. Purchase/placement ghosts, full matches, physical inputs and genuine co-op remain follow-ups. PR #7 remains unmerged.

@@ -35,11 +35,12 @@ foreach ($name in @('PoolTable','PoolAccessories','DartsBoard','Dart')) {
 }
 Copy-Item -Path (Join-Path $source 'Textures\*.png') -Destination (Join-Path $project 'Assets\Models\Textures') -Force
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'Unity\BuildHomeGames.cs') -Destination (Join-Path $project 'Assets\Editor\BuildHomeGames.cs') -Force
-[IO.File]::WriteAllText((Join-Path $project 'Packages\manifest.json'),'{"dependencies":{"com.unity.modules.assetbundle":"1.0.0","com.unity.modules.imageconversion":"1.0.0","com.unity.modules.physics":"1.0.0"}}')
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'Unity\HomeGamesPresentation.cs') -Destination (Join-Path $project 'Assets\Editor\HomeGamesPresentation.cs') -Force
+[IO.File]::WriteAllText((Join-Path $project 'Packages\manifest.json'),'{"dependencies":{"com.unity.render-pipelines.universal":"14.0.12","com.unity.modules.assetbundle":"1.0.0","com.unity.modules.imageconversion":"1.0.0","com.unity.modules.physics":"1.0.0"}}')
 [IO.File]::WriteAllText((Join-Path $project 'ProjectSettings\ProjectVersion.txt'),"m_EditorVersion: 2022.3.62f2`n")
 New-Item -ItemType Directory -Path (Join-Path $repo 'artifacts') -Force | Out-Null
 $log = Join-Path $repo 'artifacts\vice-home-games-unity.log'
-$unityArguments = @('-batchmode','-nographics','-quit','-projectPath',('"'+$project+'"'),'-executeMethod','BuildHomeGames.Build',
+$unityArguments = @('-batchmode','-quit','-projectPath',('"'+$project+'"'),'-executeMethod','BuildHomeGames.Build',
     '-homeGamesRepository',('"'+$repo+'"'),'-logFile',('"'+$log+'"'))
 $process = Start-Process -FilePath $UnityPath -ArgumentList $unityArguments -WindowStyle Hidden -PassThru
 while (-not $process.WaitForExit(30000)) { Write-Output "Unity is importing/building home-games artwork; log: $log" }

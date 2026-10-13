@@ -53,6 +53,7 @@ public static class BuildHomeGames
         Check(darts.Length==8,"Darts must share eight actual material objects across imports.");
         Check(darts.All(m=>Materials.Values.Contains(m)),"Darts importer material remap failed.");
         AssetDatabase.SaveAssets();
+        HomeGamesPresentation.Build(repo);
         var output=Path.Combine(repo,"src/VICE.Lifestyle/Assets");Directory.CreateDirectory(output);
         var result=BuildPipeline.BuildAssetBundles(output,new[]{new AssetBundleBuild{assetBundleName="homegames.bundle",assetNames=Prefabs.ToArray()}},BuildAssetBundleOptions.ChunkBasedCompression,BuildTarget.StandaloneWindows64);
         Check(result,"Bundle build failed.");
@@ -85,7 +86,8 @@ public static class BuildHomeGames
         Object.DestroyImmediate(cue);
         bundle.Unload(true);
         var files=Models.Select(n=>"assets/VICEHomeGames/"+n+".fbx").Concat(new[]{"PoolFurniture","PoolBalls","Darts"}.Select(n=>"assets/VICEHomeGames/Textures/"+n+"_BaseColor.png"))
-            .Concat(new[]{"scripts/Unity/BuildHomeGames.cs","scripts/Build-VICEHomeGamesAssets.ps1","assets/VICEHomeGames/validation/unity/accepted-artwork-sha256.json"}).Select(p=>ContractFile.Create(repo,p)).ToArray();
+            .Concat(new[]{"scripts/Unity/BuildHomeGames.cs","scripts/Unity/HomeGamesPresentation.cs","scripts/Build-VICEHomeGamesAssets.ps1","assets/VICEHomeGames/validation/unity/accepted-artwork-sha256.json",
+                "src/VICE.Lifestyle/Assets/Icons/PoolTable.png","src/VICE.Lifestyle/Assets/Icons/DartsBoard.png"}).Select(p=>ContractFile.Create(repo,p)).ToArray();
         File.WriteAllText(Path.Combine(output,"homegames.contract.json"),JsonUtility.ToJson(new Contract{schema=1,bundle=ContractFile.Create(repo,"src/VICE.Lifestyle/Assets/homegames.bundle"),sources=files},true));
         File.WriteAllText(Path.Combine(repo,"artifacts/vice-home-games-import.json"),JsonUtility.ToJson(new Report{checks=checks,prefabs=Prefabs.Count,uniqueDartsMaterials=darts.Length,unityVersion=Application.unityVersion,notes="Fresh import + built bundle validation; Standard materials rebound to native URP/Lit by Lifestyle. No game or co-op test."},true));
         Debug.Log("VICE_HOME_GAMES_BUNDLE_BUILT checks="+checks+" prefabs="+Prefabs.Count);

@@ -42,10 +42,14 @@ internal static class HomeGameAssets
                         var key=HomeGameVisualContract.CanonicalMaterial(original.name.Replace(" (Instance)","",StringComparison.Ordinal));
                         if(!Materials.TryGetValue(key,out var material))
                         {
-                            var surface=HomeGameVisualContract.Surface(key);
+                            var surface=HomeGameVisualContract.RuntimeSurface(key);
                             material=new(shader){name="VICE Home Games "+key};material.SetColor("_BaseColor",Color.white);
                             material.SetTexture("_BaseMap",original.mainTexture);material.SetFloat("_Metallic",surface.Metallic);material.SetFloat("_Smoothness",surface.Smoothness);
                             material.SetFloat("_Surface",0);material.SetFloat("_Cull",2);material.SetFloat("_ReceiveShadows",1);
+                            material.SetFloat("_SpecularHighlights",surface.Specular?1:0);material.SetFloat("_EnvironmentReflections",surface.Reflections?1:0);
+                            if(!surface.Specular)material.EnableKeyword("_SPECULARHIGHLIGHTS_OFF");
+                            if(!surface.Reflections)material.EnableKeyword("_ENVIRONMENTREFLECTIONS_OFF");
+                            if(!surface.Reflections)original.mainTexture.filterMode=FilterMode.Trilinear;
                             Materials[key]=material;
                         }
                         return material;
@@ -62,5 +66,16 @@ internal static class HomeGameAssets
         var template=Template(name);if(!template)return null;
         var visual=Object.Instantiate(template!,parent);visual.name=template!.name;visual.SetActive(true);
         visual.transform.localPosition=Vector3.zero;visual.transform.localRotation=Quaternion.identity;visual.transform.localScale=Vector3.one;return visual;
+    }
+    private static readonly Dictionary<string,Sprite> Icons=new();
+    internal static Sprite? Icon(string kind)
+    {
+        if(Icons.TryGetValue(kind,out var existing)&&existing)return existing;
+        using var stream=typeof(HomeGameAssets).Assembly.GetManifestResourceStream("VICE.Lifestyle.HomeGames.Icon."+(kind=="pool"?"PoolTable":"DartsBoard")+".png");
+        if(stream is null)return null;
+        using var memory=new MemoryStream();stream.CopyTo(memory);var texture=new Texture2D(2,2,TextureFormat.RGBA32,true);
+        if(!ImageConversion.LoadImage(texture,new Il2CppStructArray<byte>(memory.ToArray()),false)){Object.Destroy(texture);return null;}
+        texture.filterMode=FilterMode.Trilinear;texture.wrapMode=TextureWrapMode.Clamp;
+        var icon=Sprite.Create(texture,new Rect(0,0,texture.width,texture.height),new(.5f,.5f),100);Icons[kind]=icon;return icon;
     }
 }

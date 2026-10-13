@@ -14,4 +14,16 @@ internal static class HomeGameVisualContract
         "SisalDark" or "SisalLight" or "RingRed" or "RingGreen" or "Numbers" or "DartPlastic" or "DartFlight"=>(0,.32f),
         _=>throw new InvalidDataException("Unknown home-games material: "+name)
     };
+    internal static (float Metallic,float Smoothness,bool Specular,bool Reflections) RuntimeSurface(string name)
+    {
+        var original=Surface(name);
+        return name switch
+        {
+            "Wood" or "RackWood"=>(0,.22f,false,false),"RailRubber"=>(0,.14f,false,false),
+            "Cloth" or "PocketBlack"=>(0,.25f,false,false),"Metal"=>(.25f,.28f,true,false),
+            "CueWood" or "CueTip"=>(0,.25f,true,false),
+            // Balls and all eight darts materials retain their accepted tuning.
+            _=>(original.Metallic,original.Smoothness,true,true)
+        };
+    }
 }
