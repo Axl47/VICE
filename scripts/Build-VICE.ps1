@@ -44,6 +44,9 @@ if (($Modules -contains 'Lifestyle' -or $AddOns -contains 'YouTube') -and -not (
 if ($Modules -contains 'Arsenal' -and -not (Test-Path -LiteralPath (Join-Path $repoRoot '.research\assets\moreguns.bundle'))) {
     & (Join-Path $PSScriptRoot 'Prepare-Assets.ps1') -OriginalDll $OriginalMoreGuns -GameDir $GameDir
 }
+if ($Modules -contains 'Lifestyle' -or $AddOns -contains 'YouTube') {
+    & (Join-Path $PSScriptRoot 'Build-VICEHomeGamesAssets.ps1')
+}
 # Every invocation compiles and checks this same Core before selected modules.
 Build-Project 'src\VICE.Core\VICE.Core.csproj'
 Run-Checks 'tests\VICE.Core\VICE.Core.Tests.csproj'

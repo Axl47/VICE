@@ -27,6 +27,7 @@ internal sealed class AmenitiesFeature
     internal void Initialize(HarmonyLib.Harmony harmony)
     {
         Current=this;Enabled=ModSupport.Entry(MelonPreferences.CreateCategory("VICE.Lifestyle.Amenities"),"EnablePrototypes",false,"Opt in to playable pool/darts placeholder furniture at Herbert's boutique. Definitions remain available for saved furniture.");
+        HomeGameAssets.Enabled=ModSupport.Entry(MelonPreferences.CreateCategory("VICE.Lifestyle.Amenities"),"UseModelArtwork",true,"Use the embedded PR #7 model artwork. Disable and restart to compare primitive visuals; rules and saves are unchanged.").Value;
         ModSupport.Patch(harmony,typeof(InteractableObject),"StartInteract",typeof(AmenitiesFeature),prefix:nameof(Interact));
         GameLifecycle.OnPreLoad+=Preload;GameLifecycle.OnLoadComplete+=Loaded;GameLifecycle.OnPreSceneChange+=Clear;
         BuildEvents.OnBuildableItemInitialized+=Restore;

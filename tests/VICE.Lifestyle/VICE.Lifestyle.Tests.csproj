@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><TargetFramework>net8.0</TargetFramework><OutputType>Exe</OutputType><AssemblyName>VICE.Lifestyle.Tests</AssemblyName><PlatformTarget>AnyCPU</PlatformTarget></PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../src/VICE.Lifestyle/Amenities/HomeGameVisualContract.cs" Link="HomeGameVisualContract.cs" />
     <Compile Include="../../src/VICE.Lifestyle/Amenities/DartsRules.cs" Link="DartsRules.cs" />
     <Compile Include="../../src/VICE.Lifestyle/Amenities/PoolRules.cs" Link="PoolRules.cs" />
     <Compile Include="../../src/VICE.Lifestyle/Amenities/PoolSimulation.cs" Link="PoolSimulation.cs" />

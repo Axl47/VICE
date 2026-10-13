@@ -38,7 +38,7 @@ internal sealed class AmenityPanel : IDisposable
         Root.AddComponent<GraphicRaycaster>();Frame=TVWidgets.Rect(Root.transform,"Prototype panel",0,0,1400,970);
         Frame.anchorMin=Frame.anchorMax=Frame.pivot=new(.5f,.5f);Frame.anchoredPosition=Vector2.zero;
         Frame.gameObject.AddComponent<Image>().color=new(.035f,.05f,.065f,.99f);
-        Title=TVWidgets.Label(Frame,"HOME GAMES · PLACEHOLDER PRESENTATION",30,16,1150,45,26);
+        Title=TVWidgets.Label(Frame,"HOME GAMES · PROTOTYPE CONTROLS",30,16,1150,45,26);
         Button("Leave · Esc",1200,20,170,Close);
         Arena=TVWidgets.Rect(Frame,"Temporary play surface",55,115,640,640);
         Crosshair=TVWidgets.Rect(Arena,"Aim",0,0,12,12);Crosshair.gameObject.AddComponent<Image>().color=new(1,1,1,.8f);Crosshair.gameObject.GetComponent<Image>().raycastTarget=false;
@@ -65,7 +65,7 @@ internal sealed class AmenityPanel : IDisposable
         PreviousEquipping=PlayerInventory.Instance.EquippingEnabled;PreviousTyping=GameInput.IsTyping;
         camera.AddActiveUIElement("VICEHomeGames");camera.SetCanLook(false);camera.FreeMouse(true);PlayerMovement.Instance._canMove=false;
         PlayerInventory.Instance.SetInventoryEnabled(false);GameInput.IsTyping=true;Opened=true;Root.SetActive(true);
-        Title.text=(Kind=="darts"?"DARTS · 301":"POOL · CASUAL EIGHT-BALL")+" · PLACEHOLDER PRESENTATION";
+        Title.text=(Kind=="darts"?"DARTS · 301":"POOL · CASUAL EIGHT-BALL")+" · PROTOTYPE CONTROLS";
         DrawSurface();NextHeartbeat=0;Notice("Choose Solo practice or Two-player lobby. Open a busy table to spectate.");
         if(!AmenityNetwork.Host)AmenityNetwork.Submit(new());
     }
