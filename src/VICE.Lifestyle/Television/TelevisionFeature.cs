@@ -133,7 +133,7 @@ internal sealed class TelevisionFeature
                 if(media.Kind=="youtube")
                 {
                     YouTubeRules.RequireSinglePlayer(TVNetwork.Host,TVNetwork.PeerCount);
-                    if(!File.Exists(TVConfig.YouTubeCompanionPath))throw new InvalidOperationException("Install the Build-A-Base TV companion before playing YouTube.");
+                    TVYouTube.RequireAvailable();
                     foreach(var other in Document.Screens.Where(s=>s.Id!=state.Id&&s.Media.Kind=="youtube").ToArray()){Stop(other);Touch(other);}
                 }
                 if(media.Kind=="image"&&!Cache.Has(media.Source))throw new InvalidOperationException("The image is still being transferred.");
@@ -145,7 +145,7 @@ internal sealed class TelevisionFeature
                 break;
             case "toggle": case "play": case "pause":
                 if(state.Media.Kind is "none" or "image")throw new InvalidOperationException("Choose a video first.");
-                if(state.Media.Kind=="youtube")YouTubeRules.RequireSinglePlayer(TVNetwork.Host,TVNetwork.PeerCount);
+                if(state.Media.Kind=="youtube"){YouTubeRules.RequireSinglePlayer(TVNetwork.Host,TVNetwork.PeerCount);TVYouTube.RequireAvailable();}
                 var wanted=command.Action=="play"||(command.Action=="toggle"&&!(state.Media.Kind=="video"?state.VideoRequested:RelayJobs.ContainsKey(state.Id)?ResumeIntent.GetValueOrDefault(state.Id):state.Playing));
                 if(state.Media.Kind=="youtube"&&wanted)
                     foreach(var other in Document.Screens.Where(s=>s.Id!=state.Id&&s.Media.Kind=="youtube").ToArray()){Stop(other);Touch(other);}
@@ -161,6 +161,7 @@ internal sealed class TelevisionFeature
                 if(!float.IsFinite(command.Volume)||command.Volume is < 0 or > 1)throw new InvalidDataException("Invalid volume.");state.Volume=command.Volume;break;
             case "youtubeCaptions":
                 YouTubeRules.RequireSinglePlayer(TVNetwork.Host,TVNetwork.PeerCount);
+                TVYouTube.RequireAvailable();
                 if(state.Media.Kind!="youtube"||World?.Screens.GetValueOrDefault(state.Id) is not {} captionScreen)throw new InvalidOperationException("Choose a YouTube video first.");
                 captionScreen.ToggleCaptions(state.Media.Source);break;
             case "remember":state.Remember=command.Remember||state.Media.Kind=="image";break;
@@ -175,6 +176,7 @@ internal sealed class TelevisionFeature
                 if(state.Media.Kind=="youtube")
                 {
                     YouTubeRules.RequireSinglePlayer(TVNetwork.Host,TVNetwork.PeerCount);
+                    TVYouTube.RequireAvailable();
                     foreach(var other in Document.Screens.Where(s=>s.Id!=state.Id&&s.Media.Kind=="youtube").ToArray()){Stop(other);Touch(other);}
                     state.Playing=true;
                 }

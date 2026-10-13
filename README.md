@@ -70,7 +70,7 @@ The private weapon bundle is embedded in Arsenal using the existing resource ide
 
 **Television** adds a $450 Wall Screen at Herbert's Bleuball's Boutique. Place it on a wall, interact with it, and select an image, direct HTTP(S) video URL, Relay episode, or local MP4. Playback controls include pause, seeking, volume, favorites, and a larger viewing mode. Local MP4 selections share metadata first; Play transfers the selected file through the host and waits for connected peers. See the [video sharing guide](docs/vice-lifestyle-video-sharing.md).
 
-Lifestyle 0.1.6 adds [single-player YouTube playback](docs/vice-lifestyle-youtube.md): paste a link in the YouTube tab. It uses the separately installed Build-A-Base 0.4.26 TV companion, with distance-based browser audio and one selected YouTube screen at a time. The companion is not bundled with VICE.
+Starting with Lifestyle 0.1.8, [single-player YouTube playback](docs/vice-lifestyle-youtube.md) is an optional **VICE YouTube development add-on**. The base Lifestyle package includes no browser player, companion installer or YouTube development guide. Images, MP4s, direct media URLs and Relay work independently. Install `VICE.YouTube.dll` and the separately supplied Build-A-Base 0.4.26 TV companion to reveal the YouTube option, captions and chapters. Neither release bundles the roughly 489 MiB companion. Saved YouTube IDs and favorites are preserved when the add-on is absent.
 
 Lifestyle 0.1.2 stores local images, videos and caches under `UserData/VICE/Lifestyle/Television`, automatically moving existing `PersonalTV` data on initialization. TV preferences remain under `PersonalTV`, including the local Relay configuration. Screen state and images remain in each host save's `Modded/PersonalTV` folder. Playback grants and Relay tokens are excluded from saves. Existing furniture IDs and saved-media formats remain unchanged.
 
@@ -105,6 +105,7 @@ Launch the IL2CPP beta with MelonLoader once to generate `MelonLoader/Il2CppAsse
 ```powershell
 ./scripts/Build-VICE.ps1 -Modules Commerce,Lifestyle
 ./scripts/Build-VICE.ps1 -Modules Lifestyle
+./scripts/Build-VICE.ps1 -AddOns YouTube  # Separate optional add-on; requires installed Lifestyle 0.1.8+
 ./scripts/Build-VICE.ps1          # Core only
 ./scripts/Build-VICE.ps1 -All     # All six implemented gameplay modules
 ```

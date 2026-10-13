@@ -51,7 +51,11 @@ internal sealed class TVPanel : IDisposable
     internal void CheckYouTube(string link){Search!.text=link;CheckClick("Play YouTube");}
     internal int CheckChapterMarks=>ChapterMarks.Count;
     internal string CheckChapterTitle=>ChapterTitle.text;
+    internal bool CheckYouTubeSource=>YouTubeTab?.activeSelf==true;
+    internal bool CheckYouTubeControls=>CaptionsButton.gameObject.activeSelf||ChaptersButton.gameObject.activeSelf;
     private readonly List<GameObject> Tabs=new();
+    private GameObject? YouTubeTab;
+    private bool? YouTubeAvailable;
     private double NextFavoritesCheck;
 
     internal TVPanel()
@@ -70,14 +74,14 @@ internal sealed class TVPanel : IDisposable
         Picker=TVWidgets.Rect(Frame,"Source picker",860,140,750,650);
         ChaptersButton=TVWidgets.Button(Frame,"Chapters",1225,18,190,36,()=>{Fullscreen=false;Picker.gameObject.SetActive(true);foreach(var tab in Tabs)tab.SetActive(true);Switch("chapters");});
         var tabs=new[]{("images","Images"),("url","Video URL"),("youtube","YouTube"),("relay","Relay"),("favorites","Favorites"),("local","Local MP4")};
-        for(var i=0;i<tabs.Length;i++){var tab=tabs[i];Tabs.Add(TVWidgets.Button(Frame,tab.Item2,860+i*126,88,118,38,()=>Switch(tab.Item1)).gameObject);}
+        for(var i=0;i<tabs.Length;i++){var tab=tabs[i];var control=TVWidgets.Button(Frame,tab.Item2,860+i*126,88,118,38,()=>Switch(tab.Item1)).gameObject;Tabs.Add(control);if(tab.Item1=="youtube")YouTubeTab=control;}
         var play=TVWidgets.Button(Frame,"Play",30,818,125,40,()=>Send(new(){Action="toggle"}));PlayLabel=play.GetComponentInChildren<TextMeshProUGUI>();
         TVWidgets.Button(Frame,"−10s",165,818,80,40,()=>Seek(-10));TVWidgets.Button(Frame,"+10s",255,818,80,40,()=>Seek(10));
         TVWidgets.Button(Frame,"Stop",345,818,95,40,()=>Send(new(){Action="stop"}));
         TVWidgets.Button(Frame,"Retry",450,818,95,40,()=>Send(new(){Action="retry"}));
         TVWidgets.Button(Frame,"Save favorite",555,818,180,40,()=>Send(new(){Action="favorite"}));
         var remember=TVWidgets.Button(Frame,"Remember: off",745,818,195,40,()=>Send(new(){Action="remember",Remember=State()?.Remember!=true}));RememberLabel=remember.GetComponentInChildren<TextMeshProUGUI>();
-        TVWidgets.Button(Frame,"Full screen",950,818,155,40,()=>{Fullscreen=!Fullscreen;Picker.gameObject.SetActive(!Fullscreen);foreach(var tab in Tabs)tab.SetActive(!Fullscreen);});
+        TVWidgets.Button(Frame,"Full screen",950,818,155,40,()=>{Fullscreen=!Fullscreen;Picker.gameObject.SetActive(!Fullscreen);UpdateSourceTabs();});
         TVWidgets.Label(Frame,"Volume",1130,824,85,28,18);Volume=TVWidgets.Slider(Frame,1220,826,175,value=>{if(!Updating)VolumeDirty=true;});
         TVWidgets.Button(Frame,"Mute",1410,818,90,40,()=>Send(new(){Action="volume",Volume=0}));
         Timeline=TVWidgets.Slider(Frame,30,875,1330,value=>{if(!Updating)SeekDirty=true;});
@@ -101,7 +105,7 @@ internal sealed class TVPanel : IDisposable
         PreviousEquipping=inventory.EquippingEnabled;PreviousTyping=GameInput.IsTyping;
         camera.AddActiveUIElement("PersonalTV");camera.SetCanLook(false);camera.FreeMouse(true);
         PlayerMovement.Instance._canMove=false;inventory.SetInventoryEnabled(false);GameInput.IsTyping=true;
-        Opened=true;Root.SetActive(true);Picker.gameObject.SetActive(true);foreach(var tab in Tabs)tab.SetActive(true);Notice("Playback continues when you leave. Images are remembered automatically.");Switch(Tab);
+        Opened=true;Root.SetActive(true);Picker.gameObject.SetActive(true);UpdateSourceTabs();Notice("Playback continues when you leave. Images are remembered automatically.");Switch(Tab);
     }
     internal void Close()
     {
@@ -135,6 +139,7 @@ internal sealed class TVPanel : IDisposable
     private T Decode<T>(string json)=>JsonSerializer.Deserialize<T>(json,RelayClient.Json)??throw new InvalidDataException("Relay returned no catalog data.");
     private void Switch(string tab)
     {
+        if(tab is "youtube" or "chapters"&&!TVYouTube.Available)tab="images";
         Tab=tab;Page=0;Epoch++;Queries.Clear();Rows.Clear();ClearPage();
         switch(tab)
         {
@@ -146,6 +151,17 @@ internal sealed class TVPanel : IDisposable
             case "favorites":Favorites();break;
             case "relay":RelayHome();break;
         }
+    }
+    private void UpdateSourceTabs()
+    {
+        var available=TVYouTube.Available;var changed=YouTubeAvailable!=available;YouTubeAvailable=available;var index=0;
+        foreach(var tab in Tabs)
+        {
+            var included=tab!=YouTubeTab||available;tab.SetActive(included&&!Fullscreen);
+            if(included)TVWidgets.Place(tab.GetComponent<RectTransform>(),860+index++*126,88,118,38);
+        }
+        if(changed&&Opened&&Tab is "youtube" or "chapters"&&!available)Switch("images");
+        else if(changed&&Opened&&Tab=="favorites")Favorites();
     }
     private void ClearPage(){Search=null;foreach(var control in PageControls)if(control)Object.Destroy(control);PageControls.Clear();}
     private void Track(Component control)=>PageControls.Add(control.gameObject);
@@ -188,7 +204,7 @@ internal sealed class TVPanel : IDisposable
     }
     private void UpdateChapters(ScreenController controller,ScreenState state,double position)
     {
-        var youtube=state.Media.Kind=="youtube";
+        var youtube=state.Media.Kind=="youtube"&&TVYouTube.Available;
         CaptionsButton.gameObject.SetActive(youtube);CaptionsButton.interactable=youtube&&controller.CanToggleCaptions;
         ChaptersButton.gameObject.SetActive(youtube);
         var catalog=controller.Chapters;var status=controller.ChapterStatus;
@@ -219,8 +235,7 @@ internal sealed class TVPanel : IDisposable
     {
         Heading="YouTube · single-player";Label(Heading,0);
         if(TVNetwork.PeerCount>1){Label("YouTube playback is available in single-player only.",60,90);return;}
-        if(!File.Exists(TVConfig.YouTubeCompanionPath))
-        {Label("Install the Build-A-Base TV companion to use YouTube. See the Lifestyle YouTube guide included with this update.",60,150);return;}
+        if(!TVYouTube.Available){Label(TVYouTube.UnavailableReason,60,150);return;}
         Label("Paste a YouTube video link, then press Play YouTube. One Wall Screen can play YouTube at a time.",55,90);
         var input=Input("https://www.youtube.com/watch?v=…",165,4096);Search=input;
         Button("Play YouTube",0,225,210,()=>{
@@ -233,7 +248,7 @@ internal sealed class TVPanel : IDisposable
     private void Favorites()
     {
         var document=TelevisionFeature.Current!.Document;FavoriteSnapshot=JsonSerializer.Serialize(document.Favorites);Heading="Saved media favorites";
-        Rows=document.Favorites.Select((media,index)=>($"{index+1}. "+(media.Title.Length>0?media.Title:$"{media.Kind}: {media.Source}"),(Action)(()=>Select(media.Clone())))).ToList();DrawRows();
+        Rows=document.Favorites.Select((media,index)=>(Media:media,Index:index)).Where(f=>f.Media.Kind!="youtube"||TVYouTube.Available).Select(f=>($"{f.Index+1}. "+(f.Media.Title.Length>0?f.Media.Title:$"{f.Media.Kind}: {f.Media.Source}"),(Action)(()=>Select(f.Media.Clone())))).ToList();DrawRows();
         Label("Select a favorite to play it. Relay episodes resolve a fresh URL each time.",525,50);
         var remove=Input("Favorite number to remove (starting at 1)",580,2);
         Button("Remove",555,630,195,()=>{if(!int.TryParse(remove.text,out var number))throw new InvalidDataException("Enter a favorite number.");Send(new(){Action="deleteFavorite",Index=number-1});Favorites();});
@@ -308,6 +323,7 @@ internal sealed class TVPanel : IDisposable
     internal void Tick()
     {
         if(!Opened)return;
+        if(YouTubeAvailable!=TVYouTube.Available)UpdateSourceTabs();
         var mod=TelevisionFeature.Current!;var controller=mod.World?.Screens.GetValueOrDefault(Screen);
         if(controller is null||!Player.Local||Player.Local.IsUnconscious||!Player.Local.Health.IsAlive||Vector3.Distance(Player.Local.transform.position,controller.Item.transform.position)>5){Close();return;}
         if(Keyboard.current?.escapeKey.wasPressedThisFrame==true){Close();return;}

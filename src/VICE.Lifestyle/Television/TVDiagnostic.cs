@@ -20,6 +20,7 @@ internal sealed class TVDiagnostic
     private readonly bool Reload;
     private readonly bool PromptOnly;
     private readonly bool YouTubeControls;
+    private readonly bool BaseOnly;
     private bool Started,Done;
     private int Phase;
     private double Next,Deadline,PreviousPosition;
@@ -45,6 +46,7 @@ internal sealed class TVDiagnostic
     {
         Mod=mod;Output=Path.GetFullPath(output);Save=Path.GetFullPath(save);Video=MediaRules.FileName(video,".mp4");Reload=reload;PromptOnly=promptOnly;
         YouTubeControls=Environment.GetCommandLineArgs().Contains("--tv-check-youtube-controls");
+        BaseOnly=Environment.GetCommandLineArgs().Contains("--tv-check-base-only");
         Origin=origin;PreviousOrigin=TVConfig.RelayOrigin.Value;PreviousToken=TVConfig.RelayToken.Value;
         YouTubeLink=youtube;if(youtube.Length>0)YouTubeRules.VideoId(youtube);
         if(Origin.Length>0&&!MediaRules.VideoUrl(Origin).IsLoopback)throw new InvalidOperationException("Diagnostic fixture must use loopback HTTP.");
@@ -79,6 +81,7 @@ internal sealed class TVDiagnostic
         {
             case 0:
                 Check(TVNetwork.Host,"Native host is not available.");
+                if(BaseOnly)Check(TVYouTube.Provider is null&&!TVYouTube.Available,"Base TV has a registered YouTube provider.");
                 TVNetwork.CheckWire(new TVCommand{Action="seek",Screen=Guid.NewGuid().ToString(),Position=23.5});
                 TVNetwork.CheckWire(new TVMessage{Type="imageChunk",Hash=new string('a',64),Data=new byte[MediaRules.ChunkBytes]});
                 TVNetwork.CheckWire(new TVCommand{Action="videoChunk",Hash=new string('a',64),Data=new byte[MediaRules.ChunkBytes]});
@@ -148,11 +151,13 @@ internal sealed class TVDiagnostic
                 Phase=3;Next=TVNetwork.Now+1;return;
             case 3:
                 Check(Mod.Panel!.IsOpen,"Source picker closed unexpectedly.");
+                if(BaseOnly)Check(!Mod.Panel.CheckYouTubeSource&&!Mod.Panel.CheckYouTubeControls,"Base TV exposed YouTube without its add-on.");
                 ScreenCapture.CaptureScreenshot(Path.Combine(Output,"source-picker.png"));Phase=21;Next=TVNetwork.Now+.5;return;
             case 21:
                 Mod.Panel!.Close();
                 Check(PlayerCamera.Instance.CanLook==BeforeLook&&PlayerMovement.Instance._canMove==BeforeMove&&PlayerInventory.Instance.HotbarEnabled==BeforeInventory&&PlayerInventory.Instance.EquippingEnabled==BeforeEquipping,"Interaction did not restore game controls.");
-                Send(new(){Action="select",Media=new(){Kind="local",Source=Video,Title="TV diagnostic video"}});Phase=4;Next=TVNetwork.Now+1;return;
+                Send(new(){Action="select",Media=new(){Kind="local",Source=Video,Title="TV diagnostic video"}});
+                Send(new(){Action="play"});Phase=4;Next=TVNetwork.Now+1;return;
             case 100:
                 if(!File.Exists(Path.Combine(Output,"youtube-picker.png")))return;
                 Mod.Panel!.CheckYouTube(YouTubeLink);Mod.Panel.Close();Phase=101;Next=TVNetwork.Now+1;return;

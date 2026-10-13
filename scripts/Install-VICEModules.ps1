@@ -2,7 +2,8 @@ param(
     [string]$GameDir = 'C:\Program Files (x86)\Steam\steamapps\common\Schedule I',
     [string]$PackageDir = '',
     [ValidateSet('Commerce', 'Arsenal', 'Lifestyle', 'Interface', 'Enforcement', 'Syndicate')]
-    [string[]]$Modules = @('Commerce', 'Arsenal', 'Lifestyle', 'Interface')
+    [string[]]$Modules = @('Commerce', 'Arsenal', 'Lifestyle', 'Interface'),
+    [ValidateSet('YouTube')][string[]]$AddOns = @()
 )
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path $PSScriptRoot -Parent
@@ -19,6 +20,7 @@ foreach ($process in Get-Process -Name 'Schedule I', 'ScheduleI' -ErrorAction Si
     if (-not $runningPath -or $runningPath -ieq $gameExecutable) { throw 'Close this Schedule I installation before installing VICE modules.' }
 }
 $Modules = @($Modules | Select-Object -Unique)
+$AddOns = @($AddOns | Select-Object -Unique)
 if ($Modules -contains 'Lifestyle' -and -not (Test-Path -LiteralPath (Join-Path $gameRoot 'Mods\S1API.Il2Cpp.MelonLoader.dll'))) {
     throw 'Install the IL2CPP S1API dependency before installing VICE Lifestyle.'
 }
@@ -33,7 +35,7 @@ $legacy = @{
 if ($Modules -contains 'Syndicate' -and (Get-ChildItem -LiteralPath (Join-Path $gameRoot 'Mods') -Filter '*CartelEnforcer*.dll' -ErrorAction SilentlyContinue)) {
     throw 'Remove the original Cartel Enforcer DLL before installing VICE Syndicate.'
 }
-$files = @('UserLibs\VICE.Core.dll') + @($Modules | ForEach-Object { "Mods\VICE.$_.dll" })
+$files = @('UserLibs\VICE.Core.dll') + @((@($Modules)+@($AddOns)) | ForEach-Object { "Mods\VICE.$_.dll" })
 $manifest = @(Get-Content -LiteralPath (Join-Path $packageRoot 'hashes.json') -Raw | ConvertFrom-Json)
 $seen = @{}
 foreach ($record in $manifest) {
@@ -47,6 +49,15 @@ foreach ($relative in $files) {
     $record = @($manifest | Where-Object { $_.File -eq $relative })
     if ($record.Count -ne 1 -or -not (Test-Path -LiteralPath $source -PathType Leaf)) { throw "Missing packaged file or unique hash: $relative" }
     if ((Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash -ne $record[0].SHA256) { throw "Package hash mismatch: $relative" }
+}
+if ($AddOns -contains 'YouTube') {
+    # Validate the actual base DLL being installed or already installed, before any writes.
+    $baseRoot = if ($Modules -contains 'Lifestyle') { $packageRoot } else { $gameRoot }
+    $baseDll = Join-Path $baseRoot 'Mods\VICE.Lifestyle.dll'
+    if (-not (Test-Path -LiteralPath $baseDll -PathType Leaf)) { throw 'VICE YouTube requires VICE Lifestyle 0.1.8 or newer. Install the base TV first.' }
+    $baseVersion = [Diagnostics.FileVersionInfo]::GetVersionInfo($baseDll).FileVersion
+    if (-not $baseVersion -or [version]$baseVersion -lt [version]'0.1.8') { throw 'VICE YouTube requires VICE Lifestyle 0.1.8 or newer. Update the base TV first.' }
+    if (-not (Test-Path -LiteralPath (Join-Path $gameRoot 'Mods\S1API.Il2Cpp.MelonLoader.dll'))) { throw 'Install the IL2CPP S1API dependency before installing VICE YouTube.' }
 }
 $defaults = @($manifest | Where-Object {
     $relative = $_.File.Replace('/', '\')
@@ -115,4 +126,4 @@ catch {
     foreach ($target in $seeded) { if (Test-Path -LiteralPath $target -PathType Leaf) { Remove-Item -LiteralPath $target } }
     throw $failure
 }
-Write-Output "Installed shared UserLibs\VICE.Core.dll and selected modules [$($Modules -join ', ')]. Previous DLLs backed up outside Mods: $backup"
+Write-Output "Installed shared UserLibs\VICE.Core.dll, selected modules [$($Modules -join ', ')] and add-ons [$($AddOns -join ', ')]. Previous DLLs backed up outside Mods: $backup"

@@ -9,13 +9,6 @@ void Reject(Action action,string message){try{action();}catch(InvalidDataExcepti
 SynchronousPacketPayloadTests.Run(Check);
 ReliableOutboxTests.Run(Check);
 YouTubeTests.Run(Check);
-YouTubeChapterTests.Run(Check);
-if(args.Contains("--youtube-chapters-live"))
-{
-    var live=await YouTubeChapters.Fetch("WJNppjUrmxM",default);
-    Check(live.Chapters.Count>=3&&live.Chapters.Any(c=>c.Start==133&&c.Title=="Intro"),"The supplied live video's chapter metadata was unavailable: "+live.Status);
-    Console.WriteLine($"Live WJNppjUrmxM: {live.Chapters.Count} chapters; Intro starts at 133 seconds.");
-}
 var image=Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aMs4AAAAASUVORK5CYII=");
 var hash=ImageCache.Hash(image);
 var id=Guid.NewGuid().ToString();
