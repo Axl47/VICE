@@ -5,7 +5,6 @@ using Il2CppScheduleOne.EntityFramework;
 using Il2CppScheduleOne.PlayerScripts;
 using UnityEngine;
 using UnityEngine.Video;
-using System.Runtime.InteropServices;
 using Object=UnityEngine.Object;
 
 namespace VICE.Lifestyle.Television;
@@ -15,17 +14,15 @@ internal sealed class ScreenController : IDisposable
     internal readonly BuildableItem Item;
     internal string Id=>Item.GUID.ToString();
     internal string Status {get;private set;}="Screen off";
-    internal Texture? Texture=>Image ? Image : BrowserTexture ? BrowserTexture : VideoTexture;
+    internal Texture? Texture=>Image ? Image : YouTube?.Texture??VideoTexture;
     internal bool Seekable=>YouTube?.HasMedia==true||Player&&NativeVideoState.CanSeek(Player!);
     internal double CheckPosition=>YouTube is not null?YouTubePosition:Player?Player!.time:0;
     internal bool CheckPlaying=>YouTube is not null?YouTube.HasMedia&&YouTubePlaying:Player&&NativeVideoState.IsPlaying(Player!);
-    internal long CheckFrameSequence=>Companion?.Sequence??0;
-    internal int CheckCompanionProcess=>Companion?.ProcessId??0;
+    internal long CheckFrameSequence=>YouTube?.FrameSequence??0;
+    internal int CheckCompanionProcess=>YouTube?.ProcessId??0;
     internal bool CanToggleCaptions=>YouTube?.CanToggleCaptions==true;
-    internal IReadOnlyList<YouTubeChapter> Chapters {get;private set;}=Array.Empty<YouTubeChapter>();
-    internal string ChapterStatus {get;private set;}="Play YouTube to load chapters.";
-    private CancellationTokenSource? ChapterCancellation;
-    private Task<YouTubeChapterResult>? ChapterTask;
+    internal IReadOnlyList<YouTubeChapter> Chapters=>YouTube?.Chapters??Array.Empty<YouTubeChapter>();
+    internal string ChapterStatus=>YouTube?.ChapterStatus??(TVYouTube.Available?"Play YouTube to load chapters.":TVYouTube.UnavailableReason);
     private string YouTubeVideoId="";
     internal void ToggleCaptions(string videoId)
     {
@@ -39,10 +36,8 @@ internal sealed class ScreenController : IDisposable
     private AudioSource? Audio;
     private RenderTexture? VideoTexture;
     private Texture2D? Image;
-    private Texture2D? BrowserTexture;
-    private YouTubeCompanion? Companion;
-    private YouTubePlayback? YouTube;
-    private GCHandle BrowserPixels;
+    private ITVYouTubeSession? YouTube;
+    private ITVYouTubeProvider? YouTubeOwner;
     private double YouTubePosition;
     private bool YouTubePlaying;
     private VideoPlayer.ErrorEventHandler? ErrorHandler;
@@ -131,32 +126,19 @@ internal sealed class ScreenController : IDisposable
     private void TickYouTube(ScreenState state,float distance)
     {
         if(!TVNetwork.Host||TVNetwork.PeerCount!=1){Release();Status="YouTube is available in single-player only";return;}
+        if(!TVYouTube.Available){Release();state.Playing=false;Status=TVYouTube.UnavailableReason;return;}
+        if(YouTube is not null&&!ReferenceEquals(YouTubeOwner,TVYouTube.Provider))Release();
         if(YouTube is null)
         {
             if(!state.Playing){Status="YouTube selected · press Play";return;}
-            Companion=new(TVConfig.YouTubeCompanionPath);YouTube=new(Companion,TVNetwork.Now);
-            YouTubeVideoId=state.Media.Source;ChapterStatus="Loading chapters…";
-            ChapterCancellation=new();ChapterTask=YouTubeChapters.Fetch(YouTubeVideoId,ChapterCancellation.Token);
-            BrowserPixels=GCHandle.Alloc(Companion.Pixels,GCHandleType.Pinned);
-            BrowserTexture=new Texture2D(YouTubeRules.Width,YouTubeRules.Height,TextureFormat.BGRA32,false);
-            BrowserTexture.filterMode=FilterMode.Bilinear;
-            // Keep the screen black until the selected video's browser report is ready.
+            YouTubeOwner=TVYouTube.Provider;YouTube=YouTubeOwner!.Create(state.Media.Source,TVNetwork.Now);
+            YouTubeVideoId=state.Media.Source;
         }
         var manager=AudioManager.Instance;
-        var gain=YouTubeRules.Gain(state.Volume,TVConfig.PersonalVolume.Value,manager?manager.GetVolume(EAudioType.FX,true):1,distance);
-        YouTube.Tick(state,TVNetwork.Now,gain);Status=YouTube.Status;YouTubePosition=state.Position;YouTubePlaying=state.Playing;
+        var gain=state.Volume*Math.Clamp(TVConfig.PersonalVolume.Value,0,1)*(manager?manager.GetVolume(EAudioType.FX,true):1);
+        YouTube.Tick(state,TVNetwork.Now,gain,distance);Status=YouTube.Status;YouTubePosition=state.Position;YouTubePlaying=state.Playing;
         if(YouTube.Failed){state.Playing=false;Fail(YouTube.Status);return;}
-        if(ChapterTask?.IsCompleted==true)
-        {
-            var result=ChapterTask.GetAwaiter().GetResult();Chapters=result.Chapters;ChapterStatus=result.Status;ChapterTask=null;
-        }
-        if(Companion!.ReadFrame())
-        {
-            BrowserTexture!.LoadRawTextureData(BrowserPixels.AddrOfPinnedObject(),Companion.Pixels.Length);
-            BrowserTexture.Apply(false,false);
-            if(YouTube.HasMedia)Bind(BrowserTexture);
-        }
-        else if(YouTube.HasMedia&&BrowserTexture)Bind(BrowserTexture!);
+        if(YouTube.HasMedia&&YouTube.Texture)Bind(YouTube.Texture!);
     }
     private void Prepare(string url)
     {
@@ -180,11 +162,7 @@ internal sealed class ScreenController : IDisposable
     }
     private void Release()
     {
-        ChapterCancellation?.Cancel();ChapterCancellation?.Dispose();ChapterCancellation=null;ChapterTask=null;
-        Chapters=Array.Empty<YouTubeChapter>();ChapterStatus="Play YouTube to load chapters.";YouTubeVideoId="";
-        YouTube?.Dispose();YouTube=null;Companion=null;YouTubePosition=0;YouTubePlaying=false;
-        if(BrowserPixels.IsAllocated)BrowserPixels.Free();
-        if(BrowserTexture)Object.Destroy(BrowserTexture);BrowserTexture=null;
+        YouTube?.Dispose();YouTube=null;YouTubeOwner=null;YouTubeVideoId="";YouTubePosition=0;YouTubePlaying=false;
         if(Player){if(ErrorHandler is not null)Player!.errorReceived-=ErrorHandler;Player!.Stop();}
         if(Audio)Audio!.Stop();if(Runtime)Object.Destroy(Runtime);Runtime=null;Player=null;Audio=null;ErrorHandler=null;Prepared=false;
         if(VideoTexture){VideoTexture!.Release();Object.Destroy(VideoTexture);}VideoTexture=null;

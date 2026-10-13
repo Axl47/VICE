@@ -1,4 +1,6 @@
-namespace VICE.Lifestyle.Television;
+using VICE.Lifestyle.Television;
+
+namespace VICE.YouTube;
 
 internal interface IYouTubeBridge : IDisposable
 {

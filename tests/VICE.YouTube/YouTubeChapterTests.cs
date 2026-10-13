@@ -1,4 +1,5 @@
 using VICE.Lifestyle.Television;
+using VICE.YouTube;
 
 internal static class YouTubeChapterTests
 {

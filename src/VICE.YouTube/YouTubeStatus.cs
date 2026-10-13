@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace VICE.Lifestyle.Television;
+namespace VICE.YouTube;
 
 internal sealed class YouTubeStatus
 {

@@ -104,6 +104,12 @@ foreach (var (module, expected) in callbacks.Where(pair => selected.Contains(pai
         module + " must release its own Harmony hooks.");
     if (module == "Arsenal") Check(assembly.MainModule.Resources.Any(resource => resource.Name == "Personal.MoreGuns.bundle"),
         "Arsenal must preserve the embedded private weapon bundle lookup.");
+    if (module == "Lifestyle")
+    {
+        Check(!assembly.MainModule.AssemblyReferences.Any(reference=>reference.Name=="VICE.YouTube"),"Base Lifestyle has a hard dependency on its optional add-on.");
+        Check(!assembly.MainModule.Types.Any(type=>type.Name is "YouTubeCompanion" or "YouTubePlayback" or "YouTubeChapters" or "YouTubeStatus"),"Base Lifestyle still embeds the browser implementation.");
+        Check(!assembly.MainModule.Types.SelectMany(type=>type.Methods).SelectMany(method=>method.Body?.Instructions??Enumerable.Empty<Mono.Cecil.Cil.Instruction>()).Any(instruction=>instruction.Operand is MethodReference called && ((called.DeclaringType.FullName=="System.Diagnostics.Process"&&called.Name=="Start")||called.DeclaringType.FullName is "System.IO.Pipes.NamedPipeClientStream" or "System.IO.MemoryMappedFiles.MemoryMappedFile")),"Base TV starts a browser or uses companion transport.");
+    }
     if (module == "Interface")
     {
         var minimap = assembly.MainModule.Types.Single(type => type.Name == "PlayerMinimap");

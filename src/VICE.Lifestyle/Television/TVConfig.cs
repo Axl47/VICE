@@ -8,7 +8,6 @@ internal static class TVConfig
     internal static MelonPreferences_Entry<float> Distance = null!, PersonalVolume = null!;
     private static MelonPreferences_Category Category = null!;
     internal static string Root = "", Images = "", Videos = "";
-    internal static string YouTubeCompanionPath => Path.Combine(MelonLoader.Utils.MelonEnvironment.UserDataDirectory, "BaseBuilder", "TvBrowser", "BuildABase.TvBrowser.exe");
     internal static void Initialize()
     {
         Root = VICE.Core.UserDataFolders.Prepare(MelonLoader.Utils.MelonEnvironment.UserDataDirectory, "Lifestyle", "Television", "PersonalTV");

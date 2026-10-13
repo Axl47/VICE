@@ -6,7 +6,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Channels;
 
-namespace VICE.Lifestyle.Television;
+namespace VICE.YouTube;
 
 // Independently implemented client for the installed Build-A-Base TV companion.
 // Chromium and the author's binaries remain external dependencies.

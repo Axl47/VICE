@@ -2,10 +2,10 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using VICE.Lifestyle.Television;
 
-namespace VICE.Lifestyle.Television;
+namespace VICE.YouTube;
 
-internal sealed record YouTubeChapter(double Start, string Title);
 internal sealed record YouTubeChapterResult(IReadOnlyList<YouTubeChapter> Chapters, string Status);
 
 // The companion has no chapter command. Read only the selected watch page's player
@@ -17,7 +17,7 @@ internal static class YouTubeChapters
     {
         try
         {
-            if (!YouTubeRules.IsId(videoId)) throw new InvalidDataException("Invalid video identity.");
+            if (!TVYouTube.IsVideoId(videoId)) throw new InvalidDataException("Invalid video identity.");
             using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
             deadline.CancelAfter(TimeSpan.FromSeconds(20));
             cancellation = deadline.Token;
@@ -46,7 +46,7 @@ internal static class YouTubeChapters
 
     internal static IReadOnlyList<YouTubeChapter> ParsePage(string html, string videoId)
     {
-        if (!YouTubeRules.IsId(videoId)) throw new InvalidDataException("Invalid video identity.");
+        if (!TVYouTube.IsVideoId(videoId)) throw new InvalidDataException("Invalid video identity.");
         if (Encoding.UTF8.GetByteCount(html) > MaxPageBytes) throw new InvalidDataException("Watch page too large.");
         using var player = JsonDocument.Parse(ObjectAssignment(html, "ytInitialPlayerResponse"), new() { MaxDepth = 128 });
         if (!player.RootElement.TryGetProperty("videoDetails", out var details) || !details.TryGetProperty("videoId", out var identity)

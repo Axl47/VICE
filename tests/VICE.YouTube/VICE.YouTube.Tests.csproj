@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>net8.0</TargetFramework><OutputType>Exe</OutputType><PlatformTarget>AnyCPU</PlatformTarget></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/VICE.Lifestyle/Television/MediaState.cs" Link="MediaState.cs" />
+    <Compile Include="../../src/VICE.Lifestyle/Television/YouTubeRules.cs" Link="BaseRules.cs" />
+    <Compile Include="../../src/VICE.Lifestyle/Television/TVYouTube.cs" Link="TVYouTube.cs" />
+    <Compile Include="../VICE.Lifestyle/UnityStubs.cs" Link="UnityStubs.cs" />
+    <Compile Include="../../src/VICE.YouTube/YouTubeRules.cs" Link="YouTubeRules.cs" />
+    <Compile Include="../../src/VICE.YouTube/YouTubeStatus.cs" Link="YouTubeStatus.cs" />
+    <Compile Include="../../src/VICE.YouTube/YouTubePlayback.cs" Link="YouTubePlayback.cs" />
+    <Compile Include="../../src/VICE.YouTube/YouTubeChapters.cs" Link="YouTubeChapters.cs" />
+    <None Include="Fixtures/youtube-chapters.html" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

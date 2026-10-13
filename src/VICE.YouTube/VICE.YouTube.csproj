@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsGameMod>true</IsGameMod><UseViceCore>true</UseViceCore>
+    <AssemblyName>VICE.YouTube</AssemblyName><RootNamespace>VICE.YouTube</RootNamespace>
+    <Version>0.1.0</Version><Authors>Axl47</Authors>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../VICE.Lifestyle/VICE.Lifestyle.csproj"><Private>false</Private></ProjectReference>
+    <ProjectReference Include="../VICE.Core/VICE.Core.csproj"><Private>false</Private></ProjectReference>
+  </ItemGroup>
+</Project>
