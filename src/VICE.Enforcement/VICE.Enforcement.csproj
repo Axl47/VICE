@@ -3,11 +3,12 @@
     <IsGameMod>true</IsGameMod>
     <UseViceCore>true</UseViceCore>
     <AssemblyName>VICE.Enforcement</AssemblyName>
-    <Version>0.1.3</Version>
+    <Version>0.1.4</Version>
     <DefineConstants>$(DefineConstants);IL2CPP;COMBINED_POLICE</DefineConstants>
     <Nullable>annotations</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Networking/SynchronousPacketPayload.cs" Link="Networking/SynchronousPacketPayload.cs" />
     <EmbeddedResource Include="Defaults\**\*.json"><LogicalName>VICE.Enforcement.Defaults/%(RecursiveDir)%(Filename)%(Extension)</LogicalName></EmbeddedResource>
     <Compile Remove="Upstream\Utils\AvatarUtility.cs" />
     <ProjectReference Include="..\VICE.Core\VICE.Core.csproj" />

@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><IsGameMod>true</IsGameMod><UseViceCore>true</UseViceCore><AssemblyName>VICE.Enforcement.InformationProbe</AssemblyName></PropertyGroup>
+  <ItemGroup><Reference Include="../../src/VICE.Enforcement/bin/Release/net6.0/VICE.Enforcement.dll"><Private>false</Private></Reference></ItemGroup>
+</Project>

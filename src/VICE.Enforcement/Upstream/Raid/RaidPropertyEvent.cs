@@ -201,6 +201,7 @@ namespace NACops
                     {
                         heat.daysSinceLastRaid = 0;
                         heat.propertyHeat = 0;
+                        VICE.Enforcement.Information.InformationContact.RaidReset(selectedCode);
                     }
                 }
             }

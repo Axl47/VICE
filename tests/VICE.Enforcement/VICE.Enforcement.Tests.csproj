@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/VICE.Enforcement/Information/PressureReports.cs" Link="PressureReports.cs" />
+    <Compile Include="../../src/Networking/SynchronousPacketPayload.cs" Link="SynchronousPacketPayload.cs" />
+    <Reference Include="$(LoaderDir)/Mono.Cecil.dll"><Private>true</Private></Reference>
+  </ItemGroup>
+</Project>

@@ -60,6 +60,7 @@ foreach ($module in $buildModules) {
         'Lifestyle' { Run-Checks 'tests\VICE.Lifestyle\VICE.Lifestyle.Tests.csproj' }
         'Enforcement' {
             Run-Checks 'tests\BetterPolice\BetterPolice.Tests.csproj'
+            Run-Checks 'tests\VICE.Enforcement\VICE.Enforcement.Tests.csproj' @((Join-Path $repoRoot 'src\VICE.Enforcement\bin\Release\net6.0\VICE.Enforcement.dll'), $GameDir)
             & (Join-Path $PSScriptRoot 'Check-VICEEnforcement.ps1') -GameDir $GameDir
         }
         'Syndicate' { Run-Checks 'tests\VICE.Syndicate\VICE.Syndicate.Tests.csproj' @($GameDir, (Join-Path $repoRoot 'src\VICE.Syndicate\bin\Release\net6.0\VICE.Syndicate.dll')) }

@@ -11,7 +11,7 @@ This repository is for private use. VICE includes adaptations of existing mods a
 | Module | Responsibility | Current features / source |
 | --- | --- | --- |
 | **VICE.Core** | Shared infrastructure | Patching, preferences, settings migration, logging, event cleanup, default files, and predecessor conflict detection. A library in `UserLibs`, with no gameplay entry point. |
-| **VICE.Enforcement** | Police and law enforcement | NACops combined with Better Police's police behavior: pursuit coordination, police difficulty, raids, investigators, surveillance, and patrols. |
+| **VICE.Enforcement** | Police and law enforcement | NACops combined with Better Police's police behavior: pursuit coordination, police difficulty, raids, investigators, surveillance, patrols, and a property-pressure phone contact. |
 | **VICE.Syndicate** | Cartel and organized crime | Cartel events, hostile difficulty, ambushes, robberies, rival dealers, alliances, and quests. This is the module previously called Cartel. |
 | **VICE.Commerce** | Buying, selling, and business transactions | Highballer negotiations and delivery automation, Gas Purchases shopping lists, and Warehouse access/catalogue changes. |
 | **VICE.Substances** | Drugs, production, and consumption effects | The destination for LSD Gameplay and its visual/audio treatment, with room for future drugs. **Reserved; the LSD projects have not been migrated.** |
@@ -95,6 +95,8 @@ Preferences remain under `PersonalUIEnhancements`. Minimap, payout labels, custo
 Enforcement and Syndicate share the VICE build/export workflow. Substances remains in its existing development projects.
 
 Build Enforcement with `scripts/Build-VICE.ps1 -Modules Enforcement`. It combines the police systems and retains the original personal police settings through Core's preference migration. Cartel changes belong to Syndicate. See the [Enforcement guide](docs/vice-enforcement.md).
+
+Enforcement 0.1.4 adds **Local Source** in the native phone's Messages app. It occasionally reports meaningful rises or calming transitions around owned properties, with hysteresis, a shared three-game-hour cooldown, saved history and a silent first-load baseline. The host generates reports for loaded organization participants; no NPC or character model is added. Name, enablement and cooldown settings are under `VICEEnforcementInformation`. Native single-instance checks use a copied save; two-player delivery still needs a live check.
 
 Build Syndicate with `scripts/Build-VICE.ps1 -Modules Syndicate`. It owns cartel events and the personal hostile-cartel difficulty settings. See the [Syndicate guide](docs/vice-syndicate.md).
 

@@ -181,6 +181,7 @@ namespace NACops
             SyncConfig();
             VICE.Enforcement.EnforcementMod.ApplyPersonalPolicy();
             heatConfig = ConfigLoader.LoadPropertyHeats().loadedPropertyHeats;
+            VICE.Enforcement.Information.InformationContact.HeatReady = true;
             thresholdConfig = ConfigLoader.LoadFrequencyConfig();
             raidConfig = ConfigLoader.LoadRaidConfig();
             surveillanceConfig = ConfigLoader.LoadSurveillanceConfig();
@@ -378,6 +379,7 @@ namespace NACops
         #region Harmony Patches for exiting coros
         internal static void ExitPreTask()
         {
+            VICE.Enforcement.Information.InformationContact.End();
             registered = false;
             SaveSubscriptions.Dispose();
             firstTimeLoad = false;
@@ -465,6 +467,7 @@ namespace NACops
         {
             public static bool Prefix(SaveManager __instance, string saveFolderPath)
             {
+                VICE.Enforcement.Information.InformationContact.Persist();
                 if (registered && !isSaving)
                 {
                     isSaving = true;
