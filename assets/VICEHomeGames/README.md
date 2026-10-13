@@ -7,13 +7,13 @@ Original low-poly artwork for the Schedule I Lifestyle prototype. Artwork only: 
 - `VICE_HomeGames.blend`: editable metric source, Blender 4.3.2.
 - `PoolTable.fbx`, `PoolAccessories.fbx`, `DartsBoard.fbx`, `Dart.fbx`: separate export packages.
 - `Textures/`: three original 1024 × 1024 RGB PNG base-colour atlases.
-- `Renders/`: actual review renders, not in-game screenshots. Final orientation/readability evidence is captured by ordinary Unity editor cameras; any older offline Cycles images are superseded until the final review set is refreshed. Presentation-only ball/cue/rack positions are not saved in the source or exports.
+- `Renders/`: actual accepted ordinary-camera Unity editor renders, not in-game screenshots. `Renders/Unity/` contains all 14 original unedited captures; legacy review filenames now point to the corresponding accepted views. `Renders/Ball_Hemispheres.png` and `Mapped_Hit_Proof.png` show the accepted readability and display mapping. Presentation-only ball/cue/rack positions are not saved in the source or exports.
 - `Orthographic_Dimensions.png`: labelled orthographic views of the actual models.
 - `concepts/`: original generated visual references. These are aesthetic references, not geometry specifications. Use the corrected pool v2 reference.
 - `scripts/`: deterministic generation, portable-FBX path cleanup, rendering and independent validation.
 - `validation/`: machine-readable results and exact per-mesh source manifest.
 
-Serialized FBX and Blender re-import are checked independently. Prior isolated Unity 2022.3.62f2 review accepted the repaired pool geometry/winding/cloth and corrected accessory glyphs. The complete corrected production set is awaiting its final Unity review; no in-game rendering is claimed. The prototype's current URP/Unlit materials will not reproduce offline lit renders without appropriate URP/Lit material binding.
+Serialized FBX and Blender re-import are checked independently. The complete production artwork at commit `b6b148e0c2bdf171f8eab9da5b4edddcbd1d9a18` was accepted in independent Unity 2022.3.62f2 review: 183 actual-import checks passed, all 14 ordinary-camera captures were inspected, and 881 source/FBX/reference checks also passed. Later documentation/evidence commits preserve the reviewed model/atlas bytes. Native URP binding and gameplay integration remain unverified; no in-game rendering is claimed. The prototype's current URP/Unlit materials will not reproduce offline lit renders without appropriate URP/Lit material binding.
 
 ## Coordinates and authoring
 
@@ -21,7 +21,7 @@ Every measurement is metres, 1 unit = 1 metre. The source deliberately stores **
 
 Source objects overlap at the origin where the contract requires independent pivots. Solo the named collections to inspect each package. All mesh rotation/scale transforms are identity; every ball has an independent centre origin and identity location/rotation/scale. Accessory display layouts exist only in the unsaved render scene.
 
-Export uses `axis_forward='-Z'`, `axis_up='Y'`, `use_space_transform=False`, `bake_space_transform=False`, `apply_scale_options='FBX_SCALE_UNITS'`. The export temporarily pre-reflects mesh X and empty X, reverses face winding, and triangulates. Unity 2022.3.62f2’s observed FBX X reflection then restores the canonical signed coordinates; the editable source is not reflected. Metre scale is recorded as `UnitScaleFactor=100` centimetres per unit, rather than a non-identity root scale. FBX metadata is Y-up and negative-Z front. The independent binary parser verifies the actual result rather than inferring it from settings. Signed pocket positions and the asymmetric root −X=6 / +X=11 board test and the documented scoring-to-visual adapter must be checked in Unity; symmetric bounds alone cannot establish orientation.
+Export uses `axis_forward='-Z'`, `axis_up='Y'`, `use_space_transform=False`, `bake_space_transform=False`, `apply_scale_options='FBX_SCALE_UNITS'`. The export temporarily pre-reflects mesh X and empty X, reverses face winding, and triangulates. Unity 2022.3.62f2’s observed FBX X reflection then restores the canonical signed coordinates; this export-only pre-reflection is not saved into the editable source. The separate, approved board-artwork reflection is saved in source and is described below. Metre scale is recorded as `UnitScaleFactor=100` centimetres per unit, rather than a non-identity root scale. FBX metadata is Y-up and negative-Z front. The independent binary parser verifies the actual result rather than inferring it from settings. Signed pocket positions and the asymmetric root −X=6 / +X=11 board test and the documented scoring-to-visual adapter must be checked in Unity; symmetric bounds alone cannot establish orientation.
 
 All texture references are relative `Textures/...`, including both FBX absolute-name and relative-name fields. No embedded textures, custom shaders or normal/packed-map dependencies. Base colour is sRGB. Roughness and metallic are ordinary material scalars; no packed channel mapping applies.
 
@@ -155,8 +155,22 @@ From this directory:
 python scripts/create_atlases.py
 blender -b --python scripts/build_assets.py
 blender -b --python scripts/validate_assets.py
+python scripts/validate_unity_evidence.py
 blender -b --python scripts/render_assets.py
+# Recompose the labelled sheets from the included authoritative Unity PNGs:
 python scripts/create_review_sheets.py
 ```
 
 Generation replaces these artwork outputs only. Rendering adds temporary presentation cameras/lights/ground and object transforms in memory; it does not save them into the source. `build_assets.py` records an exact source manifest and sanitizes every FBX texture filename. Validation checks actual exported binary FBX data and native source, including metre dimensions, roots, axes, parent transforms, mesh names, pivots, material counts, triangle budgets, number UV handedness, pocket-mouth clearance and the full scoring-face orientation. Consult the JSON report for individual checks and limitations.
+
+The default validator performs **856 self-contained contract/import checks**. The saved **881-check** review also includes 25 exact geometry-payload comparisons against the previously Unity-accepted table/accessory probes. When working from the full repository, reproduce those additional checks with:
+
+```sh
+blender -b --python scripts/validate_assets.py -- --table-reference=review-probes/UnityBasisV2/PoolTable.fbx --accessories-reference=review-probes/UnityGlyphV3/PoolAccessories.fbx
+```
+
+`render_assets.py` writes optional **right-handed Blender authoring previews** into `SourceAuthoringRenders/`, never over the authoritative `Renders/` Unity evidence. It uses no projection trick to claim Unity readability. Reproducing the ordinary-camera Unity images requires Unity 2022.3.62f2 and the explicit import/material recipe above; no Unity review helper code is added to the artwork handoff.
+
+## Independent acceptance evidence
+
+`validation/unity/` contains the actual Unity imported geometry/material measurements and review results, including a gzip-compressed full triangle-winding report. `scripts/validate_unity_evidence.py` reproduces 183 numeric assertions from those saved measurements without needing Unity; it does not perform a new native import. `accepted-artwork-sha256.json` anchors the exact reviewed source, four FBXs and three atlases. The final sheets show the actual imported assets with Standard shared materials in an isolated Built-in editor project. Native URP bindings, the live game, multiplayer, physics, saves and the future art adapter were not tested or changed.

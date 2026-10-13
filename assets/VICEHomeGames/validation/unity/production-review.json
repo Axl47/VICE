@@ -1,0 +1,1007 @@
+{
+  "commit": "b6b148e0c2bdf171f8eab9da5b4edddcbd1d9a18",
+  "scope": "Production artwork directly under assets/VICEHomeGames; isolated Unity 2022.3.62f2 import, ordinary cameras and persistent shared-material remap",
+  "checks": [
+    {
+      "check": "PoolTable metre scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolTable PoolTable identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolTable PoolTable_Root identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolTable Pocket_E identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolTable Pocket_NE identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolTable Pocket_NW identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolTable Pocket_SE identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolTable Pocket_SW identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolTable Pocket_W identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolTable Pool_Body identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Body textures resolved",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolTable Pool_Cloth identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Cloth textures resolved",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolTable Pool_Legs identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Legs textures resolved",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolTable Pool_Pockets identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Pockets textures resolved",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolTable Pool_Rails identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Rails textures resolved",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolAccessories metre scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolAccessories PoolAccessories identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolAccessories Pool_Ball_00 identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_00 textures resolved",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolAccessories Pool_Ball_01 identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_01 textures resolved",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolAccessories Pool_Ball_02 identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_02 textures resolved",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolAccessories Pool_Ball_03 identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_03 textures resolved",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolAccessories Pool_Ball_04 identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_04 textures resolved",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolAccessories Pool_Ball_05 identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_05 textures resolved",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolAccessories Pool_Ball_06 identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_06 textures resolved",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolAccessories Pool_Ball_07 identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_07 textures resolved",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolAccessories Pool_Ball_08 identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_08 textures resolved",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolAccessories Pool_Ball_09 identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_09 textures resolved",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolAccessories Pool_Ball_10 identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_10 textures resolved",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolAccessories Pool_Ball_11 identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_11 textures resolved",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolAccessories Pool_Ball_12 identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_12 textures resolved",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolAccessories Pool_Ball_13 identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_13 textures resolved",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolAccessories Pool_Ball_14 identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_14 textures resolved",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolAccessories Pool_Ball_15 identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_15 textures resolved",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolAccessories PoolCue_Root identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolAccessories CueGrip identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolAccessories CueTip identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolAccessories Pool_Cue identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Cue textures resolved",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolAccessories PoolRack_Root identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolAccessories Pool_Rack identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Rack textures resolved",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "DartsBoard metre scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "DartsBoard DartsBoard identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "DartsBoard DartsBoard_Root identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "DartsBoard BoardCentre identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "DartsBoard BoardFace identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "DartsBoard Darts_Backplate identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Darts_Backplate textures resolved",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "DartsBoard Darts_Board identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Darts_Board textures resolved",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "DartsBoard Darts_Mount identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Darts_Mount textures resolved",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "DartsBoard Darts_NumberRing identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Darts_NumberRing textures resolved",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "DartsBoard Darts_Wire identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Darts_Wire textures resolved",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Dart metre scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Dart Dart identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Dart Dart_Root identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Dart Dart_Barrel identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Dart_Barrel textures resolved",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Dart Dart_Flights identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Dart_Flights textures resolved",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Dart Dart_Shaft identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Dart_Shaft textures resolved",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Dart Dart_Tip identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Dart_Tip textures resolved",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Dart DartGrip identity rotation/scale",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pocket_NE signed origin",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pocket_NW signed origin",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pocket_E signed origin",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pocket_W signed origin",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pocket_SE signed origin",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pocket_SW signed origin",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolTable_Root preserved",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolTable_Root origin",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "DartsBoard_Root preserved",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "DartsBoard_Root origin",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Dart_Root preserved",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Dart_Root origin",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolCue_Root preserved",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolCue_Root origin",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolRack_Root preserved",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "PoolRack_Root origin",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Cloth imported bounds",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Darts_Board imported bounds",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Darts_Backplate imported bounds",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Cue imported bounds",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "pool exterior bounds",
+      "pass": true,
+      "detail": [
+        [
+          -0.699999988079071,
+          0.0,
+          -1.2599999904632568
+        ],
+        [
+          0.699999988079071,
+          0.8600000143051147,
+          1.2599999904632568
+        ]
+      ]
+    },
+    {
+      "check": "Pool_Ball_00 bounds",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_00 centre",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_00 triangle budget",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_01 bounds",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_01 centre",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_01 triangle budget",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_02 bounds",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_02 centre",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_02 triangle budget",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_03 bounds",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_03 centre",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_03 triangle budget",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_04 bounds",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_04 centre",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_04 triangle budget",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_05 bounds",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_05 centre",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_05 triangle budget",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_06 bounds",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_06 centre",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_06 triangle budget",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_07 bounds",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_07 centre",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_07 triangle budget",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_08 bounds",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_08 centre",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_08 triangle budget",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_09 bounds",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_09 centre",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_09 triangle budget",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_10 bounds",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_10 centre",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_10 triangle budget",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_11 bounds",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_11 centre",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_11 triangle budget",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_12 bounds",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_12 centre",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_12 triangle budget",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_13 bounds",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_13 centre",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_13 triangle budget",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_14 bounds",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_14 centre",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_14 triangle budget",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_15 bounds",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_15 centre",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Ball_15 triangle budget",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Pool_Rails top faces outward +Y",
+      "pass": true,
+      "detail": {
+        "count": 12,
+        "negative_y": 0
+      }
+    },
+    {
+      "check": "Pool_Cloth top faces outward +Y",
+      "pass": true,
+      "detail": {
+        "count": 68,
+        "negative_y": 0
+      }
+    },
+    {
+      "check": "Darts_Board scoring front outward +Z",
+      "pass": true,
+      "detail": {
+        "count": 1040
+      }
+    },
+    {
+      "check": "Darts_NumberRing scoring front outward +Z",
+      "pass": true,
+      "detail": {
+        "count": 40
+      }
+    },
+    {
+      "check": "Darts_Wire scoring front outward +Z",
+      "pass": true,
+      "detail": {
+        "count": 1160
+      }
+    },
+    {
+      "check": "board scoring radius 0.00635",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "board scoring radius 0.0159",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "board scoring radius 0.099",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "board scoring radius 0.107",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "board scoring radius 0.162",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "board scoring radius 0.17",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "approved number-ring negative-X UV mapping",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "BoardFace origin",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "BoardCentre origin",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "CueTip origin",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "CueGrip origin",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "DartGrip origin",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "dart total bounds",
+      "pass": true,
+      "detail": [
+        [
+          -0.017999999225139618,
+          -0.017999999225139618,
+          0.0
+        ],
+        [
+          0.017999999225139618,
+          0.017999999225139618,
+          0.1599999964237213
+        ]
+      ]
+    },
+    {
+      "check": "eight actual shared darts objects",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "twelve summed darts slots",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "same WireMetal reference across FBXs",
+      "pass": true,
+      "detail": [
+        -2800,
+        -2800,
+        -2800,
+        -2800,
+        -2800
+      ]
+    },
+    {
+      "check": "PoolTable total triangle budget",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "DartsBoard total triangle budget",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "Dart total triangle budget",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "cue triangle budget",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "check": "rack triangle budget",
+      "pass": true,
+      "detail": null
+    }
+  ],
+  "numeric_summary": {
+    "passed": 183,
+    "failed": 0
+  },
+  "visual_result": "ACCEPTED: correct visible clockwise board order and readable glyphs; approved analytical +X hit shown in root -X visible6, opposite hit in11; clean cloth and outward solid faces; both ball hemispheres readable.",
+  "limitations": [
+    "Standard shader in isolated Built-in Unity editor; native URP binding not verified.",
+    "No native game, physics/scoring adapter, installation, saves or multiplayer testing.",
+    "Existing superseded Blender review sheets must be replaced by the supplied Unity sheets before treating repository images as final production evidence."
+  ],
+  "mapped_hit": {
+    "analytical": [
+      0.12,
+      0
+    ],
+    "artwork_root": [
+      -0.12,
+      0,
+      0.055
+    ],
+    "visible_sector": 6,
+    "camera": [
+      0,
+      0,
+      2.37
+    ],
+    "target": [
+      0,
+      0,
+      0.025
+    ],
+    "up": [
+      0,
+      1,
+      0
+    ],
+    "method": "ordinary Camera Quaternion.LookRotation, no projection reflection or negative scales"
+  },
+  "triangle_counts": {
+    "pool_table": 1448,
+    "cue": 146,
+    "rack": 24,
+    "each_ball": 288,
+    "board": 2818,
+    "dart": 158
+  }
+}
