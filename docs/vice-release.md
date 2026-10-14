@@ -54,6 +54,17 @@ Tags created on GitHub or pushed from another device queue a build until this PC
 
 The workflow verifies the checkout against the existing tag, creates the release as a draft, attaches both ZIPs and their checksums, then publishes it. Failed uploads leave a draft that a rerun can complete. Use GitHub Actions' **Re-run jobs**, then start the runner with `-Once` if the local build needs rerunning. Published releases are never overwritten; make a new tag for new binaries. Only finished assets are uploaded, with seven-day Actions artifact retention. Tagged releases retain their downloads independently.
 
+Release notes are generated automatically on GitHub from the tagged source changes since the latest published release in that tag's history. Drafts, unrelated branches and the current tag are excluded; stable releases also skip prereleases. The first release describes the available features. An API failure stops publication rather than silently using the wrong baseline.
+
+The notes use short player-facing feature summaries instead of raw commit titles, merge messages or source hashes. They describe features as added, updated or removed without guessing bug fixes from filenames. They retain the experimental poker caveat when relevant, identify the two downloads, and say when the pinned companion binaries are unchanged. Update the feature descriptions in `scripts/Generate-ReleaseNotes.py` when adding a new feature area. No model API key or manual release edit is needed.
+
+To preview notes locally with Python 3, without publishing or calling GitHub:
+
+```powershell
+python scripts/Generate-ReleaseNotes.py --tag v0.4.0 --previous-tag v0.3.0 `
+    --repo Axl47/VICE --output artifacts/release-notes-preview.md
+```
+
 The build job has read-only repository permission, and checkout does not persist credentials. The GitHub-hosted publishing job alone receives write permission. The workflow has no pull-request trigger on this PC. Keep tag creation limited to trusted maintainers, since a tag builds repository code on the device.
 
 ## Check locally

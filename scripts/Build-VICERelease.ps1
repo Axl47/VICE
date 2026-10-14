@@ -50,18 +50,5 @@ $companion = & (Join-Path $PSScriptRoot 'Package-TVCompanion.ps1') -Archive $Com
 $assets = @($suite.ZipPath, $companion.ZipPath)
 $sums = @($assets | ForEach-Object { (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash.ToLowerInvariant() + '  ' + [IO.Path]::GetFileName($_) })
 Set-Content -LiteralPath (Join-Path $OutputDirectory 'SHA256SUMS.txt') -Value $sums -Encoding ascii
-@"
-Download **VICE-$Tag.zip** for all seven VICE gameplay modules, Core and the small YouTube adapter.
-Download **VICE-YouTube-Companion-$Tag.zip** only if you want YouTube playback (roughly 489 MiB extracted).
-
-Close the game and extract each chosen ZIP directly into the Schedule I folder, next to Schedule I.exe.
-Install MelonLoader 0.7.3 and compatible IL2CPP S1API separately. Steam beta / IL2CPP only.
-Remove replaced predecessor mod DLLs before upgrading; see VICE/README.md in the main ZIP.
-Existing preferences, settings and saves are preserved. Every multiplayer participant needs matching binaries.
-
-The companion retains its upstream licenses and does not install Build-A-Base gameplay.
-See the bundled feature guides and provenance for credits, compatibility and remaining playtest limitations.
-Release source: $Commit
-"@ | Set-Content -LiteralPath (Join-Path $OutputDirectory 'release-notes.md') -Encoding utf8
 Write-Host "Release assets ready: $OutputDirectory"
 [pscustomobject]@{ DirectoryPath = $OutputDirectory; SuiteZip = $suite.ZipPath; CompanionZip = $companion.ZipPath }
