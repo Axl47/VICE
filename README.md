@@ -10,7 +10,7 @@ A modular mod suite for **Schedule I**, adding police and cartel systems, tradin
 | **Syndicate** | Cartel events, ambushes, robberies, rival dealers, alliances, quests, and hostile difficulty settings. |
 | **Commerce** | Trading assistance, optional negotiation and delivery automation, saved gas-mart shopping lists, and expanded warehouse access. |
 | **Arsenal** | AK47, minigun, spare magazines, automatic firing, and configurable weapon tuning. |
-| **Lifestyle** | Higher casino wager limits, placeable wall screens with image/video playback, and opt-in darts and pool prototypes. |
+| **Lifestyle** | Higher casino wager limits, placeable wall screens with image/video playback, cash poker, and opt-in darts and pool prototypes. |
 | **Interface** | Minimap, tracked-deal payouts, known-customer map portraits, and multiplayer compass labels. |
 | **Substances** | LSD workshop production and integrated visual/audio consumption effects. |
 
@@ -19,7 +19,7 @@ All gameplay modules use **VICE.Core**, the shared library installed in `UserLib
 ## Requirements
 
 - Schedule I on the Steam **beta / IL2CPP** branch. Mono builds are not supported.
-- **MelonLoader 0.7.3** and compatible IL2CPP **S1API** for Lifestyle.
+- **MelonLoader 0.7.3** and compatible IL2CPP **S1API** for Lifestyle and Substances.
 - Matching VICE binaries and compatible S1API versions across multiplayer participants.
 
 ## Installation
@@ -46,12 +46,13 @@ Preferences are stored in `UserData/MelonPreferences.cfg`; some categories retai
 - [Weapon tuning](docs/weapon-tuning.md) and [HUD features](docs/ui-enhancements.md)
 - [TV playback and video sharing](docs/vice-lifestyle-video-sharing.md)
 - [Darts and pool controls](docs/vice-lifestyle-home-games.md): experimental and disabled by default; enable `EnablePrototypes` in `VICE.Lifestyle.Amenities`. Two-player validation is still outstanding.
+- [Cash poker controls and save handling](docs/vice-lifestyle-poker.md): experimental two-to-four-player Hold'em; cash out before uninstalling.
 - [Optional YouTube playback](docs/vice-lifestyle-youtube.md): single-player development add-on requiring `VICE.YouTube.dll` and the separate TV companion download.
 - [Compatibility](docs/compatibility.md) and [playtest checklist](docs/playtest.md)
 
 ## Building from source
 
-Builds require .NET SDK 8 or newer and a local IL2CPP game installation with generated MelonLoader assemblies. Lifestyle also requires compatible S1API. Arsenal requires an authorized MoreGuns asset bundle, which is not included in this repository.
+Builds require .NET SDK 8 or newer and a local IL2CPP game installation with generated MelonLoader assemblies. Lifestyle and Substances also require compatible S1API. Arsenal requires an authorized MoreGuns asset bundle, which is not included in this repository.
 
 ```powershell
 ./scripts/Build-VICE.ps1 -Modules Commerce,Lifestyle

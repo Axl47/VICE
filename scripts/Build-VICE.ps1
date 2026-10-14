@@ -8,6 +8,7 @@ param(
     [string]$DotnetPath = '',
     [string]$NugetConfig = '',
     [string]$OutputDirectory = '',
+    [switch]$PrimitiveHomeGames,
     [switch]$Install
 )
 $ErrorActionPreference = 'Stop'
@@ -25,7 +26,7 @@ if (-not $NugetConfig -and (Test-Path -LiteralPath (Join-Path $repoRoot 'NuGet.l
 $env:DOTNET_CLI_HOME = Join-Path $repoRoot '.tools\cli-home'
 $env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'
 function Build-Project([string]$relative) {
-    $arguments = @('build', (Join-Path $repoRoot $relative), '-c', 'Release', '--nologo', '-m:1', '-v', 'minimal', '-warnaserror', "-p:GameDir=$GameDir")
+    $arguments = @('build', (Join-Path $repoRoot $relative), '-c', 'Release', '--nologo', '-m:1', '-v', 'minimal', '-warnaserror', "-p:GameDir=$GameDir", "-p:PrimitiveHomeGames=$([bool]$PrimitiveHomeGames)")
     if ($NugetConfig) { $arguments += @('--configfile', $NugetConfig) }
     & $DotnetPath @arguments
     if ($LASTEXITCODE -ne 0) { throw "Compilation failed: $relative" }
@@ -44,7 +45,7 @@ if (($Modules -contains 'Lifestyle' -or $Modules -contains 'Substances' -or $Add
 if ($Modules -contains 'Arsenal' -and -not (Test-Path -LiteralPath (Join-Path $repoRoot '.research\assets\moreguns.bundle'))) {
     & (Join-Path $PSScriptRoot 'Prepare-Assets.ps1') -OriginalDll $OriginalMoreGuns -GameDir $GameDir
 }
-if ($Modules -contains 'Lifestyle' -or $AddOns -contains 'YouTube') {
+if (($Modules -contains 'Lifestyle' -or $AddOns -contains 'YouTube') -and -not $PrimitiveHomeGames) {
     & (Join-Path $PSScriptRoot 'Build-VICEHomeGamesAssets.ps1')
 }
 if ($Modules -contains 'Substances') {
@@ -83,7 +84,11 @@ foreach ($addOn in $AddOns) {
     Run-Checks "tests\VICE.$addOn\VICE.$addOn.Tests.csproj"
 }
 $ordinary = @($buildModules | Where-Object { $_ -in @('Commerce','Arsenal','Lifestyle','Interface','Substances') })
-if ($ordinary.Count) { Run-Checks 'tests\VICE.Modules\VICE.Modules.Tests.csproj' (@($repoRoot) + $ordinary) }
+if ($ordinary.Count) {
+    $metadataArgs = @($repoRoot) + $ordinary
+    if ($PrimitiveHomeGames) { $metadataArgs += '--primitive-home-games' }
+    Run-Checks 'tests\VICE.Modules\VICE.Modules.Tests.csproj' $metadataArgs
+}
 $package = & (Join-Path $PSScriptRoot 'Package-VICE.ps1') -Modules $Modules -AddOns $AddOns -OutputDirectory $OutputDirectory
 & (Join-Path $PSScriptRoot 'Test-VICEPackage.ps1') -PackageDir $package.DirectoryPath -ExpectedModules $Modules -ExpectedAddOns $AddOns
 & (Join-Path $PSScriptRoot 'Test-VICEInstall.ps1') -PackageDir $package.DirectoryPath

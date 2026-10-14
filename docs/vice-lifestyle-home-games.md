@@ -1,62 +1,44 @@
-# VICE Lifestyle home games — prototype 0.2.2
+# Darts and pool
 
-Two successive functionality milestones are implemented in `VICE.Lifestyle`: darts 301, then casual eight-ball. Version 0.2.2 uses a world camera, real world aim/placement guides, small seat/option menus and a score strip. PR #7's models are embedded, with primitives as a fallback. No separate model pack, new gameplay DLL, AI opponent or wager system is required. Both games have solo practice, two authenticated player seats, and spectators. See the [world-play candidate and native-test checkpoint](vice-home-games-world-play.md) and [artwork integration guide](vice-home-games-art-integration.md).
+Lifestyle includes experimental darts 301 and casual eight-ball, with solo practice, two-player seats, and spectators. Models are embedded, with a primitive fallback; no separate model pack is needed. Neither game includes wagers or an AI opponent.
 
-## Access and controls
+## Access
 
-Build with `./scripts/Build-VICE.ps1 -Modules Lifestyle`. This produces a Core + Lifestyle update export; it does not install unless `-Install` is supplied. Install while the game is closed using the normal VICE installer. Every co-op participant needs matching Lifestyle/Core binaries and compatible IL2CPP S1API.
+Set `EnablePrototypes=true` under `VICE.Lifestyle.Amenities` in `UserData/MelonPreferences.cfg`, then reload the save. Herbert's Bleuball's Boutique sells a **$150 Prototype Darts Board** and **$800 Prototype Pool Table**.
 
-In `UserData/MelonPreferences.cfg`, set:
+Place the board on a wall and the table in an owned property using ordinary furniture controls. Pool reserves 3 × 6 half-metre grid tiles. Disabling listings keeps saved furniture definitions available. Remove these items before uninstalling Lifestyle.
 
-```toml
-["VICE.Lifestyle.Amenities"]
-EnablePrototypes = true
-```
+All participants need matching Lifestyle/Core binaries and compatible IL2CPP S1API. Genuine two-player verification remains outstanding.
 
-Reload the save after changing this preference. Herbert's Bleuball's Boutique sells **Prototype Darts Board** for $150 and **Prototype Pool Table** for $800. Use normal inventory/equip/build placement and furniture removal. Place darts on a wall, with its centre about 1.73 m above the floor if desired. Pool reserves 3 × 6 half-metre grid tiles. Place either in an owned property and stand nearby to interact. Definitions remain registered when the preference is off so saved furniture can still load; the preference controls shop additions. Remove these items from saves before uninstalling Lifestyle. Existing TV IDs/data are unchanged.
+## Controls
 
-Interact opens a world view and small seat menu, locking movement, look and inventory. Choose **Solo practice**, or **Two-player lobby** followed by **Join player 2** on another peer; **Spectate / Resume** hides the menu. Joining creates actual co-op seats; there is no same-keyboard hot-seat mode. Player 1 can **Restart / Rack**. **Leave / Esc** releases a participant's entire match; a spectator can leave without affecting it. Exiting destroys the dedicated camera and restores captured camera/control/cursor/crosshair state. Native transform/FOV stay untouched. A takeover yields and defers restoration until the other activity closes.
+Interact nearby to open the world view. Choose **Solo practice**, or **Two-player lobby** followed by **Join player 2** on another computer. **Spectate / Resume** hides the menu. Player 1 can **Restart / Rack**. There is no same-keyboard hot-seat mode.
 
-- Darts: mouse or arrows aim on the world board. Hold left click or Space to freeze aim and start timing displacement; release to throw. The world dot previews impact. The host measures charge duration. Displacement follows `x += sin(2πt/0.8) × 0.012 m`, `y += cos(2πt/0.8) × 0.008 m`. Aim compensation and release timing determine accuracy; no random dispersion is added. Holds remain 0.1–3 seconds. Network latency still needs a co-op usability check.
-- Pool: mouse or arrows aim from cue ball toward the world dot. Hold left click or Space to freeze direction and charge; release to strike. Full power at 1.5 seconds; release within 3 seconds. No spin/jump control. With ball in hand, click or press Space on clear cloth to place the cue ball. World artwork uses numbered solids/stripes, or coloured primitives/stripe caps in fallback mode. Cue strokes, ball roll and dart flight are presentation only.
-- Wheel zooms; Tab opens options and cancels a charge; right click cancels; F1 toggles help. Native pause closes the view; losing focus cancels. Score/options are separate from world aim and cannot click through it.
+| Action | Control |
+| --- | --- |
+| Aim | Mouse or arrows |
+| Throw dart / strike cue | Hold left click or Space, then release |
+| Place cue ball with ball in hand | Click or Space on clear cloth |
+| Zoom | Wheel |
+| Options / cancel charge | Tab |
+| Cancel charge | Right click |
+| Help | F1 |
+| Leave | Leave / Esc |
 
-Participants must keep the world view active and remain within 5 m of the furniture's visual origin in an owned property. Heartbeats renew every 2 seconds; a missing participant, death/sleep, lost ownership, distance failure or lease older than 10 seconds resets the match and releases both seats. Furniture removal and scene changes also clean up. A player can occupy only one amenity seat across all tables. Up to 32 placed amenities are tracked per session. Matches are ephemeral: furniture placement persists through native saves; game scores, seats and ball state reset when loading a save.
+Darts aim freezes during charging; timed displacement affects the impact preview without random dispersion. Charge for 0.1–3 seconds. Pool reaches full power at 1.5 seconds; release within 3 seconds. Spin/jump shots are unavailable.
 
-## Pinned darts rules v1
+Pause closes the view; focus loss cancels charging. Leaving restores camera and controls. Participants must remain within five metres. Departure, death/sleep, lost ownership, disconnect, furniture removal, or scene changes reset the match. Furniture saves normally; scores, seats, and ball state reset on load.
 
-Each player starts at 301, straight in, double out. A turn allows three darts. Singles, doubles, triples, outer bull (25), inner bull (50, a double), and misses are scored analytically in metres relative to the board centre. A negative remainder, a remainder of one, or a zero reached without a double busts the turn: restore the score at turn start and pass immediately. A legal double checkout wins. Solo uses the same rules, always returning to player 1 after a turn.
+## Darts rules
 
-Scoring radii are inner bull 0.00635, outer bull 0.0159, triple 0.099–0.107 and double 0.162–0.170 m. Beyond 0.170 is a miss. Both triple/double radial edges are inclusive; bull boundaries belong to the bull. Wedges are 18° with 20 centred at the top, clockwise `20,1,18,4,13,6,10,15,2,17,3,19,7,16,8,11,14,9,12,5`. An exact angular boundary belongs to the clockwise next wedge. Wires have no bounce or separate scoring behavior.
+Start at **301**, straight in and double out, with up to three darts per turn. Singles, doubles, triples, outer bull (25), and inner bull (50, a double) score normally. A negative remainder, remainder of one, or zero without a double busts the turn: restore its starting score and pass. A legal double checkout wins. Solo uses the same rules.
 
-## Pinned casual eight-ball rules v1
+## Casual eight-ball rules
 
-Player 1 breaks a fixed rack. No called shots, called pockets, special break exemption, push-outs or competition-rules claim. The eight starts at rack centre, with opposing groups on the back corners. Solids are 1–7, stripes 9–15, eight is 8, cue is 0.
+Player 1 breaks a fixed rack. The table starts open; the first legally pocketed group ball assigns solids/stripes. If both groups fall, the first captured group decides. First contact must hit a group ball on an open table, your group after assignment, or the eight only when your group was cleared before the shot.
 
-The table starts open: first contact must be a solid or stripe. The first legally pocketed group ball assigns that group to the shooter and the other group to the opponent. If both groups fall, the first captured group determines assignment. After assignment, first contact must be the shooter's group, or the eight when that group was completely cleared **before the shot**. After first contact, at least one ball must hit a cushion or a ball must be pocketed. A scratch, no object contact, wrong first contact, or no required rail/pot is a foul. Group balls pocketed on a foul stay pocketed; fouls do not assign an open table.
+After first contact, a ball must hit a cushion or be pocketed. Scratches, missing contact, wrong first contact, or no required rail/pot are fouls. Group balls stay down after a foul; fouls do not assign an open table. Every foul gives the incoming player ball in hand anywhere on clear cloth.
 
-A legal own-group pot retains the turn; otherwise pass. Every foul gives the incoming player ball in hand anywhere on clear cloth, including after the break. The cue ball must not overlap another ball, a cushion boundary, or pocket capture area. In solo practice the same player continues with ball in hand after a foul. Sinking the eight legally after clearing the group wins; an early eight, eight on the break, scratch or other foul on the eight loses. Pocketing the last group ball and eight together loses. Solo reports practice completion/loss. Leaving abandons the match, with no money or forfeit settlement.
+A legal own-group pot retains the turn; otherwise pass. Legally sinking the eight after clearing your group wins. An early eight, eight on the break, or foul on the eight loses. Pocketing the last group ball and eight together loses. There are no called shots/pockets or special break exemptions.
 
-## Simulation, networking and artwork contract
-
-Pool runs only on the host at 240 fixed steps/s in a plane. Ball radius is 0.028575 m, bed half extents 0.56 × 1.12 m, pocket capture radius 0.065 m. It uses equal-mass circle impulses with overlap correction, rolling deceleration 0.24 m/s², ball collision restitution 0.94, cushion restitution 0.8, and a 0.012 m/s rest threshold. Maximum initial cue speed is 3.8 m/s. Six cushion mouths have a simplified 0.09 m opening; an escaped centre in a mouth is captured. A 30-second shot limit stops residual motion. No PhysX rigidbody or guest simulation decides pockets, first contact, fouls or wins. A frame catch-up budget limits simulation work after stalls; simulated motion can slow under heavy host load.
-
-`AmenityPacket` follows the installed IL2CPP FishNet pattern from Lifestyle TV: an injected `IBroadcast` type with explicit generic reader/writer callbacks and `SynchronousPacketPayload`, rather than assuming native primitive creation replicates. `ReplicatedFurnitureVisuals` rebuilds local presentation from each peer's item definition when the donor prefab spawns. This retains native GUID, placement and property state. FishNet's [broadcast documentation](https://fish-networking.gitbook.io/docs/guides/features/network-communication/broadcasts) explains the object-independent transport; the installed game's callback signatures differ from current upstream examples and are used directly.
-
-Host requests derive identity from the authenticated connection's loaded native Player; client packets have no trusted actor, score, pocket list or outcome fields. The host validates property ownership/proximity, table instance, revision, seat, turn and rolling state. Duplicate tokens are suppressed per connection; remote requests are limited to 20/s. Leave and heartbeat tolerate stale revisions. Charge/release rules use host receipt times. Spectators receive state and cannot shoot or restart.
-
-Reliable snapshots contain the complete current rules and balls, including shots already rolling. Active tables publish at up to 10 Hz; periodic full reconciliation and guest sync requests occur every 2 seconds. Pending snapshots for the same peer/table are replaced to bound queues. Writer failures retry three times through `ReliableOutbox`. Guests ease world ball meshes toward received positions and show the latest authoritative coordinates in the play panel. The final settled snapshot is sent immediately with the resolved turn. An outstanding sync nonce establishes a fresh load epoch and clock offset; per-table sequences reject duplicate/older snapshots, and a newer catalogue prevents removed furniture from being resurrected by an older snapshot. Scene cleanup unregisters the broadcast handlers and clears queues and leases.
-
-The [ready-to-copy model worker prompt](vice-amenities-model-worker-prompt.md) specifies dimensions, axes, pivots, exact mesh/material names, UV/texture budgets, six pockets, cue/balls/rack, board/darts/mounts, and Blender/FBX delivery. `HomeGameAssets` now loads the accepted models, and `AmenityContent` supplies the primitive fallback; `AmenityView` owns dynamic ball/cue/dart handles. Code retains rules, analytical board scoring, circle/cushion/pocket physics, furniture interaction bounds and networking. Matching origins, cloth extents/height, ball diameter, board orientation/radii/face and pocket centres is mandatory; styling can vary inside the outer dimensions. The accepted artwork and its one-time darts X adapter are documented in the [integration guide](vice-home-games-art-integration.md).
-
-## Validation and outstanding playtests
-
-Automated validation exercises every scoring wedge/ring, radial/angular boundaries, bull checkouts, three-dart turns, bust rollback, solo turns, rack geometry, reproducible maximum-power break settlement, ball contact/cushions, six pockets, legal group assignment, wrong contact, scratches, ball in hand, early/legal eight, participant/turn/revision validation, busy-table rejection, timeout/disconnect cleanup, duplicate/rate-limited delivery, late-join snapshot serialization, epoch handshake, reordered/duplicate snapshots and removal reconciliation. Shared packet/outbox and existing TV tests remain in the Lifestyle test runner. Module metadata checks verify ordinary feature lifecycle forwarding. Native target validation inspects installed beta patch addresses; compilation references the installed IL2CPP and S1API assemblies with warnings as errors.
-
-Recorded on 2026-10-12: the full `Build-VICE.ps1 -Modules Lifestyle` workflow passed with zero warnings/errors, 217 amenity assertions (including full solo/two-seat 301 sequences and 12 varied pool strikes), 367 total Lifestyle assertions, 55 Core assertions, 48 module metadata assertions, five verified native patch declarations, hashed-export validation and 13 installer checks in an isolated fixture. Test temporary files were redirected to the workspace's `.tools/amenity-test-temp` because the sandbox denied the existing TV runner's default temporary cache rename. No change to TV production code was needed.
-
-The original pure checks above did not establish native playability. The 0.2.2 presentation pass adds 48 pure presentation checks (426 total Lifestyle), 53 module metadata checks and nine native patch declarations. Authorized single-host runs now use a copy of save 5 with separate loader directories and explicit load/save guards; see the [current evidence and scope](vice-home-games-world-play.md). These programmatic native checks do not establish physical input accessibility, full-match playability or genuine two-player synchronization. Remaining playtests use copied saves with matching binaries on all peers:
-
-1. Single instance: enable prototypes; buy each item; inspect placement ghosts and bounds; place/remove/reload; confirm board orientation/texture, numbered panel, primitive visuals and normal furniture interactions. Play a full solo 301 and pool rack, test controls at common screen resolutions, restart, leave, pause, return to menu and reload. Verify all captured controls restore. Test destruction/packing while spectating and item load with shop opt-in off.
-2. Two real game instances: host and guest join different seats; finish a full match in each game; compare scores, turns, pockets and settled coordinates; attempt out-of-turn actions and busy-table entry. Add a spectator, late-join while balls roll and after settlement, leave each seat, disconnect/reconnect, pack furniture and reload the save. Confirm guest donor visuals recover and no second peer resolves physics. Exercise delayed packet delivery and timing feedback under ordinary latency.
-3. Record results separately: pure .NET assertions, installed-assembly/native-address checks, native single-instance checks, and genuine co-op checks. Do not label a serialized-state test as a live multiplayer playtest. Optional wagers remain a later milestone.
+For cash Hold'em, see the [poker guide](vice-lifestyle-poker.md). See the [playtest checklist](playtest.md) before relying on multiplayer.

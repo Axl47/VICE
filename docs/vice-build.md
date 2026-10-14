@@ -1,57 +1,50 @@
-# Build and export VICE updates
+# Build and install from source
 
-Use one build command for Core and any selection of the seven gameplay modules:
+Builds require **.NET SDK 8 or newer**, a local Schedule I **beta / IL2CPP** installation, and MelonLoader-generated assemblies. Launch with MelonLoader once to create `MelonLoader/Il2CppAssemblies`. Lifestyle and Substances require compatible IL2CPP S1API.
+
+Arsenal requires an authorized MoreGuns asset bundle supplied locally through `-OriginalMoreGuns` or an existing extracted bundle. Game assemblies and private assets are not downloaded or included in the repository.
+
+## Select modules
 
 ```powershell
-./scripts/Build-VICE.ps1 -Modules Lifestyle
-./scripts/Build-VICE.ps1 -AddOns YouTube
-./scripts/Build-VICE.ps1 -Modules Lifestyle -AddOns YouTube
 ./scripts/Build-VICE.ps1 -Modules Commerce,Lifestyle
 ./scripts/Build-VICE.ps1 -Modules Enforcement,Syndicate
+./scripts/Build-VICE.ps1 -Modules Substances
 ./scripts/Build-VICE.ps1 -All
-./scripts/Build-VICE.ps1  # Core only
+./scripts/Build-VICE.ps1                    # Core only
+./scripts/Build-VICE.ps1 -Modules Lifestyle -AddOns YouTube
 ```
 
-Core is mandatory and is compiled from the current workspace on every invocation. With no selection, the export contains only Core. `-All` includes Commerce, Arsenal, Lifestyle, Interface, Enforcement, Syndicate and Substances. Substances combines the existing LSD gameplay and effects in one DLL. Selecting modules is case-insensitive; duplicates are removed. `-All` and `-Modules` cannot be combined.
+Every invocation builds/checks current Core. `-All` selects seven gameplay modules and cannot be combined with `-Modules`. YouTube is explicit; `-All` does not select it. An add-on-only build (`-AddOns YouTube`) checks Lifestyle but exports only Core/adapter, requiring compatible Lifestyle already installed.
 
-`-AddOns YouTube` explicitly selects the optional development add-on. It builds and tests Lifestyle as a dependency but exports only Core and `VICE.YouTube.dll`; it requires an already installed Lifestyle 0.1.8 or newer. `-Modules Lifestyle -AddOns YouTube` exports both. `-All` does not select development add-ons. A plain Lifestyle export has no browser integration DLL, companion installer, YouTube guide or YouTube screenshots.
+Selected modules run tests and native patch checks with warnings treated as errors. Builds create a fresh directory/ZIP under `artifacts`, validate contents/hashes, and run installer fixtures. Both paths are printed.
 
-Each selected module keeps its relevant tests and native patch checks. Core's lifecycle, defaults and data-migration checks always run. Lifecycle metadata tests inspect only the selected ordinary module DLLs, so a Lifestyle-only build does not require prior builds of Commerce, Arsenal or Interface. Enforcement and Syndicate keep their existing beta signature/native-address checks.
+## Assets and overrides
 
-Exports always use a fresh directory under `artifacts` (or `-OutputDirectory`). The command prints the directory and ZIP path. Old exported DLLs cannot carry into a smaller selection. The shared layout is:
-
-```text
-UserLibs/VICE.Core.dll
-Mods/VICE.<selected-module>.dll
-package.json                    # Selected modules and every DLL's version
-hashes.json                     # SHA-256 for packaged files
-Install-VICE.ps1
-Install-VICEModules.ps1          # Shared installation implementation
-Install-TVCompanion.ps1          # Only with -AddOns YouTube
-docs/
-UserData/VICE/Enforcement/       # Only if Enforcement is selected
-UserData/VICE/Syndicate/         # Only if Syndicate is selected
-Licenses/                       # Original notices for selected upstream ports
-```
-
-The export validator checks the exact DLL set, one Core in UserLibs, version metadata and every packaged file's hash. Installer fixtures check Core-only and selected-module installation, preservation of unselected DLLs/settings, missing-default seeding and rejection of corrupt packages before writes. Extra DLLs fail export validation.
-
-Install while the game is closed:
+Lifestyle's embedded darts/pool artwork requires **Unity 2022.3.62f2** on a clean checkout. Later builds reuse a verified bundle. Rebuild with:
 
 ```powershell
-./scripts/Install-VICE.ps1 -PackageDir <printed-export-directory>
-# Or build, check, export and install in one command:
+./scripts/Build-VICEHomeGamesAssets.ps1 -Rebuild -UnityPath <editor-path>
+```
+
+For development without Unity or the bundle, use `-Modules Lifestyle -PrimitiveHomeGames`. This retains rules, cameras, and poker with pool/darts fallback meshes. Normal builds embed verified artwork; no loose model pack is installed.
+
+Overrides include `-GameDir`, `-DotnetPath`, `-NugetConfig`, `-OutputDirectory`, and `-OriginalMoreGuns`. Output directories must be fresh. The builder uses the local bundled SDK if present, otherwise `dotnet`.
+
+## Install an export
+
+Close the game, then run:
+
+```powershell
+./scripts/Install-VICE.ps1 -PackageDir <export-directory>
+# Or build and install:
 ./scripts/Build-VICE.ps1 -Modules Commerce,Lifestyle -Install
 ```
 
-The installer defaults to the modules listed in `package.json`. Core is always updated. An explicit `-Modules` can install a subset of the exported modules. Unselected installed modules are preserved. Selected predecessors and replaced DLLs are backed up outside Mods; DLL failures roll back the previous installation. Existing module JSON data wins over packaged defaults. Original Cartel Enforcer must be removed before installing Syndicate.
+Exports contain selected gameplay DLLs in `Mods`, one Core in `UserLibs`, metadata/hashes, guides, and installer scripts. Installation defaults to packaged selections; `-Modules` and `-AddOns` can limit it to a subset. Core is always updated.
 
-Add-on selections are also listed in `package.json` and can be limited with `-AddOns`. YouTube installation checks the selected or installed base DLL's version before writing any DLLs. Installing a base-only update preserves an already installed add-on. To disable the feature, close the game and remove `Mods/VICE.YouTube.dll`; the companion can then be removed independently. Saved selections remain compatible.
+The installer verifies hashes before writing, backs up replaced DLLs outside `Mods`, removes selected predecessors/duplicate Core copies, and restores previous DLLs on installation failure. Unselected modules, settings, saves, media, and shopping lists are preserved. Missing defaults do not replace existing JSON files. Remove original Cartel Enforcer before installing Syndicate.
 
-The older build commands are compatibility wrappers: `Build-VICELifestyle.ps1`, `Build-VICEEnforcement.ps1`, `Build-VICESyndicate.ps1` select one module; `Build-VICEModules.ps1` selects the four ordinary modules. They share compilation, Core inclusion, checks and packaging through `Build-VICE.ps1`. `Package-VICE.ps1` is the internal exporter for already-built binaries; use the build command for updates so Core is freshly built.
+YouTube exports include the companion installer but require its external pinned archive. A base-only update preserves an installed add-on. To disable YouTube, close the game and remove `Mods/VICE.YouTube.dll`; selections remain compatible.
 
-Supported overrides are `-GameDir`, `-DotnetPath`, `-NugetConfig`, `-OutputDirectory` and `-OriginalMoreGuns`. Arsenal still uses the owner's local authorized asset bundle. Builds reference the installed IL2CPP game, MelonLoader and S1API assemblies without downloading them.
-
-Lifestyle 0.2.1 also verifies the accepted PR #7 home-games artwork and generated bundle before compiling. A clean checkout needs Unity 2022.3.62f2 to build the embedded model bundle in an isolated `.tools` project; later builds reuse it when its bundle/input hashes match. Use `scripts/Build-VICEHomeGamesAssets.ps1 -Rebuild -UnityPath <editor-path>` for an explicit rebuild or alternate editor location. See the [art integration guide](vice-home-games-art-integration.md). The release contains the models inside Lifestyle's DLL; no loose model pack is installed.
-
-For GitHub tag builds and drop-in downloads, use `scripts/Build-VICERelease.ps1 -Tag <tag> -CompanionArchive <local-archive>`. It wraps the checked unified build and produces a main suite ZIP plus a separate optional browser companion ZIP. The suite includes Substances and the small YouTube adapter. Unlike the installer-oriented export above, these ZIPs exclude user settings/defaults and place only the intended files directly in the game-folder layout. See the [release and runner setup guide](vice-release.md).
+Tagged packaging uses `scripts/Build-VICERelease.ps1 -Tag <tag> -CompanionArchive <local-archive>` to produce a drop-in suite ZIP and separate browser ZIP. Maintainers can follow [release automation](vice-release.md). Users can follow [installation](../README.md) and [data preservation](vice-user-data.md).

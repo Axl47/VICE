@@ -3,6 +3,7 @@ param(
     [string]$DotnetPath = '',
     [string]$NugetConfig = '',
     [string]$OutputDirectory = '',
+    [switch]$PrimitiveHomeGames,
     [switch]$Install
 )
 $ErrorActionPreference = 'Stop'
