@@ -28,7 +28,9 @@ From an extracted YouTube add-on release, the installer is at the package root. 
 
 Both new and existing installations are checked against every companion file in the pinned archive, including the executable, CEF dependencies and license files. An incomplete or altered existing installation produces an error rather than reporting success. Preserve or move that directory before rerunning into an empty target.
 
-The script accepts only the inspected archive, checks its SHA-256 and helper DLL, extracts only `UserData/BaseBuilder/TvBrowser`, preserves the bundled third-party license files, and refuses to replace a different existing companion. The extracted dependency is approximately 489 MiB (513,035,918 bytes). Only YouTube add-on exports include this installer. No VICE export contains companion binaries, decompiled source, or construction mod assets.
+The script accepts only the inspected archive, checks its SHA-256 and helper DLL, extracts only `UserData/BaseBuilder/TvBrowser`, preserves the bundled third-party license files, and refuses to replace a different existing companion. The extracted dependency is approximately 489 MiB (513,035,918 bytes). Only YouTube add-on exports include this installer. Ordinary module exports contain no companion binaries, decompiled source, or construction mod assets.
+
+The [tagged full-suite workflow](vice-release.md) includes the small `VICE.YouTube.dll` adapter in the main suite ZIP and packages the pinned browser as a separate `VICE-YouTube-Companion-<tag>.zip`. Extract that optional ZIP into the same Schedule I folder after the suite to enable playback. It retains all browser licenses and excludes the Build-A-Base gameplay DLL. `scripts/Package-TVCompanion.ps1` packages from the owner's archive without changing the installed game.
 
 The inspected archive SHA-256 is `FD0F421D396BEC8E8425486D4B8B6552E8EA0D0AD9443875582118C246B87712`; the helper DLL SHA-256 is `4D39A2EC63F1090E9C65C02F8A9DB457E518975113AE7C4CAFFD87594F3235AB`. This is a personal interoperability adapter; no author redistribution permission was established by the archive inspection.
 

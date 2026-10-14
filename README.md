@@ -4,7 +4,7 @@ VICE is a personal mod suite for **Schedule I**, organized into modules that eac
 
 The suite targets the Steam **beta / IL2CPP** branch, using the locally installed game and MelonLoader assemblies. The current police and syndicate ports target **0.4.7f11**, with Unity **2022.3.62f2**, MelonLoader **0.7.3**, and .NET **6**, x64. Builds require a .NET SDK 8 or newer. There is no Mono build.
 
-This repository is for private use. VICE includes adaptations of existing mods and privately supplied assets; the suite name does not replace the original authors' attribution or grant redistribution rights.
+VICE includes adaptations of existing mods and privately supplied assets; the suite name does not replace the original authors' attribution or grant redistribution rights. See [provenance](docs/provenance.md) for the current personal-use permissions and the [release guide](docs/vice-release.md) for tagged packaging and runner setup.
 
 ## Modules
 
@@ -14,12 +14,12 @@ This repository is for private use. VICE includes adaptations of existing mods a
 | **VICE.Enforcement** | Police and law enforcement | NACops combined with Better Police's police behavior: pursuit coordination, police difficulty, raids, investigators, surveillance, patrols, and a property-pressure phone contact. |
 | **VICE.Syndicate** | Cartel and organized crime | Cartel events, hostile difficulty, ambushes, robberies, rival dealers, alliances, and quests. This is the module previously called Cartel. |
 | **VICE.Commerce** | Buying, selling, and business transactions | Highballer negotiations and delivery automation, Gas Purchases shopping lists, and Warehouse access/catalogue changes. |
-| **VICE.Substances** | Drugs, production, and consumption effects | The destination for LSD Gameplay and its visual/audio treatment, with room for future drugs. **Reserved; the LSD projects have not been migrated.** |
+| **VICE.Substances** | Drugs, production, and consumption effects | LSD workshop gameplay and its integrated visual/audio treatment, with room for future drugs. Replaces the separate LSD Gameplay and Preview DLLs. |
 | **VICE.Arsenal** | Weapons and ammunition | More Guns: AK47, minigun, magazines, automatic firing, weapon presentation, and tuning. |
 | **VICE.Lifestyle** | Entertainment and home amenities | Casino wager limits, placeable TV screens, and opt-in playable darts/pool prototypes. |
 | **VICE.Interface** | General HUD, maps, and information display | UI Enhancements: minimap, tracked-deal payouts, known-customer portraits, and multiplayer compass labels. |
 
-The intended suite has eight modules. Substances is an architectural destination, not an existing `VICE.Substances.dll`; its current builds remain `Personal.LSDGameplay.dll` and `Personal.LSDPreview.dll` while that work continues.
+The suite has eight modules including Core. `VICE.Substances.dll` consolidates the existing LSD gameplay and effects while retaining their item IDs, settings and saved content.
 
 ## Why these boundaries
 
@@ -72,7 +72,7 @@ The private weapon bundle is embedded in Arsenal using the existing resource ide
 
 **Home games (0.2.2 prototype)** adds opt-in $150 darts boards and $800 pool tables at the boutique, using ordinary furniture placement and PR #7's embedded artwork, with a primitive fallback. Transparent model thumbnails, world cameras/aim guides and small seat/options menus replace the temporary play panel. Pool furniture has a quieter matte finish; ball/darts tuning is preserved. Darts implements 301 with double-out; pool implements a scoped casual eight-ball ruleset and host-only simulation. Both have solo practice, co-op seats, spectators and cleanup. Set `EnablePrototypes=true` under `VICE.Lifestyle.Amenities` to reveal shop listings. See [controls and rules](docs/vice-lifestyle-home-games.md), [presentation/native-test evidence](docs/vice-home-games-world-play.md), [artwork integration](docs/vice-home-games-art-integration.md), and the [model-worker prompt](docs/vice-amenities-model-worker-prompt.md). Genuine two-player testing remains outstanding; wagers are not included.
 
-Starting with Lifestyle 0.1.8, [single-player YouTube playback](docs/vice-lifestyle-youtube.md) is an optional **VICE YouTube development add-on**. The base Lifestyle package includes no browser player, companion installer or YouTube development guide. Images, MP4s, direct media URLs and Relay work independently. Install `VICE.YouTube.dll` and the separately supplied Build-A-Base 0.4.26 TV companion to reveal the YouTube option, captions and chapters. Neither release bundles the roughly 489 MiB companion. Saved YouTube IDs and favorites are preserved when the add-on is absent.
+Starting with Lifestyle 0.1.8, [single-player YouTube playback](docs/vice-lifestyle-youtube.md) is an optional **VICE YouTube development add-on**. Individual base Lifestyle exports include no browser player, companion installer or YouTube development guide. Images, MP4s, direct media URLs and Relay work independently. Install `VICE.YouTube.dll` and the Build-A-Base 0.4.26 TV companion to reveal the YouTube option, captions and chapters. Tagged full-suite releases include the small adapter, with the roughly 489 MiB companion in a separate optional download. Saved YouTube IDs and favorites are preserved when the add-on is absent.
 
 Lifestyle 0.1.2 stores local images, videos and caches under `UserData/VICE/Lifestyle/Television`, automatically moving existing `PersonalTV` data on initialization. TV preferences remain under `PersonalTV`, including the local Relay configuration. Screen state and images remain in each host save's `Modded/PersonalTV` folder. Playback grants and Relay tokens are excluded from saves. Existing furniture IDs and saved-media formats remain unchanged.
 
@@ -92,7 +92,7 @@ Preferences remain under `PersonalUIEnhancements`. Minimap, payout labels, custo
 
 ## Enforcement, Syndicate, and Substances
 
-Enforcement and Syndicate share the VICE build/export workflow. Substances remains in its existing development projects.
+Enforcement, Syndicate and Substances share the VICE build/export workflow.
 
 Build Enforcement with `scripts/Build-VICE.ps1 -Modules Enforcement`. It combines the police systems and retains the original personal police settings through Core's preference migration. Cartel changes belong to Syndicate. See the [Enforcement guide](docs/vice-enforcement.md).
 
@@ -102,7 +102,7 @@ Enforcement 0.1.5 isolates avatar texture capture, clears inherited outfit objec
 
 Build Syndicate with `scripts/Build-VICE.ps1 -Modules Syndicate`. It owns cartel events and the personal hostile-cartel difficulty settings. See the [Syndicate guide](docs/vice-syndicate.md).
 
-Substances remains under active development in the existing LSD projects. `scripts/Build-LSDGameplay.ps1` builds the workshop gameplay and its companion preview; `scripts/Build-LSDPreview.ps1` builds the preview independently. Keep using these projects until their own migration is complete. See the [workshop guide](docs/lsd-workshop.md), [gameplay design](docs/lsd-gameplay-design.md), and [effects preview guide](docs/lsd-preview.md).
+Build Substances with `scripts/Build-VICE.ps1 -Modules Substances`. It includes the workshop gameplay and integrated consumption effects in one DLL. The previous LSD build scripts forward to this module. See the [Substances guide](docs/vice-substances.md), [workshop guide](docs/lsd-workshop.md), [gameplay design](docs/lsd-gameplay-design.md), and [effects guide](docs/lsd-preview.md).
 
 ## Build and export VICE
 
@@ -113,7 +113,7 @@ Launch the IL2CPP beta with MelonLoader once to generate `MelonLoader/Il2CppAsse
 ./scripts/Build-VICE.ps1 -Modules Lifestyle
 ./scripts/Build-VICE.ps1 -AddOns YouTube  # Separate optional add-on; requires installed Lifestyle 0.1.8+
 ./scripts/Build-VICE.ps1          # Core only
-./scripts/Build-VICE.ps1 -All     # All six implemented gameplay modules
+./scripts/Build-VICE.ps1 -All     # All seven gameplay modules
 ```
 
 Every invocation builds and checks the current Core, then builds and checks exactly the selected modules with warnings treated as errors. Each export uses a fresh directory under `artifacts`, so old module DLLs cannot leak into a smaller update. Core + Commerce + Lifestyle exports contain:
@@ -126,11 +126,13 @@ UserLibs/
   VICE.Core.dll
 ```
 
-The result prints its directory and ZIP paths. Every package includes one `UserLibs/VICE.Core.dll`, version/selection metadata, hashes, an installer and guides. Enforcement and Syndicate include their defaults and licenses when selected. The current LSD projects are not VICE modules yet. Add `-Install` to install the export while the game is closed.
+The result prints its directory and ZIP paths. Every package includes one `UserLibs/VICE.Core.dll`, version/selection metadata, hashes, an installer and guides. Enforcement and Syndicate include their defaults and licenses when selected. Add `-Install` to install the export while the game is closed.
 
 Use `-GameDir`, `-OriginalMoreGuns`, `-DotnetPath`, `-NugetConfig` or `-OutputDirectory` for local overrides. The bundled local SDK is used when present; otherwise the script uses `dotnet`. `Game.local.props` can set the game reference path for direct project builds.
 
 Arsenal requires the owner's authorized original MoreGuns asset bundle. If the extracted bundle already exists in `.research/assets`, the script reuses it. Otherwise it calls `scripts/Prepare-Assets.ps1` with `-OriginalMoreGuns`. No private assets or game assemblies are downloaded.
+
+The [tagged release workflow](docs/vice-release.md) builds on this development PC using a GitHub self-hosted Windows runner. Each tag produces `VICE-<tag>.zip` with all seven gameplay modules, Core and the small YouTube adapter, plus `VICE-YouTube-Companion-<tag>.zip` as an optional download. Extract the chosen ZIPs directly into the Schedule I folder. Settings and saves are excluded, and missing defaults are created by the modules. Run `scripts/Build-VICERelease.ps1 -Tag <tag> -CompanionArchive <local-archive>` to check these packages locally.
 
 The old module build scripts forward to `Build-VICE.ps1`; they no longer contain separate compilation or export logic. See the [unified build guide](docs/vice-build.md) for selections, checks and installation. Direct project builds compile DLLs without creating an update export.
 
@@ -166,15 +168,16 @@ src/VICE.Commerce/              Trading, Purchasing, Warehouse
 src/VICE.Arsenal/               Guns
 src/VICE.Lifestyle/             Casino, Television, Amenities
 src/VICE.Interface/             Hud
-src/LSDGameplay/, LSDPreview/   Current Substances development
+src/VICE.Substances/            LSD workshop and integrated effects
+src/LSDGameplay/, LSDPreview/   Shared Substances feature sources/assets
 ```
 
 Each migrated gameplay DLL has one MelonLoader entry point. Its feature classes are ordinary classes, with the module forwarding the lifecycle callbacks they need. They do not instantiate hidden Melon mods or depend on the predecessor DLLs.
 
-All four modules reference Core's `ModSupport` for patches, preferences, and warnings, instead of embedding a copy of `src/Shared/ModSupport.cs`. `SubscriptionScope` owns gas-mart completion listeners and TV lifecycle subscriptions and releases them during cleanup. `ModuleCompatibility` detects loaded predecessors before initialization. These shared helpers are available to future modules; see the [Core contract](src/VICE.Core/README.md) and [module migration notes](docs/vice-module-migration.md).
+The migrated modules reference Core's `ModSupport` for patches, preferences, and warnings, instead of embedding a copy of `src/Shared/ModSupport.cs`. `SubscriptionScope` owns gas-mart completion listeners and TV lifecycle subscriptions and releases them during cleanup. `ModuleCompatibility` detects loaded predecessors before initialization. These shared helpers are available to future modules; see the [Core contract](src/VICE.Core/README.md) and [module migration notes](docs/vice-module-migration.md).
 
 ## Validation and personal use
 
 Builds and automated checks establish compilation, data contracts, callback forwarding, package integrity, and inspected native patch targets. They do not establish live gameplay correctness. After installation, use a copied save to check shop access, remembered purchases, negotiations/handover, weapon registration/reloads, TV persistence/playback, and HUD cleanup across loading and leaving saves. Multiplayer and live Relay need separate playtests.
 
-Game assemblies, third-party binaries, extracted weapon assets, local configurations, saves, and build packages stay outside Git. Original notices remain with the imported modules and in the [provenance documentation](docs/provenance.md). Packages containing private assets remain personal; no public release is intended.
+Game assemblies, third-party binaries, extracted weapon assets, local configurations, saves, and build packages stay outside Git. Original notices remain with the imported modules and in the [provenance documentation](docs/provenance.md). Tagged packaging does not expand the recorded personal-use permissions for private assets or establish author permission to redistribute the companion.

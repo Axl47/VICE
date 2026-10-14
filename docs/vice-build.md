@@ -1,6 +1,6 @@
 # Build and export VICE updates
 
-Use one build command for Core and any selection of the six implemented modules:
+Use one build command for Core and any selection of the seven gameplay modules:
 
 ```powershell
 ./scripts/Build-VICE.ps1 -Modules Lifestyle
@@ -12,7 +12,7 @@ Use one build command for Core and any selection of the six implemented modules:
 ./scripts/Build-VICE.ps1  # Core only
 ```
 
-Core is mandatory and is compiled from the current workspace on every invocation. With no selection, the export contains only Core. `-All` includes Commerce, Arsenal, Lifestyle, Interface, Enforcement and Syndicate. Substances is reserved and cannot be selected yet. Selecting modules is case-insensitive; duplicates are removed. `-All` and `-Modules` cannot be combined.
+Core is mandatory and is compiled from the current workspace on every invocation. With no selection, the export contains only Core. `-All` includes Commerce, Arsenal, Lifestyle, Interface, Enforcement, Syndicate and Substances. Substances combines the existing LSD gameplay and effects in one DLL. Selecting modules is case-insensitive; duplicates are removed. `-All` and `-Modules` cannot be combined.
 
 `-AddOns YouTube` explicitly selects the optional development add-on. It builds and tests Lifestyle as a dependency but exports only Core and `VICE.YouTube.dll`; it requires an already installed Lifestyle 0.1.8 or newer. `-Modules Lifestyle -AddOns YouTube` exports both. `-All` does not select development add-ons. A plain Lifestyle export has no browser integration DLL, companion installer, YouTube guide or YouTube screenshots.
 
@@ -53,3 +53,5 @@ The older build commands are compatibility wrappers: `Build-VICELifestyle.ps1`, 
 Supported overrides are `-GameDir`, `-DotnetPath`, `-NugetConfig`, `-OutputDirectory` and `-OriginalMoreGuns`. Arsenal still uses the owner's local authorized asset bundle. Builds reference the installed IL2CPP game, MelonLoader and S1API assemblies without downloading them.
 
 Lifestyle 0.2.1 also verifies the accepted PR #7 home-games artwork and generated bundle before compiling. A clean checkout needs Unity 2022.3.62f2 to build the embedded model bundle in an isolated `.tools` project; later builds reuse it when its bundle/input hashes match. Use `scripts/Build-VICEHomeGamesAssets.ps1 -Rebuild -UnityPath <editor-path>` for an explicit rebuild or alternate editor location. See the [art integration guide](vice-home-games-art-integration.md). The release contains the models inside Lifestyle's DLL; no loose model pack is installed.
+
+For GitHub tag builds and drop-in downloads, use `scripts/Build-VICERelease.ps1 -Tag <tag> -CompanionArchive <local-archive>`. It wraps the checked unified build and produces a main suite ZIP plus a separate optional browser companion ZIP. The suite includes Substances and the small YouTube adapter. Unlike the installer-oriented export above, these ZIPs exclude user settings/defaults and place only the intended files directly in the game-folder layout. See the [release and runner setup guide](vice-release.md).
