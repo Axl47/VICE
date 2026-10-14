@@ -70,12 +70,12 @@ internal sealed class WorkshopWorld : IDisposable
             throw new InvalidOperationException("The warehouse, hardware supply shop or hardware pallet could not be verified. See LSD_SHOP diagnostics.");
         var info=new MessageContactInfo("Off Register",WorkshopRules.Owner+":collective",StudioAssets.Symbol,true,false);
         Conversation=new MSGConversation(info,WorkshopRules.Owner+":collective");
-        Conversation.SetIsKnown(LSDGameplayMod.Current!.State.Introduced);
-        if (LSDGameplayMod.Current.State.Introduced) { Conversation.EnsureUIExists();Conversation.SetEntryVisibility(true); }
-        if (LSDGameplayMod.Current.State.Introduced)
+        Conversation.SetIsKnown(WorkshopFeature.Current!.State.Introduced);
+        if (WorkshopFeature.Current.State.Introduced) { Conversation.EnsureUIExists();Conversation.SetEntryVisibility(true); }
+        if (WorkshopFeature.Current.State.Introduced)
         {
             Notify("Off Register. Paper from the warehouse, cartridges from the hardware store. Your edition. Your rules.",false);
-            foreach (var order in LSDGameplayMod.Current.State.Orders.TakeLast(3))
+            foreach (var order in WorkshopFeature.Current.State.Orders.TakeLast(3))
                 Notify($"{order.Quantity} Prism Base parcel(s) · {order.Stage} · {CollectionName}",false);
         }
         Scan();
@@ -114,9 +114,9 @@ internal sealed class WorkshopWorld : IDisposable
     private void Scan()
     {
         if (Office is null || !Office || !Office.IsOwned) return;
-        if (LSDGameplayMod.Current!.State.Introduced)
+        if (WorkshopFeature.Current!.State.Introduced)
         { if (Sticker) Object.Destroy(Sticker);Sticker=null;StickerInteraction=null; }
-        if (!Sticker && !LSDGameplayMod.Current.State.Introduced)
+        if (!Sticker && !WorkshopFeature.Current.State.Introduced)
         {
             var anchor=Office.InteriorSpawnPoint ? Office.InteriorSpawnPoint : Office.SpawnPoint;
             if (!anchor) throw new InvalidOperationException("Sewer Office entrance anchor is unavailable.");
@@ -151,7 +151,7 @@ internal sealed class WorkshopWorld : IDisposable
             else foreach (var interactable in interactables) interactable.SetMessage(item.ItemInstance.ID==WorkshopRules.Bench ? "Use Blotter Bench" : "Open drying cabinet");
         }
         foreach(var id in Cabinets.Keys.Where(id=>!Machines.ContainsKey(id)).ToArray()){Cabinets[id].Dispose();Cabinets.Remove(id);}
-        RefreshMachines(LSDGameplayMod.Current!.State);
+        RefreshMachines(WorkshopFeature.Current!.State);
     }
 
     private static InteractableObject AddInteraction(GameObject root,string message)
@@ -209,7 +209,7 @@ internal sealed class WorkshopWorld : IDisposable
             var pending=state.Orders.Where(o=>o.Shop==CollectionShop.ShopCode && o.Bay==bay && o.Stage!=OrderStage.Delivered).Sum(o=>o.Quantity);
             if (storage.HowManyCanFit(Content.Create(WorkshopRules.Prism,1))-pending<quantity) continue;
             if (state.Orders.Count>=128) throw new InvalidOperationException("The order ledger is full.");
-            return new() { Id=Guid.NewGuid().ToString(),Quantity=quantity,Shop=CollectionShop.ShopCode,Bay=bay,DueMinute=LSDGameplayMod.Minute+WorkshopRules.DeliveryMinutes };
+            return new() { Id=Guid.NewGuid().ToString(),Quantity=quantity,Shop=CollectionShop.ShopCode,Bay=bay,DueMinute=WorkshopFeature.Minute+WorkshopRules.DeliveryMinutes };
         }
         throw new InvalidOperationException("The pallet has no unreserved space. Collect existing deliveries before ordering again.");
     }
@@ -219,7 +219,7 @@ internal sealed class WorkshopWorld : IDisposable
         var changed=false;
         foreach (var order in state.Orders)
         {
-            if (order.Stage==OrderStage.Delivered || LSDGameplayMod.Minute<order.DueMinute) continue;
+            if (order.Stage==OrderStage.Delivered || WorkshopFeature.Minute<order.DueMinute) continue;
             var shop=ShopInterface.AllShops.ToArray().FirstOrDefault(s=>s.ShopCode==order.Shop);
             var storage=shop && shop!.DeliveryBays is not null && order.Bay<shop.DeliveryBays.Length ? shop.DeliveryBays[order.Bay] : null;
             var parcel=Content.Create(WorkshopRules.Prism,order.Quantity);
@@ -300,7 +300,7 @@ internal sealed class WorkshopWorld : IDisposable
     }
     private static bool Interact(InteractableObject __instance)
     {
-        var current=LSDGameplayMod.Current;
+        var current=WorkshopFeature.Current;
         if (current?.Ready!=true) return true;
         if (current.World?.StickerInteraction?.Pointer==__instance.Pointer)
         { current.Panel?.ShowIntroduction();return false; }
@@ -312,17 +312,17 @@ internal sealed class WorkshopWorld : IDisposable
     {
         if (__instance.ItemInstance is null || !Equipment(__instance.ItemInstance.ID)) return;
         var grid=__instance.GetHoveredGrid();
-        if (!grid || !grid.ParentProperty || grid.ParentProperty!=LSDGameplayMod.Current?.World?.Office || !grid.ParentProperty.IsOwned)
+        if (!grid || !grid.ParentProperty || grid.ParentProperty!=WorkshopFeature.Current?.World?.Office || !grid.ParentProperty.IsOwned)
             __instance._validPosition=false;
     }
     private static bool CreateGridItem(NativeItem item,Grid grid,ref GridItem __result)
     {
         if (item is null || !Equipment(item.ID)) return true;
         if (grid && grid.ParentProperty && grid.ParentProperty.TryCast<SewerOffice>() is not null && grid.ParentProperty.IsOwned) return true;
-        __result=null!;LSDGameplayMod.Current?.ShowMessage("Place this equipment inside the owned Sewer Office.");return false;
+        __result=null!;WorkshopFeature.Current?.ShowMessage("Place this equipment inside the owned Sewer Office.");return false;
     }
     private static bool Active(BuildableItem item)=>item && item.ItemInstance is not null && Equipment(item.ItemInstance.ID)
-        && LSDGameplayMod.Current?.State.Machines.Any(m=>m.Id==item.GUID.ToString() && m.Stage!=MachineStage.Empty)==true;
+        && WorkshopFeature.Current?.State.Machines.Any(m=>m.Id==item.GUID.ToString() && m.Stage!=MachineStage.Empty)==true;
     private static bool CanRemove(BuildableItem __instance,ref string reason,ref bool __result)
     {
         if (!Active(__instance)) return true;reason="Collect or finish this machine's batch before moving it.";__result=false;return false;
@@ -330,7 +330,7 @@ internal sealed class WorkshopWorld : IDisposable
     private static bool Destroy(BuildableItem __instance)
     {
         if (Active(__instance)) return false;
-        if (__instance && __instance.ItemInstance is not null && Equipment(__instance.ItemInstance.ID) && WorkshopNetwork.Host && LSDGameplayMod.Current is { } mod)
+        if (__instance && __instance.ItemInstance is not null && Equipment(__instance.ItemInstance.ID) && WorkshopNetwork.Host && WorkshopFeature.Current is { } mod)
         { if (mod.State.Machines.RemoveAll(m=>m.Id==__instance.GUID.ToString())>0) { mod.State.Revision++;WorkshopNetwork.Publish(); } }
         return true;
     }

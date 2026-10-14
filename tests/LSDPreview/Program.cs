@@ -327,7 +327,7 @@ eyes.Step(0.01f, false, true);
 eyes.Step(10, true, true);
 Near(eyes.Closure, 1, "A fresh hold after release should rearm closed eyes.");
 eyes.Reset();
-Near(eyes.Closure, 0, "Scene, death, F9, shutdown and replacement cleanup must clear closure.");
+Near(eyes.Closure, 0, "Scene, death, shutdown and replacement cleanup must clear closure.");
 eyes.Step(10, true, true);
 Near(eyes.Closure, 0, "Cleanup requires a fresh hold when the trip restarts.");
 eyes.Step(0.01f, false, true);

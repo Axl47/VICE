@@ -7,18 +7,15 @@ using S1API.Lifecycle;
 using S1API.Building;
 using S1API.Products;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using Clock = Il2CppScheduleOne.GameTime.TimeManager;
 using Money = S1API.Money.Money;
 
-[assembly: MelonInfo(typeof(PersonalMods.LSDGameplay.LSDGameplayMod), "Personal LSD Workshop", "0.2.10", "Axl47")]
-[assembly: MelonGame("TVGS", "Schedule I")]
 
 namespace PersonalMods.LSDGameplay;
 
-public sealed class LSDGameplayMod : MelonMod
+internal sealed class WorkshopFeature
 {
-    internal static LSDGameplayMod? Current;
+    internal static WorkshopFeature? Current;
     internal WorkshopState State = new();
     internal WorkshopPanel? Panel;
     internal WorkshopWorld? World;
@@ -32,7 +29,7 @@ public sealed class LSDGameplayMod : MelonMod
     private bool LoadFailed;
     private DeliveryGuide? Delivery;
 
-    public override void OnInitializeMelon()
+    public void Initialize(HarmonyLib.Harmony harmony)
     {
         Current=this;
         if (DiagnosticRequested) Application.runInBackground=true;
@@ -42,11 +39,11 @@ public sealed class LSDGameplayMod : MelonMod
         GameLifecycle.OnPreSceneChange+=ClearSession;
         GameLifecycle.OnSaveComplete+=SaveComplete;
         BuildEvents.OnBuildableItemInitialized+=RestoreFurniture;
-        ModSupport.Patch(HarmonyInstance,typeof(SaveManager),"Save",typeof(LSDGameplayMod),prefix:nameof(SaveStarted),parameters:new[] { typeof(string) });
-        WorkshopWorld.Install(HarmonyInstance);
-        StudioPackaging.Install(HarmonyInstance);
-        ModSupport.Patch(HarmonyInstance,typeof(GameInput),"Exit",typeof(LSDGameplayMod),prefix:nameof(WorkshopExit),parameters:new[]{typeof(ExitType)});
-        LoggerInstance.Msg("Off Register workshop registered. Use the sticker inside your owned Sewer Office; test with save slot five.");
+        ModSupport.Patch(harmony,typeof(SaveManager),"Save",typeof(WorkshopFeature),prefix:nameof(SaveStarted),parameters:new[] { typeof(string) });
+        WorkshopWorld.Install(harmony);
+        StudioPackaging.Install(harmony);
+        ModSupport.Patch(harmony,typeof(GameInput),"Exit",typeof(WorkshopFeature),prefix:nameof(WorkshopExit),parameters:new[]{typeof(ExitType)});
+        MelonLogger.Msg("Off Register workshop registered. Use the sticker inside your owned Sewer Office; test with save slot five.");
     }
 
     private void Preload()
@@ -61,7 +58,7 @@ public sealed class LSDGameplayMod : MelonMod
             State=File.Exists(SavePath) ? WorkshopState.Deserialize(File.ReadAllText(SavePath)) : new WorkshopState();
             StudioAssets.UpdateArtwork(State);
         }
-        catch (Exception error) { LoadFailed=true;Ready=false;LoggerInstance.Error("Workshop load stopped without changing its save: "+error); }
+        catch (Exception error) { LoadFailed=true;Ready=false;MelonLogger.Error("Workshop load stopped without changing its save: "+error); }
     }
     private static bool WorkshopExit()=>Current?.Panel?.HandleNativeExit()??true;
 
@@ -84,9 +81,9 @@ public sealed class LSDGameplayMod : MelonMod
             if(!TutorialProgress.Finished(State) && S1API.Quests.QuestManager.GetQuestByName("First edition") is null)
                 S1API.Quests.QuestManager.CreateQuest<StudioTutorial>();
             if (DiagnosticRequested && WorkshopNetwork.Host) Diagnostic=new SliceDiagnostic(this);
-            LoggerInstance.Msg($"LSD_WORKSHOP_READY editions={State.Artworks.Count}, machines={State.Machines.Count}, orders={State.Orders.Count}.");
+            MelonLogger.Msg($"LSD_WORKSHOP_READY editions={State.Artworks.Count}, machines={State.Machines.Count}, orders={State.Orders.Count}.");
         }
-        catch (Exception error) { Ready=false;LoggerInstance.Error("Workshop initialization failed: "+error); }
+        catch (Exception error) { Ready=false;MelonLogger.Error("Workshop initialization failed: "+error); }
     }
 
     private static void SaveStarted(string saveFolderPath)
@@ -109,22 +106,19 @@ public sealed class LSDGameplayMod : MelonMod
             File.WriteAllText(temporary,SaveSnapshot);
             if (File.Exists(SaveTarget)) File.Copy(SaveTarget,SaveTarget+".previous",true);
             File.Move(temporary,SaveTarget,true);
-            LoggerInstance.Msg($"LSD_WORKSHOP_SAVED revision={State.Revision}.");
+            MelonLogger.Msg($"LSD_WORKSHOP_SAVED revision={State.Revision}.");
         }
-        catch (Exception error) { LoggerInstance.Error("Native save completed, but the workshop state could not be saved: "+error);ShowMessage("Workshop saving failed. Check the mod log before leaving this session."); }
+        catch (Exception error) { MelonLogger.Error("Native save completed, but the workshop state could not be saved: "+error);ShowMessage("Workshop saving failed. Check the mod log before leaving this session."); }
         finally { SaveTarget=SaveSnapshot=""; }
     }
 
-    public override void OnUpdate()
+    public void OnUpdate()
     {
         try
         {
             if (DiagnosticRequested && !Ready) SliceDiagnostic.TryLoadFifthSlot();
             if (!Ready || !LoadManager.Instance || !LoadManager.Instance.IsGameLoaded || LoadManager.Instance.IsLoading) return;
-            if(Diagnostic?.TutorialChecking==true){Diagnostic.Tick();return;}
-            if(Panel?.IsOpen!=true && Keyboard.current?.f9Key.wasPressedThisFrame==true && World?.Office
-                && World!.Office!.DoBoundsContainPoint(Player.Local.transform.position))
-                WorkshopNetwork.Submit(new StudioCommand{Action="testfinish"});
+            if(Diagnostic?.ExclusiveChecking==true){Diagnostic.Tick();return;}
             WorkshopNetwork.Tick();Panel?.Tick();World?.Tick();Diagnostic?.Tick();CollectiveCatalogue.Tick();
             Delivery?.Tick(World?.DeliveryTarget(State));StudioTutorial.Current?.Tick(State,World!);
             if (SaveManager.Instance && SaveManager.Instance.IsSaving) return;
@@ -177,17 +171,6 @@ public sealed class LSDGameplayMod : MelonMod
                 TutorialProgress.RecordAction(State,"order");
                 committed=true;
                 World.Notify(reply.Message);
-            }
-            else if(command.Action=="testfinish")
-            {
-                if(!player.IsLocalPlayer || !office.DoBoundsContainPoint(player.transform.position))
-                    throw new InvalidOperationException("The temporary F9 test skip is available to the host inside the Sewer Office.");
-                foreach(var machine in State.Machines){
-                    if(machine.Stage==MachineStage.Drying){machine.DueMinute=Minute;machine.Stage=MachineStage.DryOutput;}
-                    if(machine.Id==command.Machine && machine.Stage is MachineStage.Preparing or MachineStage.Printing)machine.Stage=MachineStage.WetOutput;
-                    if(machine.Id==command.Machine && machine.Stage==MachineStage.Cutting)machine.Stage=MachineStage.TabOutput;
-                }
-                State.Revision++;reply.Message="Test skip: current manual stage and cabinet drying completed. Collect output normally.";
             }
             else
             {
@@ -282,18 +265,18 @@ public sealed class LSDGameplayMod : MelonMod
             if (committed)
             {
                 reply.Success=true;reply.State=State.Serialize();reply.Message="Action completed. The display could not refresh; close and reopen the studio.";
-                LoggerInstance.Error("Studio presentation failed after a committed action: "+error);return reply;
+                MelonLogger.Error("Studio presentation failed after a committed action: "+error);return reply;
             }
             State=WorkshopState.Deserialize(prior);reply.State=prior;
             if (error is InvalidOperationException or InvalidDataException or ArgumentException) reply.Message=error.Message;
-            else { LoggerInstance.Error("Studio action failed: "+error);reply.Message="The studio action failed. Your batch is held; check the mod log before trying again."; }
+            else { MelonLogger.Error("Studio action failed: "+error);reply.Message="The studio action failed. Your batch is held; check the mod log before trying again."; }
         }
         return reply;
     }
 
     private void Acquire(MachineState machine,string owner,string action)
     {
-        if (DiagnosticRequested) LoggerInstance.Msg($"LSD_LEASE action={action}, machine={machine.Id}, owner={owner}, exists={Leases.ContainsKey(machine.Id)}, elapsed={(Leases.TryGetValue(machine.Id,out var observed) ? Time.realtimeSinceStartup-observed.Started : -1)}, sameOwner={(Leases.TryGetValue(machine.Id,out observed) && observed.Owner==owner)}.");
+        if (DiagnosticRequested) MelonLogger.Msg($"LSD_LEASE action={action}, machine={machine.Id}, owner={owner}, exists={Leases.ContainsKey(machine.Id)}, elapsed={(Leases.TryGetValue(machine.Id,out var observed) ? Time.realtimeSinceStartup-observed.Started : -1)}, sameOwner={(Leases.TryGetValue(machine.Id,out observed) && observed.Owner==owner)}.");
         if (Leases.TryGetValue(machine.Id,out var lease) && lease.Owner!=owner && Time.realtimeSinceStartup-lease.Touched<60)
             throw new InvalidOperationException("Another player is using this machine. Try again when they finish.");
         if (!Leases.TryGetValue(machine.Id,out lease) || lease.Owner!=owner || action=="resume") StartLease(machine,owner);
@@ -319,9 +302,9 @@ public sealed class LSDGameplayMod : MelonMod
         Ready=false;Panel?.Dispose();Panel=null;Delivery?.Dispose();Delivery=null;World?.Dispose();World=null;Diagnostic=null;
         Leases.Clear();WorkshopNetwork.Reset();CollectiveCatalogue.Reset();StudioTutorial.Current=null;State=new();SaveTarget=SaveSnapshot="";
     }
-    public override void OnSceneWasUnloaded(int buildIndex,string sceneName) { if (sceneName=="Main") ClearSession(); }
-    public override void OnApplicationQuit()=>ClearSession();
-    public override void OnDeinitializeMelon()
+    public void OnSceneWasUnloaded(int buildIndex,string sceneName) { if (sceneName=="Main") ClearSession(); }
+    public void OnApplicationQuit()=>ClearSession();
+    public void OnDeinitializeMelon()
     {
         BuildEvents.OnBuildableItemInitialized-=RestoreFurniture;
         GameLifecycle.OnPreLoad-=Preload;GameLifecycle.OnLoadComplete-=Loaded;

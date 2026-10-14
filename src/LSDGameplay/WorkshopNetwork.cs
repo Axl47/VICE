@@ -99,7 +99,7 @@ internal static class WorkshopNetwork
         if (!Guid.TryParse(command.Token,out _)) throw new InvalidDataException("Invalid action identity.");
         var key=player.PlayerCode+":"+command.Token;
         if (Completed.TryGetValue(key,out var existing)) return existing;
-        var reply=LSDGameplayMod.Current!.Execute(player,command);
+        var reply=WorkshopFeature.Current!.Execute(player,command);
         if (Completed.Count>=256) Completed.Remove(Completed.Keys.First());
         Completed[key]=reply;return reply;
     }
@@ -107,7 +107,7 @@ internal static class WorkshopNetwork
     private static void ReceiveRequest(NetworkConnection connection,StudioPacket packet)
     {
         if (!Wire.TryTake(out var payload)) return;
-        if (!Host || !connection.Authenticated || LSDGameplayMod.Current?.Ready!=true) return;
+        if (!Host || !connection.Authenticated || WorkshopFeature.Current?.Ready!=true) return;
         var player=Player.PlayerList.ToArray().FirstOrDefault(p=>p && p.Owner.ClientId==connection.ClientId && p.PlayerLoaded);
         if (player is null || !player) return;
         try
@@ -136,8 +136,8 @@ internal static class WorkshopNetwork
 
     internal static void Publish()
     {
-        if (!Host || LSDGameplayMod.Current?.Ready!=true) return;
-        var state=LSDGameplayMod.Current.State.Serialize();
+        if (!Host || WorkshopFeature.Current?.Ready!=true) return;
+        var state=WorkshopFeature.Current.State.Serialize();
         foreach (var pair in InstanceFinder.NetworkManager.ServerManager.Clients)
             if (pair.Value.Authenticated && !pair.Value.IsLocalClient)
                 Send(pair.Value,new StudioReply { Success=true,State=state });
@@ -146,9 +146,9 @@ internal static class WorkshopNetwork
     private static void ReceiveReply(StudioPacket packet)
     {
         if (!Wire.TryTake(out var payload)) return;
-        if (Host || LSDGameplayMod.Current?.Ready!=true) return;
+        if (Host || WorkshopFeature.Current?.Ready!=true) return;
         try { Accept(JsonSerializer.Deserialize<StudioReply>(payload) ?? throw new InvalidDataException("Empty workshop reply.")); }
-        catch (Exception error) { LSDGameplayMod.Current?.ShowMessage(error.Message); }
+        catch (Exception error) { WorkshopFeature.Current?.ShowMessage(error.Message); }
     }
 
     private static void Accept(StudioReply reply)
@@ -157,10 +157,10 @@ internal static class WorkshopNetwork
         if (!Host && reply.Inventory.Count>0) InventoryTransaction.ApplyRemote(reply.Inventory);
         if (!Host && reply.Success && reply.State.Length>0)
         {
-            LSDGameplayMod.Current!.ReceiveState(WorkshopState.Deserialize(reply.State), InitialSync.Awaiting);
+            WorkshopFeature.Current!.ReceiveState(WorkshopState.Deserialize(reply.State), InitialSync.Awaiting);
             InitialSync.Received();
         }
-        LSDGameplayMod.Current?.Reply(reply);
+        WorkshopFeature.Current?.Reply(reply);
     }
 
     internal static void CheckWire<T>(T value)

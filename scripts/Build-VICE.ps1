@@ -1,6 +1,6 @@
 param(
     [string]$GameDir = 'C:\Program Files (x86)\Steam\steamapps\common\Schedule I',
-    [ValidateSet('Commerce', 'Arsenal', 'Lifestyle', 'Interface', 'Enforcement', 'Syndicate')]
+    [ValidateSet('Commerce', 'Arsenal', 'Lifestyle', 'Interface', 'Enforcement', 'Syndicate', 'Substances')]
     [string[]]$Modules = @(),
     [ValidateSet('YouTube')][string[]]$AddOns = @(),
     [switch]$All,
@@ -14,8 +14,8 @@ param(
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path $PSScriptRoot -Parent
 if ($All -and $Modules.Count) { throw 'Use either -All or -Modules.' }
-if ($All) { $Modules = @('Commerce','Arsenal','Lifestyle','Interface','Enforcement','Syndicate') }
-$names = @('Commerce','Arsenal','Lifestyle','Interface','Enforcement','Syndicate')
+if ($All) { $Modules = @('Commerce','Arsenal','Lifestyle','Interface','Enforcement','Syndicate','Substances') }
+$names = @('Commerce','Arsenal','Lifestyle','Interface','Enforcement','Syndicate','Substances')
 $Modules = @($names | Where-Object { $_ -in $Modules } | Sort-Object)
 $AddOns = @($AddOns | Sort-Object -Unique)
 if (-not $DotnetPath) {
@@ -39,14 +39,17 @@ function Run-Checks([string]$relative, [string[]]$extra = @()) {
 if (($Modules.Count -or $AddOns.Count) -and -not (Test-Path -LiteralPath (Join-Path $GameDir 'MelonLoader\Il2CppAssemblies\Assembly-CSharp.dll'))) {
     throw 'Launch the IL2CPP game with MelonLoader once to generate its interop assemblies.'
 }
-if (($Modules -contains 'Lifestyle' -or $AddOns -contains 'YouTube') -and -not (Test-Path -LiteralPath (Join-Path $GameDir 'Mods\S1API.Il2Cpp.MelonLoader.dll'))) {
-    throw 'VICE Lifestyle requires the IL2CPP S1API dependency.'
+if (($Modules -contains 'Lifestyle' -or $Modules -contains 'Substances' -or $AddOns -contains 'YouTube') -and -not (Test-Path -LiteralPath (Join-Path $GameDir 'Mods\S1API.Il2Cpp.MelonLoader.dll'))) {
+    throw 'VICE Lifestyle and Substances require the IL2CPP S1API dependency.'
 }
 if ($Modules -contains 'Arsenal' -and -not (Test-Path -LiteralPath (Join-Path $repoRoot '.research\assets\moreguns.bundle'))) {
     & (Join-Path $PSScriptRoot 'Prepare-Assets.ps1') -OriginalDll $OriginalMoreGuns -GameDir $GameDir
 }
 if (($Modules -contains 'Lifestyle' -or $AddOns -contains 'YouTube') -and -not $PrimitiveHomeGames) {
     & (Join-Path $PSScriptRoot 'Build-VICEHomeGamesAssets.ps1')
+}
+if ($Modules -contains 'Substances') {
+    & (Join-Path $PSScriptRoot 'Check-VICESubstances.ps1') -GameDir $GameDir -AssetsOnly
 }
 # Every invocation compiles and checks this same Core before selected modules.
 Build-Project 'src\VICE.Core\VICE.Core.csproj'
@@ -68,13 +71,19 @@ foreach ($module in $buildModules) {
             & (Join-Path $PSScriptRoot 'Check-VICEEnforcement.ps1') -GameDir $GameDir
         }
         'Syndicate' { Run-Checks 'tests\VICE.Syndicate\VICE.Syndicate.Tests.csproj' @($GameDir, (Join-Path $repoRoot 'src\VICE.Syndicate\bin\Release\net6.0\VICE.Syndicate.dll')) }
+        'Substances' {
+            Run-Checks 'tests\LSDGameplay\LSDGameplay.Tests.csproj'
+            Run-Checks 'tests\LSDPreview\LSDPreview.Tests.csproj'
+            & (Join-Path $PSScriptRoot 'Check-VICESubstances.ps1') -GameDir $GameDir
+            & (Join-Path $PSScriptRoot 'Check-NativeTargets.ps1') -GameDir $GameDir -SourceDir @((Join-Path $repoRoot 'src\LSDGameplay'), (Join-Path $repoRoot 'src\VICE.Substances'))
+        }
     }
 }
 foreach ($addOn in $AddOns) {
     Build-Project "src\VICE.$addOn\VICE.$addOn.csproj"
     Run-Checks "tests\VICE.$addOn\VICE.$addOn.Tests.csproj"
 }
-$ordinary = @($buildModules | Where-Object { $_ -in @('Commerce','Arsenal','Lifestyle','Interface') })
+$ordinary = @($buildModules | Where-Object { $_ -in @('Commerce','Arsenal','Lifestyle','Interface','Substances') })
 if ($ordinary.Count) {
     $metadataArgs = @($repoRoot) + $ordinary
     if ($PrimitiveHomeGames) { $metadataArgs += '--primitive-home-games' }

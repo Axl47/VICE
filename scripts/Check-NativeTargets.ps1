@@ -1,6 +1,6 @@
 param(
     [string]$GameDir = 'C:\Program Files (x86)\Steam\steamapps\common\Schedule I',
-    [string]$SourceDir = '',
+    [string[]]$SourceDir = @(),
     [string[]]$ExcludeFiles = @()
 )
 $ErrorActionPreference = 'Stop'
@@ -61,9 +61,10 @@ try {
     $sources = Get-ChildItem -LiteralPath $SourceDir -Recurse -Filter '*.cs' | Where-Object { $_.FullName -notmatch '\\(obj|bin)\\' -and $_.Name -notin $ExcludeFiles }
     foreach ($file in $sources) {
         $source = Get-Content -LiteralPath $file.FullName -Raw
-        foreach ($match in [regex]::Matches($source, 'ModSupport\.Patch\([^,]+,\s*typeof\(([^)]+)\),\s*"([^"]+)"')) {
-            $name = $match.Groups[1].Value; $methodName = $match.Groups[2].Value
-            $type = $assembly.MainModule.Types | Where-Object { $_.Name -eq $name -and $_.Namespace -like 'Il2CppScheduleOne*' }
+        foreach ($match in [regex]::Matches($source, 'ModSupport\.Patch\([^,]+,\s*typeof\(([^)]+)\),\s*(?:"([^"]+)"|nameof\([\w.]+\.([\w]+)\))')) {
+            $name = $match.Groups[1].Value
+            $methodName = if ($match.Groups[2].Success) { $match.Groups[2].Value } else { $match.Groups[3].Value }
+            $type = $assembly.MainModule.Types | Where-Object { ($_.Name -eq $name -or $_.FullName -eq $name) -and $_.Namespace -like 'Il2CppScheduleOne*' }
             if (@($type).Count -ne 1) { throw "Ambiguous or missing patch type: $name" }
             $key = "$($type.FullName -replace '^Il2Cpp', '')::$methodName"
             if (-not $methods.ContainsKey($key)) { throw "Native patch address missing: $key" }

@@ -91,14 +91,14 @@ internal sealed class WorkshopPanel : IDisposable
     internal void OpenMachine(BuildableItem equipment)
     {
         if(IsOpen || Busy || PendingRelease is not null)return;Equipment=equipment;MachineId=equipment.GUID.ToString();
-        var machine=LSDGameplayMod.Current!.State.Machines.FirstOrDefault(m=>m.Id==MachineId);
+        var machine=WorkshopFeature.Current!.State.Machines.FirstOrDefault(m=>m.Id==MachineId);
         if(machine is not null && machine.Stage!=MachineStage.Empty)SelectedArt=machine.ArtSlot;
         Show();
         try {
             CameraOverrideInstalled=true;
             if(equipment.ItemInstance.ID==WorkshopRules.Bench)Sheet=new SheetView(equipment,SelectedArt);
             else {
-                Cabinet=LSDGameplayMod.Current!.World!.Cabinet(equipment);Cabinet.Frame();
+                Cabinet=WorkshopFeature.Current!.World!.Cabinet(equipment);Cabinet.Frame();
             }
             Refresh();
         }catch{Close();throw;}
@@ -115,9 +115,9 @@ internal sealed class WorkshopPanel : IDisposable
     internal void Close()
     {
         if(!IsOpen)return;ClosedFrame=Time.frameCount;IsOpen=false;Task="";Editing=false;CheckInput=null;CheckExit=false;Root.SetActive(false);
-        LSDGameplayMod.Current?.World?.ResetAnimation(Equipment);Sheet?.Dispose();Sheet=null;
+        WorkshopFeature.Current?.World?.ResetAnimation(Equipment);Sheet?.Dispose();Sheet=null;
         Cabinet?.Reset();Cabinet=null;CabinetMotion=null;CabinetAction=CabinetSheet="";CheckCabinetAdvance=false;
-        LSDGameplayMod.Current?.World?.RefreshMachines(LSDGameplayMod.Current.State);
+        WorkshopFeature.Current?.World?.RefreshMachines(WorkshopFeature.Current.State);
         var camera=PlayerCamera.Instance;
         if(camera){
             camera.RemoveActiveUIElement("OffRegister");
@@ -127,7 +127,7 @@ internal sealed class WorkshopPanel : IDisposable
         if(PlayerMovement.Instance)PlayerMovement.Instance._canMove=PreviousMove;
         if(PlayerInventory.Instance){PlayerInventory.Instance.SetInventoryEnabled(PreviousHotbar);PlayerInventory.Instance.SetEquippingEnabled(PreviousEquipping);}
         CameraOverrideInstalled=false;GameInput.IsTyping=PreviousTyping;Equipment=null;
-        if(MachineId.Length>0 && LSDGameplayMod.Current?.Ready==true){
+        if(MachineId.Length>0 && WorkshopFeature.Current?.Ready==true){
             if(Busy)ReleaseAfterReply=MachineId;else ReleaseMachine(MachineId);
         }
     }
@@ -170,13 +170,12 @@ internal sealed class WorkshopPanel : IDisposable
                 else CabinetAction=CabinetSheet="";
             }
             if(CabinetMotion?.ReadyToCommit==true && command.Action==CabinetAction){
-                CabinetMotion=null;CabinetAction=CabinetSheet="";Cabinet?.Reset();LSDGameplayMod.Current!.World!.RefreshMachines(LSDGameplayMod.Current.State);
+                CabinetMotion=null;CabinetAction=CabinetSheet="";Cabinet?.Reset();WorkshopFeature.Current!.World!.RefreshMachines(WorkshopFeature.Current.State);
             }
             if(reply.Success && command.Action=="introduce"){Close();CollectiveCatalogue.OpenCatalogue();return;}
-            if(reply.Success && command.Action=="draw"){Editing=false;SelectedArt=LSDGameplayMod.Current!.State.Artworks.Last().Slot;}
-            if(reply.Success && command.Action=="testfinish")Task="";
+            if(reply.Success && command.Action=="draw"){Editing=false;SelectedArt=WorkshopFeature.Current!.State.Artworks.Last().Slot;}
             if(reply.Success && command.Action is "start" or "prepare" or "cut" or "resume"){
-                var machine=LSDGameplayMod.Current!.State.Machines.FirstOrDefault(m=>m.Id==MachineId);
+                var machine=WorkshopFeature.Current!.State.Machines.FirstOrDefault(m=>m.Id==MachineId);
                 SelectedArt=machine?.ArtSlot??SelectedArt;
                 Task=machine?.Stage switch{MachineStage.Preparing=>"prepare",MachineStage.Printing=>"print",MachineStage.Cutting=>"finishcut",_=>""};
                 Elapsed=Score=Stable=Progress=CutScore=0;Cuts=0;CuttingStroke=null;RollerStarted=false;ControlX=0.28f;ControlY=0.68f;
@@ -189,7 +188,7 @@ internal sealed class WorkshopPanel : IDisposable
     internal void Refresh()
     {
         if(!IsOpen)return;ClearControls();NameInput.gameObject.SetActive(Editing);
-        var state=LSDGameplayMod.Current!.State;SeenRevision=state.Revision;
+        var state=WorkshopFeature.Current!.State;SeenRevision=state.Revision;
         if(MachineId.Length==0){
             Title.text="OFF REGISTER";Status.text="Independent printers. Find your first edition in the Studio app.";
             Button(state.Introduced ? "Open Studio":"Meet the collective",18,86,250,36,()=>{
@@ -207,7 +206,7 @@ internal sealed class WorkshopPanel : IDisposable
             Status.text=Task=="prepare" ? "Drag the red registration mark onto the green cross and hold it steady. Arrow keys also adjust the sheet."
                 :Task=="print" ? "Drag the roller from the lower edge to the upper edge. Space rolls it steadily as an alternative."
                 :"Drag along each glowing cut line from its start to its end. Space is an alternative.";
-            Message.text="F9: temporary test skip · Esc: leave and keep the batch";return;
+            Message.text="Esc: leave and keep the batch";return;
         }
         if(Editing){BuildDrawing();return;}
         Sheet?.SetArtwork(SelectedArt);Sheet?.ClearGuides();
@@ -215,7 +214,7 @@ internal sealed class WorkshopPanel : IDisposable
             MachineStage.Empty=>"Choose an edition, draw on the paper, or create your next batch.",
             MachineStage.Preparing=>"Sheet loaded. Register it on the lightbox.",MachineStage.Printing=>"Sheet registered. Roll the artwork onto the paper.",
             MachineStage.WetOutput=>$"Wet sheet ready · {machine!.Yield} tabs. Collect it and load the cabinet.",
-            MachineStage.Drying=>$"Drying · {Math.Max(0,machine!.DueMinute-LSDGameplayMod.Minute)} game minutes · F9 skips the wait for testing.",
+            MachineStage.Drying=>$"Drying · {Math.Max(0,machine!.DueMinute-WorkshopFeature.Minute)} game minutes",
             MachineStage.DryOutput=>"Dry sheet ready. Collect it and return to the cutter.",MachineStage.Cutting=>"Dry sheet loaded. Follow the cut guides.",
             _=>$"{machine!.Yield} tabs ready. Collect and package them."};
         if(Equipment?.ItemInstance.ID==WorkshopRules.Cabinet){
@@ -229,10 +228,10 @@ internal sealed class WorkshopPanel : IDisposable
         Message.text="Package finished tabs at a packaging station: baggie · 1, jar · 5, edition sleeve · 20.";
     }
     private void Select(int direction)
-    {var art=LSDGameplayMod.Current!.State.Artworks;var index=art.FindIndex(a=>a.Slot==SelectedArt);SelectedArt=art[(index+direction+art.Count)%art.Count].Slot;Refresh();}
+    {var art=WorkshopFeature.Current!.State.Artworks;var index=art.FindIndex(a=>a.Slot==SelectedArt);SelectedArt=art[(index+direction+art.Count)%art.Count].Slot;Refresh();}
     private void StartDrawing()
     {
-        var art=LSDGameplayMod.Current!.State.Artworks.Single(a=>a.Slot==SelectedArt);Pixels=(byte[])art.Pixels.Clone();Repeated=art.Repeated;
+        var art=WorkshopFeature.Current!.State.Artworks.Single(a=>a.Slot==SelectedArt);Pixels=(byte[])art.Pixels.Clone();Repeated=art.Repeated;
         Editing=true;NameInput.text="";Undo.Clear();Sheet?.Frame(false);Upload();Refresh();
     }
     private void BuildDrawing()
@@ -242,7 +241,7 @@ internal sealed class WorkshopPanel : IDisposable
         Button("−",460,86,34,34,()=>{Brush=Math.Max(1,Brush-1);Refresh();});Button("+",504,86,34,34,()=>{Brush=Math.Min(5,Brush+1);Refresh();});
         Button(Repeated ? "Repeated motif":"Full design",768,86,150,34,()=>{Repeated=!Repeated;Refresh();});
         Button("Undo",928,86,80,34,()=>{if(Undo.Count>0){Pixels=Undo.Pop();Upload();}});Button("Save edition",1018,86,144,34,SaveDrawing);
-        Message.text=$"Brush {Brush} · F9 saves the current drawing for testing · Esc discards unsaved strokes";
+        Message.text=$"Brush {Brush} · use Save to keep the drawing · Esc discards unsaved strokes";
     }
     private void SaveDrawing()=>Send(new(){Action="draw",Name=string.IsNullOrWhiteSpace(NameInput.text) ? "Test edition":NameInput.text,Pixels=Pixels,Repeated=Repeated});
     private void Upload(){DrawingTexture.SetPixels32(new Il2CppStructArray<Color32>(Pixels.Select(p=>StudioAssets.Palette[p]).ToArray()));DrawingTexture.Apply();Sheet?.SetDrawing(DrawingTexture);}
@@ -256,11 +255,10 @@ internal sealed class WorkshopPanel : IDisposable
         if(CheckExit || Keyboard.current?.escapeKey.wasPressedThisFrame==true){Close();return;}
         if(!Player.Local || Player.Local.IsUnconscious || !Player.Local.Health.IsAlive || (MachineId.Length>0 && !Equipment) || (Equipment && Vector3.Distance(Player.Local.transform.position,Equipment!.transform.position)>4)){Close();return;}
         if(CabinetMotion is not null){CabinetTick();return;}
-        if(Keyboard.current?.f9Key.wasPressedThisFrame==true){if(Editing)SaveDrawing();else Send(new(){Action="testfinish"});return;}
         if(Editing){DrawTick();return;}if(Task.Length>0){TaskTick();return;}
-        if(SeenRevision!=LSDGameplayMod.Current!.State.Revision)Refresh();
-        var machine=LSDGameplayMod.Current.State.Machines.FirstOrDefault(m=>m.Id==MachineId);
-        if(machine?.Stage==MachineStage.Drying)Status.text=$"Drying · {Math.Max(0,machine.DueMinute-LSDGameplayMod.Minute)} game minutes · F9 skips the wait for testing.";
+        if(SeenRevision!=WorkshopFeature.Current!.State.Revision)Refresh();
+        var machine=WorkshopFeature.Current.State.Machines.FirstOrDefault(m=>m.Id==MachineId);
+        if(machine?.Stage==MachineStage.Drying)Status.text=$"Drying · {Math.Max(0,machine.DueMinute-WorkshopFeature.Minute)} game minutes";
     }
     private void CabinetTick()
     {
@@ -304,7 +302,7 @@ internal sealed class WorkshopPanel : IDisposable
             ControlY=Math.Clamp(ControlY+((keyboard?.upArrowKey.isPressed==true ? 1:0)-(keyboard?.downArrowKey.isPressed==true ? 1:0))*delta*0.45f*Sheet.ScreenYSign,0,1);
             if(held){ControlX=point.x;ControlY=point.y;}
             var accuracy=Math.Clamp(1-(Math.Abs(ControlX-0.5f)+Math.Abs(ControlY-0.5f))*3,0,1);Stable=accuracy>0.85f ? Stable+delta:Math.Max(0,Stable-delta);Score=accuracy;
-            Message.text=$"Registration {accuracy*100:0}% · hold steady {Math.Clamp(Stable/2.5f,0,1)*100:0}% · F9 test skip";
+            Message.text=$"Registration {accuracy*100:0}% · hold steady {Math.Clamp(Stable/2.5f,0,1)*100:0}%";
             if(Time.realtimeSinceStartup>NextGuide){NextGuide=Time.realtimeSinceStartup+0.05f;Sheet.Registration(new(ControlX,ControlY));}
             if(Stable>=2.5f)Finish(Score);
         }else if(Task=="print"){
@@ -312,16 +310,16 @@ internal sealed class WorkshopPanel : IDisposable
             Sheet.BeginPrinting();var coverage=Sheet.PrintProgress(point.y);
             if(held && coverage<0.18f)RollerStarted=true;if(held && RollerStarted)Progress=Math.Clamp(Math.Max(Progress,coverage),0,1);
             if(space){RollerStarted=true;Progress=Math.Min(1,Progress+delta*0.28f);}
-            Message.text=$"Roller coverage {Progress*100:0}% · F9 test skip";
+            Message.text=$"Roller coverage {Progress*100:0}%";
             if(Time.realtimeSinceStartup>NextGuide){NextGuide=Time.realtimeSinceStartup+0.05f;Sheet.Roller(Progress);Sheet.Print(SelectedArt,Progress);}
-            LSDGameplayMod.Current!.World?.Animate(Equipment,Task,Progress,Sheet);if(Progress>=0.97f && Elapsed>=3)Finish(1);
+            WorkshopFeature.Current!.World?.Animate(Equipment,Task,Progress,Sheet);if(Progress>=0.97f && Elapsed>=3)Finish(1);
         }else{
             var(a,b)=SheetView.CutLine(Cuts);CuttingStroke??=new(a.x,a.y,b.x,b.y);
             if(space)CuttingStroke.Advance(delta);else if(pointer || CheckInput is not null)CuttingStroke.Sample(point.x,point.y,held,delta);
             Progress=CuttingStroke.Progress;
-            Message.text=$"Cut {Cuts+1}/11 · follow the pink line · F9 test skip";
+            Message.text=$"Cut {Cuts+1}/11 · follow the pink line";
             if(Time.realtimeSinceStartup>NextGuide){NextGuide=Time.realtimeSinceStartup+0.05f;Sheet.CutGuide(Cuts,Progress);}
-            LSDGameplayMod.Current!.World?.Animate(Equipment,Task,Progress,Sheet,Cuts);
+            WorkshopFeature.Current!.World?.Animate(Equipment,Task,Progress,Sheet,Cuts);
             if(CuttingStroke.Complete){CutScore+=CuttingStroke.Accuracy;Cuts++;CuttingStroke=null;Progress=0;if(Cuts>=11)Finish(CutScore/11);}
         }
     }

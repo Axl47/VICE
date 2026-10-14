@@ -28,38 +28,5 @@ if ($RebuildArt) {
         throw "Studio bundle build failed. See $unityLog"
     }
 }
-if (-not (Test-Path -LiteralPath (Join-Path $repoRoot 'src\LSDGameplay\Assets\studio.bundle'))) { throw 'Studio assets missing. Build with -RebuildArt.' }
-$contractPath=Join-Path $repoRoot 'src\LSDGameplay\Assets\studio.contract.json'
-if(-not (Test-Path -LiteralPath $contractPath)){throw 'Current studio asset contract missing. Rebuild with -RebuildArt; prototype bundles are no longer accepted.'}
-$contract=Get-Content -LiteralPath $contractPath -Raw | ConvertFrom-Json
-if($contract.schema -ne 2){throw 'Obsolete studio asset contract. Rebuild with -RebuildArt.'}
-foreach($entry in @($contract.bundle)+@($contract.sources)){
-    $asset=Join-Path $repoRoot $entry.path
-    if(-not (Test-Path -LiteralPath $asset) -or (Get-FileHash -LiteralPath $asset -Algorithm SHA256).Hash.ToLowerInvariant() -ne $entry.sha256){throw "Studio asset changed or is obsolete: $($entry.path). Rebuild with -RebuildArt."}
-}
-$nuget = Join-Path $repoRoot 'NuGet.local.config'
-foreach ($project in @('src\LSDGameplay\LSDGameplay.csproj','tests\LSDGameplay\LSDGameplay.Tests.csproj')) {
-    $arguments = @('build',(Join-Path $repoRoot $project),'-c','Release','--nologo','-warnaserror',"-p:GameDir=$GameDir")
-    if (Test-Path -LiteralPath $nuget) { $arguments += @('--configfile',$nuget) }
-    & $DotnetPath @arguments
-    if ($LASTEXITCODE -ne 0) { throw "Workshop compilation failed: $project" }
-}
-& $DotnetPath run --project (Join-Path $repoRoot 'tests\LSDGameplay\LSDGameplay.Tests.csproj') -c Release --no-build --no-restore
-if ($LASTEXITCODE -ne 0) { throw 'Workshop persistence/rule checks failed.' }
-& (Join-Path $PSScriptRoot 'Build-LSDPreview.ps1') -GameDir $GameDir -DotnetPath $DotnetPath
-if (-not $?) { throw 'Integrated visual treatment checks failed.' }
-[xml]$workshopProject=Get-Content -LiteralPath (Join-Path $repoRoot 'src\LSDGameplay\LSDGameplay.csproj') -Raw
-$workshopVersion=[string]$workshopProject.Project.PropertyGroup.Version
-$package = Join-Path $repoRoot "artifacts\LSDGameplay-$workshopVersion"
-$mods = Join-Path $package 'Mods'
-New-Item -ItemType Directory -Path $mods -Force | Out-Null
-foreach ($project in @('LSDGameplay','LSDPreview')) {
-    Copy-Item -LiteralPath (Join-Path $repoRoot "src\$project\bin\Release\net6.0\Personal.$project.dll") -Destination $mods -Force
-}
-Copy-Item -LiteralPath (Join-Path $repoRoot 'docs\lsd-workshop.md') -Destination (Join-Path $package 'README.md') -Force
-$hashes = Get-ChildItem -LiteralPath $mods -File | ForEach-Object { (Get-FileHash -LiteralPath $_.FullName).Hash.ToLowerInvariant()+'  Mods/'+$_.Name }
-$hashes += (Get-FileHash -LiteralPath (Join-Path $package 'README.md')).Hash.ToLowerInvariant()+'  README.md'
-Set-Content -LiteralPath (Join-Path $package 'SHA256SUMS.txt') -Value $hashes -Encoding utf8
-$zip = Join-Path $repoRoot "artifacts\LSDGameplay-$workshopVersion.zip"
-Compress-Archive -LiteralPath $mods,(Join-Path $package 'README.md'),(Join-Path $package 'SHA256SUMS.txt') -DestinationPath $zip -Force
-Write-Output "Built workshop and checked visual treatment: $zip"
+# Compatibility entry point: the workshop and treatment now ship as one VICE module.
+& (Join-Path $PSScriptRoot 'Build-VICE.ps1') -Modules Substances -GameDir $GameDir -DotnetPath $DotnetPath

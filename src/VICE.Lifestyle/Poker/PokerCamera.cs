@@ -102,4 +102,3 @@ internal sealed class PokerCamera : IDisposable
     }
     public void Dispose()=>Lease.Dispose();
 }
-

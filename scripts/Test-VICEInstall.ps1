@@ -13,8 +13,12 @@ Set-Content -LiteralPath (Join-Path $game 'Schedule I.exe') -Value 'fixture'
 Set-Content -LiteralPath (Join-Path $game 'Mods\S1API.Il2Cpp.MelonLoader.dll') -Value 'existing dependency'
 Set-Content -LiteralPath (Join-Path $game 'Mods\VICE.Core.dll') -Value 'duplicate Core'
 Set-Content -LiteralPath (Join-Path $game 'Mods\Personal.LSDPreview.dll') -Value 'unrelated module'
+Set-Content -LiteralPath (Join-Path $game 'Mods\Personal.LSDGameplay.dll') -Value 'legacy workshop'
+New-Item -ItemType Directory -Path (Join-Path $game 'UserData'), (Join-Path $game 'Saves\SaveGame_5\Modded\OffRegister') -Force | Out-Null
+Set-Content -LiteralPath (Join-Path $game 'UserData\MelonPreferences.cfg') -Value '[PersonalLSDPreview] Intensity = 0.27'
+Set-Content -LiteralPath (Join-Path $game 'Saves\SaveGame_5\Modded\OffRegister\Workshop.json') -Value 'existing workshop state'
 Set-Content -LiteralPath (Join-Path $game 'UserLibs\VICE.Core.dll') -Value 'previous Core'
-foreach ($module in @('Commerce','Arsenal','Lifestyle','Interface','Enforcement','Syndicate')) {
+foreach ($module in @('Commerce','Arsenal','Lifestyle','Interface','Enforcement','Syndicate','Substances')) {
     Set-Content -LiteralPath (Join-Path $game "Mods\VICE.$module.dll") -Value "previous $module"
 }
 if ($modules -contains 'Enforcement') {
@@ -50,10 +54,23 @@ foreach ($module in $modules | Where-Object { $_ -in @('Enforcement', 'Syndicate
     New-Item -ItemType Directory -Path (Split-Path $save -Parent) -Force | Out-Null
     Set-Content -LiteralPath $save -Value 'legacy saved record'
 }
-& (Join-Path $PackageDir 'Install-VICE.ps1') -GameDir $game -PackageDir $PackageDir
+if ($modules -contains 'Substances') {
+    $missing = Join-Path $fixture 'missing-substances-dependency'
+    New-Item -ItemType Directory -Path (Join-Path $missing 'Mods'),(Join-Path $missing 'UserLibs') -Force | Out-Null
+    Set-Content -LiteralPath (Join-Path $missing 'Schedule I.exe') -Value 'fixture'
+    Set-Content -LiteralPath (Join-Path $missing 'UserLibs\VICE.Core.dll') -Value 'preserve this Core'
+    foreach ($name in @('Personal.LSDGameplay.dll','Personal.LSDPreview.dll')) { Set-Content -LiteralPath (Join-Path $missing "Mods\$name") -Value $name }
+    $rejected = $false
+    try { & (Join-Path $PackageDir 'Install-VICE.ps1') -GameDir $missing -PackageDir $PackageDir -Modules Substances -AddOns @() } catch { $rejected = $_.Exception.Message -like '*S1API dependency*' }
+    Assert-ExportInstall $rejected 'Substances accepted a missing S1API dependency.'
+    Assert-ExportInstall ((Get-Content -LiteralPath (Join-Path $missing 'UserLibs\VICE.Core.dll') -Raw).Trim() -eq 'preserve this Core') 'Failed Substances preflight replaced Core.'
+    foreach ($name in @('Personal.LSDGameplay.dll','Personal.LSDPreview.dll')) { Assert-ExportInstall ((Get-Content -LiteralPath (Join-Path $missing "Mods\$name") -Raw).Trim() -eq $name) 'Failed Substances preflight removed a predecessor.' }
+}
+$installOutput = @(& (Join-Path $PackageDir 'Install-VICE.ps1') -GameDir $game -PackageDir $PackageDir)
+$backupRoot = ($installOutput[-1] -split 'Previous DLLs backed up outside Mods: ', 2)[1]
 Assert-ExportInstall ((Get-FileHash -LiteralPath (Join-Path $game 'UserLibs\VICE.Core.dll')).Hash -eq (Get-FileHash -LiteralPath (Join-Path $PackageDir 'UserLibs\VICE.Core.dll')).Hash) 'Installer did not update Core.'
 Assert-ExportInstall (-not (Test-Path -LiteralPath (Join-Path $game 'Mods\VICE.Core.dll'))) 'Duplicate Core remained active.'
-foreach ($module in @('Commerce','Arsenal','Lifestyle','Interface','Enforcement','Syndicate')) {
+foreach ($module in @('Commerce','Arsenal','Lifestyle','Interface','Enforcement','Syndicate','Substances')) {
     $target = Join-Path $game "Mods\VICE.$module.dll"
     if ($module -in $modules) {
         Assert-ExportInstall ((Get-FileHash -LiteralPath $target).Hash -eq (Get-FileHash -LiteralPath (Join-Path $PackageDir "Mods\VICE.$module.dll")).Hash) "Wrong installed DLL: $module"
@@ -64,7 +81,17 @@ foreach ($module in @('Commerce','Arsenal','Lifestyle','Interface','Enforcement'
 if ($addOns -contains 'YouTube') {
     Assert-ExportInstall ((Get-FileHash -LiteralPath (Join-Path $game 'Mods\VICE.YouTube.dll')).Hash -eq (Get-FileHash -LiteralPath (Join-Path $PackageDir 'Mods\VICE.YouTube.dll')).Hash) 'YouTube add-on DLL was not installed.'
 } else { Assert-ExportInstall ((Get-Content -LiteralPath (Join-Path $game 'Mods\VICE.YouTube.dll') -Raw).Trim() -eq 'previous YouTube') 'Unselected YouTube add-on changed.' }
-Assert-ExportInstall ((Get-Content -LiteralPath (Join-Path $game 'Mods\Personal.LSDPreview.dll') -Raw).Trim() -eq 'unrelated module') 'Unrelated personal module changed.'
+if ($modules -contains 'Substances') {
+    foreach ($name in @('Personal.LSDGameplay.dll', 'Personal.LSDPreview.dll')) {
+        Assert-ExportInstall (-not (Test-Path -LiteralPath (Join-Path $game "Mods\$name"))) "Substances predecessor remained active: $name"
+        Assert-ExportInstall (Test-Path -LiteralPath (Join-Path $backupRoot "Mods\$name") -PathType Leaf) "Substances predecessor backup missing: $name"
+    }
+} else {
+    Assert-ExportInstall ((Get-Content -LiteralPath (Join-Path $game 'Mods\Personal.LSDPreview.dll') -Raw).Trim() -eq 'unrelated module') 'Unselected LSD preview changed.'
+    Assert-ExportInstall ((Get-Content -LiteralPath (Join-Path $game 'Mods\Personal.LSDGameplay.dll') -Raw).Trim() -eq 'legacy workshop') 'Unselected LSD gameplay changed.'
+}
+Assert-ExportInstall ((Get-Content -LiteralPath (Join-Path $game 'UserData\MelonPreferences.cfg') -Raw).Trim() -eq '[PersonalLSDPreview] Intensity = 0.27') 'Existing effect preferences changed.'
+Assert-ExportInstall ((Get-Content -LiteralPath (Join-Path $game 'Saves\SaveGame_5\Modded\OffRegister\Workshop.json') -Raw).Trim() -eq 'existing workshop state') 'Existing workshop save changed.'
 if ($modules -contains 'Enforcement') {
     Assert-ExportInstall ((Get-Content -LiteralPath (Join-Path $game 'UserData\VICE\Enforcement\config.json') -Raw).Trim() -eq 'personal settings') 'Existing Enforcement settings were overwritten.'
     Assert-ExportInstall (Test-Path -LiteralPath (Join-Path $game 'UserData\VICE\Enforcement\Spawn\patrols.json')) 'Missing Enforcement defaults were not seeded.'
@@ -92,4 +119,29 @@ Set-Content -LiteralPath (Join-Path $extra 'Mods\VICE.Core.dll') -Value 'duplica
 $rejected = $false
 try { & (Join-Path $PSScriptRoot 'Test-VICEPackage.ps1') -PackageDir $extra -ExpectedModules $modules -ExpectedAddOns $addOns } catch { $rejected = $_.Exception.Message -like '*exactly Core*' }
 Assert-ExportInstall $rejected 'An export with extra DLLs passed validation.'
+if ($modules -contains 'Substances') {
+    # A predecessor cannot leak back into either a selective or full release export.
+    foreach ($name in @('Personal.LSDGameplay.dll', 'Personal.LSDPreview.dll')) {
+        $legacyPackage = Join-Path $fixture ([IO.Path]::GetFileNameWithoutExtension($name))
+        Copy-Item -LiteralPath $PackageDir -Destination $legacyPackage -Recurse
+        Set-Content -LiteralPath (Join-Path $legacyPackage "Mods\$name") -Value 'retired predecessor'
+        $rejected = $false
+        try { & (Join-Path $PSScriptRoot 'Test-VICEPackage.ps1') -PackageDir $legacyPackage -ExpectedModules $modules -ExpectedAddOns $addOns } catch { $rejected = $_.Exception.Message -like '*exactly Core*' }
+        Assert-ExportInstall $rejected "An export containing $name passed exact packaging validation."
+    }
+}
+if (Test-Path -LiteralPath "$PackageDir.zip") {
+    $badZip = Join-Path $fixture 'extra-predecessor.zip'
+    Copy-Item -LiteralPath "$PackageDir.zip" -Destination $badZip
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $archive = [IO.Compression.ZipFile]::Open($badZip, [IO.Compression.ZipArchiveMode]::Update)
+    try {
+        $entry = $archive.CreateEntry('Mods/Personal.LSDPreview.dll')
+        $writer = [IO.StreamWriter]::new($entry.Open())
+        try { $writer.Write('retired predecessor') } finally { $writer.Dispose() }
+    } finally { $archive.Dispose() }
+    $rejected = $false
+    try { & (Join-Path $PSScriptRoot 'Test-VICEPackage.ps1') -PackageDir $PackageDir -ExpectedModules $modules -ExpectedAddOns $addOns -ZipPath $badZip } catch { $rejected = $_.Exception.Message -like '*ZIP contents differ*' }
+    Assert-ExportInstall $rejected 'A ZIP containing an extra predecessor DLL passed validation.'
+}
 Write-Host "Verified installer in isolated fixture ($checks checks): Core updated, selected modules only, corrupt export rejected."

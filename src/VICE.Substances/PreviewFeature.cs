@@ -10,13 +10,15 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering.Universal;
 
-[assembly: MelonInfo(typeof(PersonalMods.LSDPreview.LSDPreviewMod), "Personal LSD Visual Preview", "0.12.1", "Axl47")]
-[assembly: MelonGame("TVGS", "Schedule I")]
 
 namespace PersonalMods.LSDPreview;
 
-public sealed class LSDPreviewMod : MelonMod
+internal sealed class PreviewFeature
 {
+    private static readonly bool MigrationDiagnostic = Environment.GetCommandLineArgs().Contains("--lsd-migration-check");
+    internal static PreviewFeature? Current;
+    private HarmonyLib.Harmony HarmonyInstance = null!;
+    internal bool HasActiveEffects => Effects is not null;
     private const float DefaultIntensity = 0.60f, DefaultMotion = 0.50f, DefaultRipple = RippleRange.DefaultStrength,
         DefaultAfterimage = 0.625f, DefaultTextBlur = 0.375f;
     internal static MelonPreferences_Entry<bool> Enabled = null!, WorldVisuals = null!, PhoneEffects = null!;
@@ -39,10 +41,12 @@ public sealed class LSDPreviewMod : MelonMod
     private bool ConsumptionHookAttempted;
     private bool Suspended, LoggedMainLoop, CheckedShader;
 
-    public override void OnInitializeMelon()
+    public void Initialize(HarmonyLib.Harmony harmony)
     {
+        Current = this;
+        HarmonyInstance = harmony;
         var config = MelonPreferences.CreateCategory("PersonalLSDPreview");
-        Enabled = ModSupport.Entry(config, "Enabled", true, "Allow F8 previews and the approved effect when consuming an Off Register LSD tab.");
+        Enabled = ModSupport.Entry(config, "Enabled", true, "Allow the approved visual/audio treatment when consuming an Off Register LSD tab.");
         WorldVisuals = ModSupport.Entry(config, "WorldVisuals", true, "Show faded hallucinations built from the game's character meshes.");
         PhoneEffects = ModSupport.Entry(config, "PhoneEffects", true, "Gentle color breathing and soft colored text fringes on the open phone.");
         Intensity = ModSupport.Entry(config, "Intensity", DefaultIntensity, "Overall artistic effect strength from 0 to 1.");
@@ -60,8 +64,8 @@ public sealed class LSDPreviewMod : MelonMod
         ClosedEyeStrength = ModSupport.Entry(config, "ClosedEyeStrength", ClosedEyeView.DefaultStrength, "Brightness of organic closed-eye circles, spirals and lattices while holding B during a trip, from 0 to 1. Zero keeps eye closure dark without patterns. Phone/dialogue/menus reopen the eyes.");
         GhostModelNPC = ModSupport.Entry(config, "GhostModelNPC", "", "NPC ID or full name used for hallucination meshes. Empty selects a nearby loaded character.");
         UpgradeDefaults(config);
-        LoggerInstance.Msg("LSD visual experiment ready: F8 starts/fades out; F9 clears immediately; hold B for closed-eye patterns. No product is registered.");
-        LoggerInstance.Msg("LSD startup audio hooks removed. Audio observation begins only during an active preview.");
+        MelonLogger.Msg("Off Register consumption treatment ready; hold B during a trip for closed-eye patterns.");
+        MelonLogger.Msg("LSD startup audio hooks removed. Audio observation begins only during an active preview.");
     }
 
     private void UpgradeDefaults(MelonPreferences_Category config)
@@ -83,7 +87,7 @@ public sealed class LSDPreviewMod : MelonMod
         if (revision.Value < 6) changed += Upgrade(RippleStrength, PreviewTuning.PreviousRipple);
         revision.Value = 6;
         config.SaveToFile(false);
-        if (changed > 0) LoggerInstance.Msg("Applied updated LSD preview defaults; custom settings were preserved.");
+        if (changed > 0) MelonLogger.Msg("Applied updated LSD preview defaults; custom settings were preserved.");
     }
 
     private static int Upgrade(MelonPreferences_Entry<float> entry, float previousDefault)
@@ -93,14 +97,14 @@ public sealed class LSDPreviewMod : MelonMod
         return 1;
     }
 
-    public override void OnUpdate()
+    public void OnUpdate()
     {
         try
         {
             if (!LoggedMainLoop)
             {
                 LoggedMainLoop = true;
-                LoggerInstance.Msg("LSD preview main-loop heartbeat: update callbacks are running without audio detours.");
+                MelonLogger.Msg("LSD preview main-loop heartbeat: update callbacks are running without audio detours.");
             }
             // The emergency reset also works while a menu is open or input is blocked.
             var keyboard = Keyboard.current;
@@ -129,16 +133,18 @@ public sealed class LSDPreviewMod : MelonMod
                     }
                 }
             }
-            if (keyboard is not null && keyboard.f9Key.wasPressedThisFrame
-                && !(PlayerCamera.Instance && PlayerCamera.Instance.ActiveUIElements.Contains("OffRegister"))) { WorkshopConsumptions.Clear();Cleanup(); DisposeChecks(); return; }
             if (!Enabled.Value || !TryContext(out var player, out var playerCamera, out var camera)) { Cleanup(); WorkshopConsumptions.Clear(); return; }
             if(!ConsumptionHookAttempted){
                 ConsumptionHookAttempted=true;
-                ModSupport.Patch(HarmonyInstance,typeof(Player),nameof(Player.ConsumeProductInternal),typeof(LSDPreviewMod),
+                ModSupport.Patch(HarmonyInstance,typeof(Player),nameof(Player.ConsumeProductInternal),typeof(PreviewFeature),
+                    postfix:nameof(ProductConsumed),parameters:new[]{typeof(ProductItemInstance)});
+                ModSupport.Patch(HarmonyInstance,typeof(Player),nameof(Player.ConsumeProduct),typeof(PreviewFeature),
                     postfix:nameof(ProductConsumed),parameters:new[]{typeof(ProductItemInstance)});
             }
             var consumed = player.ConsumedProduct;
-            if (WorkshopConsumptions.Take(player.Pointer,out var consumedPointer) && consumed?.Pointer==consumedPointer)
+            var consumptionPending = WorkshopConsumptions.Take(player.Pointer,out var consumedPointer);
+            if (MigrationDiagnostic && consumptionPending) MelonLogger.Msg($"LSD_CONSUMPTION_CHECK pending={consumedPointer}, active={consumed?.Pointer}, id={consumed?.ID}.");
+            if (consumptionPending && consumed?.Pointer==consumedPointer)
             {
                 Cleanup();
                 Effects = new PreviewEffects(camera);
@@ -146,7 +152,7 @@ public sealed class LSDPreviewMod : MelonMod
                 ProductPointer = consumed.Pointer;
                 Timeline.Start(DurationSeconds.Value);
                 EnsureFrameLoop();
-                LoggerInstance.Msg("Off Register tab consumed: approved LSD treatment started/refreshed without stacking.");
+                MelonLogger.Msg("Off Register tab consumed: approved LSD treatment started/refreshed without stacking.");
             }
             if (Effects is not null && (PlayerPointer != player.Pointer
                 || ProductPointer != (player.ConsumedProduct?.Pointer ?? IntPtr.Zero)))
@@ -166,20 +172,6 @@ public sealed class LSDPreviewMod : MelonMod
             var riding = player.IsInVehicle || player.ActiveSkateboard;
             Suspended = PreviewVisibility.Suspend(paused, Application.isFocused, GameInput.IsTyping, menuOpen,
                 riding, playerCamera.CanLook, playerCamera.ActiveUIElementCount > 0);
-            if (keyboard is not null && keyboard.f8Key.wasPressedThisFrame && !Suspended)
-            {
-                if (Timeline.Active) Timeline.RequestStop();
-                else
-                {
-                    // Each preview owns its visual objects and profile.
-                    Effects = new PreviewEffects(camera);
-                    PlayerPointer = player.Pointer;
-                    ProductPointer = player.ConsumedProduct?.Pointer ?? IntPtr.Zero;
-                    Timeline.Start(DurationSeconds.Value);
-                    LoggerInstance.Msg("LSD visual preview started. F9 clears it immediately.");
-                    EnsureFrameLoop();
-                }
-            }
             Timeline.Step(Time.unscaledDeltaTime, Suspended);
             ClosedEyes.Step(Time.unscaledDeltaTime, keyboard is not null && keyboard.bKey.isPressed,
                 ClosedEyeView.CanClose(Timeline.Active, Timeline.IsStopping, paused, Application.isFocused,
@@ -196,11 +188,13 @@ public sealed class LSDPreviewMod : MelonMod
 
     private static void ProductConsumed(Player __instance,ProductItemInstance product)
     {
-        if(__instance && __instance.IsLocalPlayer && product is not null && product.ID.StartsWith("personal.lsd:tab-",StringComparison.Ordinal))
+        if (__instance is null || !__instance || product is null) return;
+        if (MigrationDiagnostic) MelonLogger.Msg($"LSD_CONSUMPTION_CALLBACK local={__instance.IsLocalPlayer}, product={product.ID}, pointer={product.Pointer}, active={__instance.ConsumedProduct?.Pointer}.");
+        if(__instance.IsLocalPlayer && product.ID.StartsWith("personal.lsd:tab-",StringComparison.Ordinal))
             WorkshopConsumptions.Record(__instance.Pointer,product.Pointer);
     }
 
-    public override void OnLateUpdate()
+    public void OnLateUpdate()
     {
         if (Effects is null) return;
         try
@@ -274,14 +268,14 @@ public sealed class LSDPreviewMod : MelonMod
         effects?.Dispose();
     }
 
-    public override void OnSceneWasLoaded(int buildIndex, string sceneName)
-        => LoggerInstance.Msg($"LSD preview observed scene loaded: {sceneName}.");
+    public void OnSceneWasLoaded(int buildIndex, string sceneName)
+        => MelonLogger.Msg($"LSD preview observed scene loaded: {sceneName}.");
     private void DisposeChecks() { CheckAudio?.Dispose(); CheckAudio = null; CheckFrames?.Dispose(); CheckFrames = null; }
-    public override void OnSceneWasUnloaded(int buildIndex, string sceneName)
+    public void OnSceneWasUnloaded(int buildIndex, string sceneName)
     {
         if (sceneName == "Main") { WorkshopConsumptions.Clear();Cleanup(); }
         if (sceneName == "Menu") DisposeChecks();
     }
-    public override void OnApplicationQuit() { WorkshopConsumptions.Clear();Cleanup(); DisposeChecks(); }
-    public override void OnDeinitializeMelon() { WorkshopConsumptions.Clear();Cleanup(); DisposeChecks(); }
+    public void OnApplicationQuit() { WorkshopConsumptions.Clear();Cleanup(); DisposeChecks(); }
+    public void OnDeinitializeMelon() { WorkshopConsumptions.Clear();Cleanup(); DisposeChecks(); Current = null; }
 }

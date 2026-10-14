@@ -42,7 +42,7 @@ internal sealed class WorldHallucinations : IDisposable
             NextTemplate = elapsed + 5;
             try
             {
-                Template = CharacterGhosts.Capture(origin, LSDPreviewMod.GhostModelNPC.Value);
+                Template = CharacterGhosts.Capture(origin, PreviewFeature.GhostModelNPC.Value);
                 MelonLoader.MelonLogger.Msg("LSD hallucination appearance captured from " + Template.SourceName + ".");
             }
             catch (Exception error) { ModSupport.WarnOnce("lsd:character-template", $"LSD character hallucinations are waiting for a model: {error.Message}"); }

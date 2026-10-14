@@ -1,18 +1,18 @@
 # LSD visual preview 0.12.1
 
-This module supplies the visual/audio treatment for the [Off Register workshop](lsd-workshop.md) and remains independently usable as a manual preview. It registers no product itself. Consuming a workshop tab starts a treatment; another tab refreshes it without stacking. **F8** starts a three-minute manual preview or requests a short fade-out. **F9** immediately clears it outside a workshop interaction. Inside workshop controls it saves the drawing or skips the current production stage for testing.
+This visual/audio treatment now ships inside [VICE Substances](vice-substances.md) with the [Off Register workshop](lsd-workshop.md). Consuming a workshop tab starts the treatment; another tab refreshes it without stacking. Manual effect preview/reset and production-skip hotkeys have been removed.
 
 ## What changed
 
 Version 0.12.1 increases screen ripple displacement and lens breathing by another **25% over 0.12.0**. `RippleStrength` rises from `0.375` to `0.46875`; defaults revision 6 upgrades the previous default once and preserves custom strengths. At the stationary default peak, displacement is bounded to **5.90625–8.4375 pixels**, and lens amplitude before Volume blending is **0.0859375**. The absolute 18-pixel displacement and 0.11 lens caps, audio, closed-eye patterns and all other treatment settings stay unchanged.
 
-Version 0.12.0 implements the first [closed-eye patterns](future-closed-eye-patterns.md) pass. During an active manual or workshop-triggered treatment, **hold B** to close the eyes over 0.85 seconds and reveal soft, localized circles, spirals and lattices emerging from darkness. **Release B** to reopen over 0.45 seconds. The existing open-eye parameters, preferences migration and owned echo route remain unchanged.
+Version 0.12.0 implements the first [closed-eye patterns](future-closed-eye-patterns.md) pass. During an active workshop-triggered treatment, **hold B** to close the eyes over 0.85 seconds and reveal soft, localized circles, spirals and lattices emerging from darkness. **Release B** to reopen over 0.45 seconds. The existing open-eye parameters, preferences migration and owned echo route remain unchanged.
 
 Patterns expand and brighten with slow breathing. Brightness follows the trip envelope, overall intensity and the new `ClosedEyeStrength=0.55`; animation speed follows `MotionStrength`. At zero motion the patterns stay still. Zero closed-eye strength keeps closure dark without patterns; zero overall intensity disables closure. Full closure replaces scene detail with a near-black background. It does not stop movement or change game input bindings.
 
-Phone, dialogue, typing, cursor-visible menus, camera UI, blocked look input, pause and focus loss immediately reopen the eyes. Release B before holding again after an interruption. F8 Stop also clears closure immediately while the existing treatment fades out; F9, expiration, loading, death, scene unload and shutdown discard closure state. Camera replacement disposes the previous GPU resources and retains the held-key transition. The echo wet return now follows the smooth eye-closure transition: fully closed eyes make it **45% stronger**, and reopening restores the open-eye level. UI interruptions and Stop immediately remove the boost.
+Phone, dialogue, typing, cursor-visible menus, camera UI, blocked look input, pause and focus loss immediately reopen the eyes. Release B before holding again after an interruption. Expiration, loading, death, scene unload and shutdown discard closure state. Camera replacement disposes the previous GPU resources and retains the held-key transition. The echo wet return now follows the smooth eye-closure transition: fully closed eyes make it **45% stronger**, and reopening restores the open-eye level. UI interruptions immediately remove the boost.
 
-Version 0.11.2 reserves F9 for open workshop controls and preserves the treatment parameters. Version 0.11.1 adds the native workshop-consumption trigger and keeps all 0.11.0 treatment parameters unchanged. It recognizes only the workshop's stable tab IDs and clears/restarts the existing owned effect instance.
+The former standalone preview hotkeys are retired. Version 0.11.1 adds the native workshop-consumption trigger and keeps all 0.11.0 treatment parameters unchanged. It recognizes only the workshop's stable tab IDs and clears/restarts the existing owned effect instance.
 
 The owner approved 0.10.1's subtle motion and audible echo as a baseline. Its fixed source commit, installed DLL hash, captured preference section and implementation formulas are recorded in the [approved baseline](lsd-baseline-0.10.1.md). The old package and an additional DLL/preferences backup remain available locally.
 
@@ -45,7 +45,7 @@ The preview inserts owned native **Echo mixers after the game's main, music and 
 
 The owned mixers preserve the original dry signal at unity gain. They use a **220 ms delay**, decay ratio **0.18**, and a wet return that slowly varies between **29.4% and 36.75%** at default peak settings. Closing the eyes ramps the wet return up by **45%**, to **42.63–53.2875%** at default peak settings, then ramps it back down when they reopen. The absolute 90% wet cap still applies at high custom strengths, and zero AudioStrength stays silent. Delay, decay, dry gain, pulse timing and routing remain approved. Original source settings, game mixer snapshots, category volumes, spatial attenuation and master mute remain under game control. This uses Unity's [native Echo mixer effect](https://docs.unity3d.com/6000.0/Documentation/Manual/class-AudioEchoEffect.html); its serialized type and parameter order were checked against the game's existing Police chatter mixer.
 
-Each native output connection is leased and its previous destination retained. Zero audio strength, pause, listener mute, F9, expiration and cleanup mute the owned wet return and restore connections still owned by the preview. No audio objects or callbacks are initialized during normal startup. The 0.8.1 startup repair remains in place.
+Each native output connection is leased and its previous destination retained. Zero audio strength, pause, listener mute, expiration and cleanup mute the owned wet return and restore connections still owned by the preview. No audio objects or callbacks are initialized during normal startup. The 0.8.1 startup repair remains in place.
 
 ### Ordinary-sized character hallucinations
 
@@ -57,17 +57,17 @@ Only rendering geometry is copied. NPC logic, collisions, audio, particles, aura
 
 Instead of rewriting words, the trial briefly makes their strokes harder to resolve. HUD, dialogue and phone labels receive independently phased bursts of faint offset glyph shadows; signed-distance fonts also vary stroke weight slightly and soften edges. Clearer intervals let the eye recover. Native words, character order, numbers, choices, font sizes, spacing, layout and button targets remain intact. This avoids maintaining alternate dialogue/localizations or changing the meaning of a task or purchase.
 
-`TextFocusStrength=0.50` is blended by the trip envelope and overall intensity. The maximum default added shadow alpha is 0.225, SDF offsets are bounded to 0.27 horizontally and 0.114 vertically in shader units, and additional face dilation to ±0.0135. Legacy shadows use the same timing with small pixel offsets. The effect uses owned font copies/Shadow components, reserves padding once, animates at up to 20Hz and tracks at most 192 combined labels. F9, pause, screen changes and cleanup restore still-owned effects. Native text color and content remain intact.
+`TextFocusStrength=0.50` is blended by the trip envelope and overall intensity. The maximum default added shadow alpha is 0.225, SDF offsets are bounded to 0.27 horizontally and 0.114 vertically in shader units, and additional face dilation to ±0.0135. Legacy shadows use the same timing with small pixel offsets. The effect uses owned font copies/Shadow components, reserves padding once, animates at up to 20Hz and tracks at most 192 combined labels. Pause, screen changes and cleanup restore still-owned effects. Native text color and content remain intact.
 
 The original `TextBlurStrength` stays independent. `TextFocusStrength=0` removes the new treatment. Text legibility and the appearance of loaded dialogue/phone screens remain playtest judgments.
 
 ## Install and use
 
-1. Close the game and replace only `Mods/Personal.LSDPreview.dll` from `LSDPreview-0.12.1.zip`. The preview also works with the existing workshop DLL. Keep backups outside `Mods`.
-2. Restart, load a save and press F8. Allow roughly 30 seconds for the rising phase to reach its peak.
-3. Stand still near a shop wall, window frame or sign and watch several breathing cycles. Then compare F9. Test music at the gas station/shop and footsteps on a quiet street.
+1. Close the game and install the unified [VICE Substances package](vice-substances.md), which backs up and removes both predecessor DLLs.
+2. Restart, load a save and consume an Off Register tab. Allow roughly 30 seconds for the rising phase to reach its peak.
+3. Stand still near a shop wall, window frame or sign and watch several breathing cycles. Compare after the treatment expires or by disabling treatment in preferences. Test music at the gas station/shop and footsteps on a quiet street.
 4. Open the phone, talk to an NPC, move and ride. Effects continue while gameplay runs; only a real pause suspends them. Loading, death, unconsciousness, player/product replacement or scene cleanup clears the preview.
-5. During the trip, hold B while standing still, then release it. Compare `ClosedEyeStrength=0.2` and `0.8`, and test phone, dialogue, typing, pause, movement and F8/F9 while B is held. After a UI interruption, release B before trying again.
+5. During the trip, hold B while standing still, then release it. Compare `ClosedEyeStrength=0.2` and `0.8`, and test phone, dialogue, typing, pause and movement while B is held. After a UI interruption, release B before trying again.
 
 Preferences remain in `UserData/MelonPreferences.cfg`, section `[PersonalLSDPreview]`. Defaults revision 6 upgrades unchanged `RippleStrength=0.375` to `0.46875` once and retains custom values; earlier revision 5 upgraded the original ripple/audio defaults. To replay the approved strengths after upgrading, set `RippleStrength=0.30`, `AudioStrength=0.35`, `TextFocusStrength=0` and keep `DefaultsRevision=6` so deliberate settings are not upgraded again. Set `RippleStrength=0.375` with revision 6 to return to the 0.12.0 distortion strength. Exact historical playback is documented in the [baseline](lsd-baseline-0.10.1.md).
 
@@ -117,7 +117,7 @@ The preserved 0.10.1 baseline menu check at 21:26 had zero-strength identity, 32
 
 The unchanged 0.10.0 audio implementation's default-strength final-listener check measured nearly identical dry tone amplitudes (`0.088909`/`0.088941`) and a 220 ms tail rising from `0.000357` with echo off to `0.018971` with echo on. All three original audio output routes were restored. The owner's subsequent gameplay report confirmed that the echo is audible and the current audio direction works well. No audio sources, mixer settings or echo code changed in 0.10.1.
 
-Loaded-save appearance remains a manual check: watch a stationary wall/sign, look at an NPC face, open the phone, then move/turn/ride and compare F9. Check that figures resemble adult NPC size, motion stays subtle, text/controls remain usable, colors do not become patchy and cleanup is immediate. Inspect the `LSD completed-frame flow rendered`, `LSD direct bus echo` and `LSD character size` lines if a layer is missing. Repeated F8/F9, pause/mute/resume, screen resizing and scene changes should not accumulate resources or effects.
+Loaded-save appearance remains a manual check: watch a stationary wall/sign, look at an NPC face, open the phone, then move/turn/ride and compare after expiration. Check that figures resemble adult NPC size, motion stays subtle, text/controls remain usable, colors do not become patchy and cleanup is immediate. Inspect the `LSD completed-frame flow rendered`, `LSD direct bus echo` and `LSD character size` lines if a layer is missing. Repeated consumption, pause/mute/resume, screen resizing and scene changes should not accumulate resources or effects.
 
 The strong original 0.5.0 displacement remains preserved in [baseline commit eb55537](https://github.com/Axl47/ScheduleOne-Mods/commit/eb55537) and the [future alcohol note](future-alcohol-preview.md). Alcohol remains a future note only.
 

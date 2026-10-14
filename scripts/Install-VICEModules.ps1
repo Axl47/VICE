@@ -1,7 +1,7 @@
 param(
     [string]$GameDir = 'C:\Program Files (x86)\Steam\steamapps\common\Schedule I',
     [string]$PackageDir = '',
-    [ValidateSet('Commerce', 'Arsenal', 'Lifestyle', 'Interface', 'Enforcement', 'Syndicate')]
+    [ValidateSet('Commerce', 'Arsenal', 'Lifestyle', 'Interface', 'Enforcement', 'Syndicate', 'Substances')]
     [string[]]$Modules = @('Commerce', 'Arsenal', 'Lifestyle', 'Interface'),
     [ValidateSet('YouTube')][string[]]$AddOns = @()
 )
@@ -21,8 +21,8 @@ foreach ($process in Get-Process -Name 'Schedule I', 'ScheduleI' -ErrorAction Si
 }
 $Modules = @($Modules | Select-Object -Unique)
 $AddOns = @($AddOns | Select-Object -Unique)
-if ($Modules -contains 'Lifestyle' -and -not (Test-Path -LiteralPath (Join-Path $gameRoot 'Mods\S1API.Il2Cpp.MelonLoader.dll'))) {
-    throw 'Install the IL2CPP S1API dependency before installing VICE Lifestyle.'
+if (($Modules -contains 'Lifestyle' -or $Modules -contains 'Substances') -and -not (Test-Path -LiteralPath (Join-Path $gameRoot 'Mods\S1API.Il2Cpp.MelonLoader.dll'))) {
+    throw 'Install the IL2CPP S1API dependency before installing VICE Lifestyle or Substances.'
 }
 $legacy = @{
     Commerce = @('Personal.Highballer.dll', 'Personal.GasPurchases.dll', 'Personal.Warehouse.dll', 'HighBaller.dll', 'HighBaller_IL2CPP.dll', 'WareHouseAlwaysOpen.dll')
@@ -31,6 +31,7 @@ $legacy = @{
     Interface = @('Personal.UIEnhancements.dll')
     Enforcement = @('Personal.BetterPolice.dll','BetterPolice.dll','NACops.dll','NACops-IL2Cpp.dll','Personal.NACops.dll')
     Syndicate = @()
+    Substances = @('Personal.LSDGameplay.dll', 'Personal.LSDPreview.dll')
 }
 if ($Modules -contains 'Syndicate' -and (Get-ChildItem -LiteralPath (Join-Path $gameRoot 'Mods') -Filter '*CartelEnforcer*.dll' -ErrorAction SilentlyContinue)) {
     throw 'Remove the original Cartel Enforcer DLL before installing VICE Syndicate.'

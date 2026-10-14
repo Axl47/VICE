@@ -13,5 +13,3 @@ internal sealed class PresentationLease<T> : IDisposable
     }
     public void Dispose(){if(!Active)return;Active=false;Restore(Snapshot);}
 }
-
-

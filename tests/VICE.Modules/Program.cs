@@ -68,6 +68,21 @@ var callbacks = new Dictionary<string, (string Callback, string Feature, string 
         ("OnDeinitializeMelon", "AmenitiesFeature", "OnDeinitializeMelon"),
         ("OnDeinitializeMelon", "PokerFeature", "OnDeinitializeMelon")
     },
+    ["Substances"] = new[]
+    {
+        ("OnInitializeMelon", "WorkshopFeature", "Initialize"),
+        ("OnInitializeMelon", "PreviewFeature", "Initialize"),
+        ("OnUpdate", "WorkshopFeature", "OnUpdate"),
+        ("OnUpdate", "PreviewFeature", "OnUpdate"),
+        ("OnLateUpdate", "PreviewFeature", "OnLateUpdate"),
+        ("OnSceneWasLoaded", "PreviewFeature", "OnSceneWasLoaded"),
+        ("OnSceneWasUnloaded", "WorkshopFeature", "OnSceneWasUnloaded"),
+        ("OnSceneWasUnloaded", "PreviewFeature", "OnSceneWasUnloaded"),
+        ("OnApplicationQuit", "WorkshopFeature", "OnApplicationQuit"),
+        ("OnApplicationQuit", "PreviewFeature", "OnApplicationQuit"),
+        ("OnDeinitializeMelon", "WorkshopFeature", "OnDeinitializeMelon"),
+        ("OnDeinitializeMelon", "PreviewFeature", "OnDeinitializeMelon")
+    },
     ["Interface"] = new[]
     {
         ("OnInitializeMelon", "HudFeature", "Initialize"),
@@ -111,6 +126,34 @@ foreach (var (module, expected) in callbacks.Where(pair => selected.Contains(pai
         module + " must release its own Harmony hooks.");
     if (module == "Arsenal") Check(assembly.MainModule.Resources.Any(resource => resource.Name == "Personal.MoreGuns.bundle"),
         "Arsenal must preserve the embedded private weapon bundle lookup.");
+    if (module == "Substances")
+    {
+        var methods = assembly.MainModule.Types.SelectMany(type => type.Methods).Where(method => method.HasBody).ToArray();
+        var calls = methods.SelectMany(method => method.Body.Instructions).Select(instruction => instruction.Operand).OfType<MethodReference>().ToArray();
+        var strings = methods.SelectMany(method => method.Body.Instructions).Select(instruction => instruction.Operand).OfType<string>().ToArray();
+        Check(!calls.Any(call => call.Name is "get_f8Key" or "get_f9Key"), "Substances must not bind debug preview/reset/production hotkeys.");
+        Check(!strings.Contains("testfinish"), "Substances must not expose a network production skip command.");
+        foreach (var resource in new[] { "Personal.LSDGameplay.Studio.bundle", "Personal.LSDPreview.Peripheral.bundle", "Personal.LSDPreview.Echo.bundle" })
+            Check(assembly.MainModule.Resources.Any(candidate => candidate.Name == resource), "Substances must preserve resource lookup: " + resource);
+        foreach (var stable in new[] { "PersonalLSDPreview", "personal.lsd:edition-v1", "Modded", "OffRegister", "Workshop.json" })
+            Check(strings.Contains(stable), "Substances must retain predecessor preference/save identity: " + stable);
+        foreach (var wireType in new[] { "PersonalMods.LSDGameplay.StudioPacket", "PersonalMods.LSDGameplay.StudioCommand", "PersonalMods.LSDGameplay.StudioReply" })
+            Check(assembly.MainModule.Types.Any(type => type.FullName == wireType), "Substances must retain the network type identity: " + wireType);
+        var initializer = entry.Methods.Single(method => method.Name == "OnInitializeMelon");
+        var initStrings = initializer.Body.Instructions.Select(instruction => instruction.Operand).OfType<string>().ToArray();
+        Check(initStrings.Contains("Personal.LSDGameplay") && initStrings.Contains("Personal.LSDPreview"), "Both predecessors must be rejected before installing Substances hooks.");
+        var initCalls = initializer.Body.Instructions.Select(instruction => instruction.Operand).OfType<MethodReference>().ToArray();
+        var compatibilityIndex = Array.FindIndex(initCalls, call => call.Name == "CanInitialize");
+        Check(compatibilityIndex >= 0 && compatibilityIndex < Array.FindIndex(initCalls, call => call.Name == "Initialize"), "Substances compatibility must be checked before feature initialization.");
+        foreach (var predecessor in new[] { "Personal.LSDGameplay", "Personal.LSDPreview" })
+        {
+            AssemblyBuilder.DefineDynamicAssembly(new AssemblyName(predecessor), AssemblyBuilderAccess.Run);
+            Check(!ModuleCompatibility.CanInitialize("VICE Substances", predecessor), "Substances must reject the loaded predecessor: " + predecessor);
+            Check(MelonLoader.MelonLogger.LastError.Contains(predecessor), "Substances conflict error must identify the predecessor: " + predecessor);
+        }
+        Check(calls.Any(call => call.Name == "ConsumeProductInternal") || strings.Contains("ConsumeProductInternal"), "Substances must hook native consumption.");
+        Check(calls.Any(call => call.Name == "ConsumeProduct") || strings.Contains("ConsumeProduct"), "Substances must also handle the installed game's public native consumption path.");
+    }
     if (module == "Lifestyle")
     {
         Check(assembly.MainModule.Resources.Any(resource=>resource.Name=="VICE.Lifestyle.HomeGames.bundle") != args.Contains("--primitive-home-games"),"Lifestyle must embed artwork for ordinary releases and retain a working explicit primitive build.");

@@ -1,0 +1,95 @@
+name: Release VICE
+
+on:
+  push:
+    tags: ['**']
+
+permissions:
+  contents: read
+
+# Deduplicate runs for one tag. The single local runner builds different tags
+# sequentially, without a global concurrency group dropping intermediate tags.
+concurrency:
+  group: vice-release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: [self-hosted, Windows, X64, vice-release]
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      RELEASE_TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ format('refs/tags/{0}', github.ref_name) }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify the tagged checkout
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:RELEASE_TAG -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$') { throw 'Use a filename-safe release tag.' }
+          $tagCommit = git rev-parse --verify "refs/tags/$($env:RELEASE_TAG)^{commit}"
+          if ($LASTEXITCODE -ne 0) { throw 'Release tag does not exist.' }
+          $head = git rev-parse HEAD
+          if ($LASTEXITCODE -ne 0 -or $head -ne $tagCommit) { throw 'Checkout does not match the release tag.' }
+          "RELEASE_COMMIT=$head" >> $env:GITHUB_ENV
+      - name: Build, check and package both downloads
+        env:
+          VICE_GAME_DIR: ${{ vars.VICE_GAME_DIR }}
+        run: |
+          $arguments = @{
+            Tag = $env:RELEASE_TAG
+            Commit = $env:RELEASE_COMMIT
+            OutputDirectory = (Join-Path $env:RUNNER_TEMP "vice-release-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT")
+          }
+          if ($env:VICE_GAME_DIR) { $arguments.GameDir = $env:VICE_GAME_DIR }
+          ./scripts/Build-VICERelease.ps1 @arguments
+          "RELEASE_OUTPUT=$($arguments.OutputDirectory)" >> $env:GITHUB_ENV
+      - name: Upload only the finished release assets
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: vice-release
+          path: |
+            ${{ env.RELEASE_OUTPUT }}/VICE-*.zip
+            ${{ env.RELEASE_OUTPUT }}/SHA256SUMS.txt
+            ${{ env.RELEASE_OUTPUT }}/release-notes.md
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: vice-release
+          path: release
+      - name: Attach complete assets and publish the tagged release
+        working-directory: release
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum --check SHA256SUMS.txt
+          if gh release view "$RELEASE_TAG" --json isDraft > existing-release.json 2>/dev/null; then
+            if ! jq -e '.isDraft == true' existing-release.json > /dev/null; then
+              echo 'This tag already has a published release. Use a new tag; published assets are not replaced.' >&2
+              exit 1
+            fi
+            gh release upload "$RELEASE_TAG" "VICE-$RELEASE_TAG.zip" "VICE-YouTube-Companion-$RELEASE_TAG.zip" SHA256SUMS.txt --clobber
+          else
+            gh release create "$RELEASE_TAG" "VICE-$RELEASE_TAG.zip" "VICE-YouTube-Companion-$RELEASE_TAG.zip" SHA256SUMS.txt --verify-tag --draft --title "VICE $RELEASE_TAG" --notes-file release-notes.md
+          fi
+          prerelease=false
+          if [[ "$RELEASE_TAG" == *-* ]]; then prerelease=true; fi
+          gh release edit "$RELEASE_TAG" --title "VICE $RELEASE_TAG" --notes-file release-notes.md --prerelease="$prerelease" --draft=false

@@ -1,4 +1,4 @@
-# VICE Lifestyle 0.3.0 cash poker prototype
+# Cash poker
 
 Poker is an ordinary Lifestyle feature, built into `VICE.Lifestyle.dll` with shared file services in `VICE.Core.dll`. It uses primitive furniture, physical card/cash representations and native fonts. No home-games asset bundle, dealer model or additional gameplay DLL is required.
 
@@ -38,35 +38,29 @@ TurnTimeoutSeconds = 60
 
 Enabled controls shop availability; definitions stay registered for saved furniture. Host timeout is clamped to 10–300 real seconds and adopted when a session is configured. Timeout checks when possible and otherwise folds, with feedback. Native saving and wallet reservation pause the table's turn clock. Up to 32 tables may be tracked at once; cash out old tables before adding more.
 
-## Authority, money and persistence
+## Money and saves
 
-FishNet authenticates requests and maps the sender's connection to its loaded native Player. Stable native `PlayerCode` identifies funds across reconnects; client-supplied player IDs are never used. The host owns the deck, legal actions, hand evaluation and settlement. Epoch, table instance, revision and request tokens reject stale/duplicate actions. Snapshots are constructed per recipient; they contain only that recipient's private cards and legitimately revealed cards. They never include the deck or other unrevealed hands. The host necessarily knows every hand.
+The host controls cards, rules, and settlement. Hole cards are private to their owner unless legitimately revealed. Pocket cash and table stacks are separate; payouts return to the original player.
 
-Installed native inspection established that `MoneyManager.cashInstance` reads the **local** `PlayerInventory.cashInstance`. It is unsuitable for charging a guest from the host. The feature instead reads the authenticated player's replicated `_inventory`, cross-checks a targeted owner reservation against that replica, and updates the owner's local cash instance through a targeted message. The inspected layout has eight hotbar slots followed by pocket cash at index 8. A cleared zero-cash slot can receive a payout; physical cash items in hotbar slots are preserved and excluded from the wallet. A different inventory layout fails closed. It updates the native host replica before releasing a transfer. No shared online balance is used.
-
-The durable host record is:
+The host settlement record is:
 
 ```text
 <loaded save>/Modded/VICE/Poker/settlement.json
 ```
 
-Every accepted game action persists the host state. A money transfer writes an intent containing the proposed table state, native before/after cash and original inventory hash, then atomically checkpoints that player's native `Players/<Player.SaveFolderName>/Inventory.json`, then commits the ledger. The native inventory's other fields are preserved. Each replacement flushes data and keeps a `.bak`. Poker transfers therefore checkpoint the player's current inventory immediately; quitting without a normal game save does not undo the escrow transaction. The rest of the game continues to use its ordinary save behavior.
+Buy-ins and cash-outs checkpoint native player inventory immediately. Quitting without a normal save does not undo the transfer. Saving waits for outstanding wallet acknowledgements; table actions pause during saving and short wallet reservations.
 
-Native saving waits for outstanding wallet acknowledgements; new poker actions wait for saving to finish. A native save to another folder receives a paired poker checkpoint there. During a short wallet reservation, movement/equipping is suspended and unrelated native cash deltas are deferred until release. Duplicate reservation, application and completion requests cannot repeat a debit or credit. If a process stops between file writes, recovery commits a transfer whose native after-value is present, or cancels an intent whose original inventory file is unchanged. Ambiguous cash, a corrupt ledger or a missing primary ledger with a backup blocks automatic recovery. Preserve those files and resolve the discrepancy before continuing; the code never guesses which party should receive another payment.
+After a host restart or reload, an interrupted hand is aborted: each player retains their remaining stack plus their own contributions. Offline funds stay owed and are paid on reconnect. Furniture cannot be removed while funds or transfers remain unsettled.
 
-On load or host shutdown, an interrupted hand is aborted without a winner: each player retains their own remaining stack plus their own contributions. Those funds are queued for cash-out. Offline funds stay owed under their persistent player identity. Recovery and repeated reconnects do not replay completed transfers. The table cannot be packed up or destroyed while cash or a wallet transfer remains unsettled. If another mod forcibly removes the furniture, its ledger entry survives and the interrupted hand's original funds remain payable.
+Ambiguous cash or damaged settlement records block automatic recovery. Preserve the files and resolve the discrepancy before continuing; recovery does not guess or repeat a payment.
 
-Native cash is a float with a $1,000,000,000 cap. Table accounting is integer dollars. A native debit/credit is accepted only when the float changes by **exactly** that integer amount. Buy-ins that would round fractional cash, exceed the cap or lack sufficient funds are rejected. Cash-out pays the largest representable whole-dollar amount that fits, retaining any remainder as money owed at the table. If no exact amount fits, nothing is paid. This can matter at large balances or when crossing a float precision boundary; spend pocket cash normally and retry instead of rounding or minting a difference.
+Native cash must change by exactly the whole-dollar transfer amount. At large balances or fractional-cash boundaries, an inexact buy-in is rejected; cash-out retains any amount that cannot be paid exactly. Spend pocket cash normally and retry.
 
-Back up or restore the entire save, including **Players and Modded/VICE/Poker**, together while the game is closed. Restoring only a wallet or only the poker ledger breaks the settlement checkpoint. Keep matching mod definitions installed while custom tables or owed cash remain in a save.
+Back up or restore the entire save, including **Players and Modded/VICE/Poker**, together while the game is closed. Keep matching definitions installed while custom tables or owed cash remain.
 
-## Build and validation
+## Live checks
 
-Use the normal `scripts/Build-VICE.ps1 -Modules Lifestyle` export, which preserves the committed 0.2.2 pool/darts cameras and accepted artwork. On a clean checkout without its ignored bundle or Unity, add `-PrimitiveHomeGames` to build the complete poker prototype with pool/darts fallback meshes. The existing Lifestyle test executable covers poker automatically. Add `--exhaustive-poker` to its runtime arguments to enumerate all 2,598,960 five-card combinations. The model-worker contract is [vice-poker-model-worker-prompt.md](vice-poker-model-worker-prompt.md).
-
-Automated checks cover all nine hand categories and kickers/ties, heads-up/four-seat flow, short and cumulative raises, varying-stack all-ins, side pots, odd-dollar splits, uncalled refunds, randomized cash conservation, private snapshots, duplicate/stale requests, departure/all-in eligibility, control lease restoration and journal recovery before/after a native write. Native patch address sharing is checked against the installed Cpp2IL metadata. Build and export fixtures check the current Core/Lifestyle pair.
-
-These checks do **not** establish a genuine multiplayer session, native wallet/save timing, shop/placement usability, world-console clickability, or final camera/card readability. No live game installation or user's live save was changed for this work. Remaining checks must use a closed-game copied save:
+Poker remains experimental. Genuine multiplayer wallet/save timing, placement, controls, and camera/card readability require checks on a copied save:
 
 1. Buy/place a table; verify the full console and private cards from all four seats, then restore movement/cursor/equipping after leaving and loading another scene.
 2. Run two real clients, then four. Buy in from each distinct wallet; verify untouched pocket remainders, matching host replicas, no duplicate charge on retries and no guest private cards in spectator packets.
@@ -74,4 +68,4 @@ These checks do **not** establish a genuine multiplayer session, native wallet/s
 4. Disconnect/reconnect a caller and an all-in player; sleep/die during a hand; restart the host with an interrupted hand; verify each owed amount is paid exactly once.
 5. Save while a transfer is pending, reload, and attempt furniture removal with funds present. Check failed/ambiguous recovery preserves records and blocks another payment.
 
-Final 3D artwork can replace the placeholders later without changing the rule or money code.
+See the [build guide](vice-build.md) and [data guide](vice-user-data.md).

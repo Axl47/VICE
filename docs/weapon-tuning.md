@@ -1,20 +1,25 @@
-# More Guns 0.2.0
+# VICE Arsenal weapons and tuning
 
-Requested changes target the existing AK47 and minigun on the IL2CPP 0.4.7f7 beta. Install only the updated `Personal.MoreGuns.dll` when the earlier six-mod package is already working.
+Arsenal adds an **AK47 ($15,000, 30 rounds)** and **minigun ($75,000, 400 rounds)** to the arms dealer, with matching spare magazines. Both support automatic firing and magazine reloads. Purchase rank restrictions default off.
 
-| Behavior | New default |
-| --- | --- |
-| AK47 bullet spread | 1.4–4.2 degrees, down from 2–6. |
-| Minigun bullet spread | 2–4 degrees, down from 4–8. |
-| Bullet impact force | AK47 130, minigun 195: both 35% below the previous player-weapon values. Damage is unchanged. |
-| Weapon sound gain | AK47 0.4×, minigun 0.25× the recovered original sound levels, followed by the game's master/effects settings. |
-| Firing camera movement | Short native shake with strength setting 0.5. The original jolt can be restored with 1 or disabled with 0. |
-| Minigun spin-up | The bundle's `MiniGun Windup` barrel animation loops and accelerates while aiming. Reload, unequip and input blocking stop it; aim release plays spin-down sound. |
+Hold aim to spin up the minigun before firing. Releasing aim, reloading, switching weapons, or blocked input resets the delay.
 
-The reload animation was working, but the owner's log shows `TrashItem.Initialize` throwing while the AK47 magazine is discarded. Inspection of the installed native reload coroutine confirms that it consumes the spare before creating trash and sets the weapon's ammo afterward. The old bundle provides generic `Draggable`; the beta requires `TrashItemDraggable`. The prefab is repaired in memory, including its renamed `Id`, body, interaction and trash references. If the prefab cannot be repaired, cosmetic discard is skipped while normal reload remains available.
+## Configuration
 
-The beta also renamed audio-controller fields. The patch explicitly restores the bundle's fire/reload/spin levels and applies the native master/effects calculation. Repeated refreshes use a fixed base level, so volume cannot compound downward. Both local and avatar weapon sounds are configured.
+Edit `UserData/MelonPreferences.cfg` while the game is closed. Category `PersonalMoreGuns` controls module enablement; `PersonalMoreGuns_ak47` and `PersonalMoreGuns_minigun` control each weapon. These names are retained for compatibility.
 
-Avatar replacement clears stale models before equipping the next one and supplies an empty equip-clip array when required by the beta. This addresses the model-switch errors in the owner's log. Camera customization is restricted to each custom weapon's synchronous native firing call; a finalizer restores that scope even if firing throws.
+| Setting | AK47 default | Minigun default |
+| --- | --- | --- |
+| `SpreadMultiplier` | 0.7 | 0.5 |
+| `ImpactForceMultiplier` | 0.65 | 0.65 |
+| `SoundVolumeMultiplier` | 0.4 | 0.25 |
+| `CameraShakeMultiplier` | 0.5 | 0.5 |
+| `RequirePurchaseRank` | false | false |
 
-Build/API/native-address audits and automated spin-up timing checks are recorded in `validation.md`. The new trash component, sound controls, animation appearance and camera strength still require the owner's next in-game run; see step 6 of `playtest.md`.
+Lower spread tightens shots. Impact force changes knockback. Sound gain also follows master/effects sliders. Camera shake can be disabled with 0 or restored to its original strength with 1. Other settings cover prices, damage, fire interval, magazine size, and windup duration.
+
+## Saves and troubleshooting
+
+Keep Arsenal installed while custom guns, magazines, or discarded magazines exist in a save. `Enabled=false` stops shop/input additions while retaining item definitions for loading.
+
+After updates, check full/partial reloads, weapon switching, minigun spin-up, audio sliders, and saved-item persistence on a copied save. Report relevant `MelonLoader/Latest.log` errors. See the [playtest checklist](playtest.md) and [asset credits](provenance.md).

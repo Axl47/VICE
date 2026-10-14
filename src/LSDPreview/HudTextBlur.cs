@@ -45,7 +45,7 @@ internal sealed class HudTextBlur : IDisposable
         if (Disposed) return;
         if (amount <= 0 && focusAmount <= 0) { Restore(); return; }
         var phone = Phone.Instance;
-        var phoneOpen = LSDPreviewMod.PhoneEffects.Value && phone && phone.IsOpen;
+        var phoneOpen = PreviewFeature.PhoneEffects.Value && phone && phone.IsOpen;
         var app = phoneOpen && Phone.ActiveApp ? Phone.ActiveApp.Pointer : IntPtr.Zero;
         var dialogue = DialogueCanvas.Instance;
         var dialogueOpen = dialogue && dialogue.IsOpen;
