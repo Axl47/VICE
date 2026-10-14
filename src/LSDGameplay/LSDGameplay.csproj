@@ -8,4 +8,5 @@
     <EmbeddedResource Include="Assets/studio.bundle" LogicalName="Personal.LSDGameplay.Studio.bundle" />
     <EmbeddedResource Include="Assets/Icons/*.png" LogicalName="Personal.LSDGameplay.Icons.%(Filename).png" />
   </ItemGroup>
+  <Target Name="RetiredPredecessor" BeforeTargets="PrepareForBuild"><Error Text="This predecessor is retired. Build src/VICE.Substances/VICE.Substances.csproj or scripts/Build-VICE.ps1 -Modules Substances." /></Target>
 </Project>

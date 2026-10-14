@@ -1,4 +1,4 @@
-param([Parameter(Mandatory)][string]$PackageDir, [string[]]$ExpectedModules = @(), [string[]]$ExpectedAddOns = @())
+param([Parameter(Mandatory)][string]$PackageDir, [string[]]$ExpectedModules = @(), [string[]]$ExpectedAddOns = @(), [string]$ZipPath = '')
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path -LiteralPath $PackageDir).Path
 $metadata = Get-Content -LiteralPath (Join-Path $root 'package.json') -Raw | ConvertFrom-Json
@@ -33,5 +33,23 @@ foreach ($record in $manifest) {
 }
 foreach ($file in Get-ChildItem -LiteralPath $root -Recurse -File | Where-Object Name -ne 'hashes.json') {
     if (-not $seen.ContainsKey($file.FullName)) { throw "Unhashed package file: $($file.FullName)" }
+}
+if (-not $ZipPath -and (Test-Path -LiteralPath "$root.zip")) { $ZipPath = "$root.zip" }
+if ($ZipPath) {
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $archive = [IO.Compression.ZipFile]::OpenRead((Resolve-Path -LiteralPath $ZipPath).Path)
+    try {
+        $entries = @($archive.Entries | Where-Object { $_.Name })
+        $expectedFiles = @(Get-ChildItem -LiteralPath $root -File -Recurse | ForEach-Object { $_.FullName.Substring($root.Length + 1).Replace('\', '/') })
+        $actualFiles = @($entries | ForEach-Object { $_.FullName.Replace('\', '/') })
+        if (@(Compare-Object $expectedFiles $actualFiles).Count -or @($actualFiles | Sort-Object -Unique).Count -ne $actualFiles.Count) { throw 'ZIP contents differ from the exact validated package.' }
+        foreach ($entry in $entries) {
+            $stream = $entry.Open()
+            $hasher = [Security.Cryptography.SHA256]::Create()
+            try { $hash = [BitConverter]::ToString($hasher.ComputeHash($stream)).Replace('-', '') }
+            finally { $stream.Dispose(); $hasher.Dispose() }
+            if ($hash -ne (Get-FileHash -LiteralPath (Join-Path $root $entry.FullName) -Algorithm SHA256).Hash) { throw "ZIP hash mismatch: $($entry.FullName)" }
+        }
+    } finally { $archive.Dispose() }
 }
 Write-Host "Verified export: one Core, $($ExpectedModules.Count) modules and $($ExpectedAddOns.Count) add-ons; all files hashed."

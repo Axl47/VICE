@@ -1,12 +1,15 @@
 param(
-    [ValidateSet('Commerce', 'Arsenal', 'Lifestyle', 'Interface', 'Enforcement', 'Syndicate')]
+    [ValidateSet('Commerce', 'Arsenal', 'Lifestyle', 'Interface', 'Enforcement', 'Syndicate', 'Substances')]
     [string[]]$Modules = @(),
     [ValidateSet('YouTube')][string[]]$AddOns = @(),
+    [switch]$All,
     [string]$OutputDirectory = ''
 )
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path $PSScriptRoot -Parent
-$names = @('Commerce','Arsenal','Lifestyle','Interface','Enforcement','Syndicate')
+if ($All -and $Modules.Count) { throw 'Use either -All or -Modules.' }
+$names = @('Commerce','Arsenal','Lifestyle','Interface','Enforcement','Syndicate','Substances')
+if ($All) { $Modules = @($names) }
 $Modules = @($names | Where-Object { $_ -in $Modules } | Sort-Object)
 $AddOns = @($AddOns | Sort-Object -Unique)
 if (-not $OutputDirectory) { $OutputDirectory = Join-Path $repoRoot 'artifacts' }

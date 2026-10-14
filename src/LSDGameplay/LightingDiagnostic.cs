@@ -11,14 +11,14 @@ namespace PersonalMods.LSDGameplay;
 // Opt-in comparison on a caller-provided save copy. No saving or normal-play fixtures.
 internal sealed class LightingDiagnostic
 {
-    private readonly LSDGameplayMod Mod;
+    private readonly WorkshopFeature Mod;
     private readonly string Output;
     private BuildableItem? Bench,Station;
     private Light? Key;
     private Vector3 Target;
     private int Phase;
     private float Next;
-    internal LightingDiagnostic(LSDGameplayMod mod,string output){Mod=mod;Output=output;}
+    internal LightingDiagnostic(WorkshopFeature mod,string output){Mod=mod;Output=output;}
     internal bool Tick()
     {
         if(Time.realtimeSinceStartup<Next)return false;

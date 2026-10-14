@@ -50,7 +50,7 @@ public sealed class CollectiveCatalogue : PhoneApp
     internal static void UpdateStatus()=>Instance?.Refresh();
     internal static void Tick()
     {
-        if(PendingOrder is {} order && LSDGameplayMod.Current?.Ready==true && Time.realtimeSinceStartup-SubmittedAt>8){
+        if(PendingOrder is {} order && WorkshopFeature.Current?.Ready==true && Time.realtimeSinceStartup-SubmittedAt>8){
             SubmittedAt=Time.realtimeSinceStartup;WorkshopNetwork.Submit(order);
         }
         if(Instance?.PendingOpen==true && Il2CppScheduleOne.UI.Phone.Phone.Instance.State.IsActive){
@@ -72,10 +72,10 @@ public sealed class CollectiveCatalogue : PhoneApp
     private void Refresh()
     {
         if (Status is null || !Status) return;
-        var current=LSDGameplayMod.Current;
+        var current=WorkshopFeature.Current;
         if (current?.Ready!=true || !current.State.Introduced) { Status.text="Find our sticker inside the owned Sewer Office before ordering.";return; }
         var lines=current.State.Orders.TakeLast(4).Select(o=>$"{o.Quantity} parcel{(o.Quantity==1 ? "" : "s")} · "+(o.Stage==OrderStage.InTransit
-            ? $"arriving in {Math.Max(0,o.DueMinute-LSDGameplayMod.Minute)} min" : o.Stage==OrderStage.WaitingForSpace ? "pallet full" : "delivered"));
+            ? $"arriving in {Math.Max(0,o.DueMinute-WorkshopFeature.Minute)} min" : o.Stage==OrderStage.WaitingForSpace ? "pallet full" : "delivered"));
         Status.text=(OrderMessage.Length>0 ? OrderMessage+"\n\n":"")+
             (current.State.Orders.Count==0 ? "No orders yet." : string.Join("\n\n",lines))+"\n\nPick up at Dan's Hardware.\nFollow the purple star.";
     }

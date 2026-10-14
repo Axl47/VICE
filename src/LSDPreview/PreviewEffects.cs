@@ -87,13 +87,13 @@ internal sealed class PreviewEffects : IDisposable
         Colors.hueShift.value = Mathf.Sin(elapsed * 0.18f) * 24;
         var filter = Color.Lerp(new Color(0.97f, 1, 0.99f), new Color(1, 0.96f, 1),
             0.5f + 0.5f * Mathf.Sin(elapsed * 0.13f));
-        var gain = ColorBreathing.Sample(new SurfaceTint(1, 1, 1, 1), 7, elapsed, Strength(LSDPreviewMod.MaterialColorStrength));
+        var gain = ColorBreathing.Sample(new SurfaceTint(1, 1, 1, 1), 7, elapsed, Strength(PreviewFeature.MaterialColorStrength));
         Colors.colorFilter.value = new Color(filter.r * gain.Red, filter.g * gain.Green, filter.b * gain.Blue, filter.a);
         var movement = UpdateComfort(amount > 0);
         if (Breathing is not null && Breathing)
-            Breathing.intensity.value = RippleRange.LensBreathing(elapsed, Strength(LSDPreviewMod.RippleStrength), motion, movement);
+            Breathing.intensity.value = RippleRange.LensBreathing(elapsed, Strength(PreviewFeature.RippleStrength), motion, movement);
         Chromatic.intensity.value = 0.09f * motion;
-        var outline = Strength(LSDPreviewMod.OutlineStrength);
+        var outline = Strength(PreviewFeature.OutlineStrength);
         if (Cartoon is not null && Cartoon)
         {
             Cartoon.outline.overrideState = Cartoon.sharpenIntensity.overrideState = outline > 0;
@@ -105,22 +105,22 @@ internal sealed class PreviewEffects : IDisposable
         if (amount > 0)
         {
             TryLayer(ref Ripples, ref AttemptedRipples, () => new SurfaceRipples(Camera), "ripples");
-            if (LSDPreviewMod.PhoneEffects.Value && Strength(LSDPreviewMod.MaterialColorStrength) > 0)
+            if (PreviewFeature.PhoneEffects.Value && Strength(PreviewFeature.MaterialColorStrength) > 0)
                 TryLayer(ref PhoneColors, ref AttemptedColors, () => new PhoneColorBreathing(), "phone colors");
-            if (Strength(LSDPreviewMod.AudioStrength) > 0)
+            if (Strength(PreviewFeature.AudioStrength) > 0)
                 TryLayer(ref Audio, ref AttemptedAudio, () => new PreviewAudio(), "audio");
-            if (Strength(LSDPreviewMod.AfterimageStrength) * motion > 0)
+            if (Strength(PreviewFeature.AfterimageStrength) * motion > 0)
                 TryLayer(ref Trails, ref AttemptedTrails, () => new Afterimages(Camera), "afterimages");
-            if (Strength(LSDPreviewMod.TextBlurStrength) > 0 || Strength(LSDPreviewMod.TextFocusStrength) > 0)
+            if (Strength(PreviewFeature.TextBlurStrength) > 0 || Strength(PreviewFeature.TextFocusStrength) > 0)
                 TryLayer(ref Text, ref AttemptedText, () => new HudTextBlur(), "text");
         }
-        Ripples?.Tick(elapsed, amount, Strength(LSDPreviewMod.RippleStrength), motion, movement,
-            amount > 0 ? closedEyes : 0, amount * Strength(LSDPreviewMod.ClosedEyeStrength));
-        PhoneColors?.Tick(elapsed, LSDPreviewMod.PhoneEffects.Value ? amount * Strength(LSDPreviewMod.MaterialColorStrength) : 0);
-        Audio?.Tick(elapsed, amount * Strength(LSDPreviewMod.AudioStrength), closedEyes);
-        Trails?.Tick(amount * Strength(LSDPreviewMod.AfterimageStrength) * motion);
-        Text?.Tick(elapsed, amount * Strength(LSDPreviewMod.TextBlurStrength), amount * Strength(LSDPreviewMod.TextFocusStrength));
-        var hallucination = Strength(LSDPreviewMod.HallucinationStrength);
+        Ripples?.Tick(elapsed, amount, Strength(PreviewFeature.RippleStrength), motion, movement,
+            amount > 0 ? closedEyes : 0, amount * Strength(PreviewFeature.ClosedEyeStrength));
+        PhoneColors?.Tick(elapsed, PreviewFeature.PhoneEffects.Value ? amount * Strength(PreviewFeature.MaterialColorStrength) : 0);
+        Audio?.Tick(elapsed, amount * Strength(PreviewFeature.AudioStrength), closedEyes);
+        Trails?.Tick(amount * Strength(PreviewFeature.AfterimageStrength) * motion);
+        Text?.Tick(elapsed, amount * Strength(PreviewFeature.TextBlurStrength), amount * Strength(PreviewFeature.TextFocusStrength));
+        var hallucination = Strength(PreviewFeature.HallucinationStrength);
         if (worldVisuals && amount > 0 && hallucination > 0)
         {
             if (World is null && !AttemptedWorld)

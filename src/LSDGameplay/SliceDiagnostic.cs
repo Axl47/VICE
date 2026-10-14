@@ -16,9 +16,10 @@ namespace PersonalMods.LSDGameplay;
 internal sealed class SliceDiagnostic
 {
     private static bool Started;
-    private readonly LSDGameplayMod Mod;
+    private readonly WorkshopFeature Mod;
     private readonly string Output;
     private readonly bool Exercise,Reload;
+    private readonly bool MigrationCheck;
     private readonly bool SheetCheck;
     private readonly bool PackagingCheck;
     private readonly bool PrismCheck;
@@ -33,7 +34,7 @@ internal sealed class SliceDiagnostic
     private LightingDiagnostic? Lighting;
     private readonly bool TutorialCheck;
     private TutorialDiagnostic? Tutorial;
-    internal bool TutorialChecking=>TutorialCheck && !Completed;
+    internal bool ExclusiveChecking=>(TutorialCheck || MigrationCheck) && !Completed;
     private readonly List<GameObject> ArtDisplay=new();
     private readonly Dictionary<IntPtr,bool> ArtVisibility=new();
     private Il2CppScheduleOne.ObjectScripts.PackagingStation? PhysicsStation;
@@ -47,12 +48,13 @@ internal sealed class SliceDiagnostic
     private int EquippedBefore;
     private bool EquippingBefore,HotbarBefore;
     private float CutDeadline,StageDeadline;
-    internal SliceDiagnostic(LSDGameplayMod mod)
+    internal SliceDiagnostic(WorkshopFeature mod)
     {
         Mod=mod;var args=Environment.GetCommandLineArgs();
         Output=args.FirstOrDefault(a=>a.StartsWith("--lsd-check-output="))?[19..] ?? "";
         Exercise=args.Contains("--lsd-slice-exercise") && Output.Length>0;
         Reload=args.Contains("--lsd-slice-reload") && Output.Length>0;
+        MigrationCheck=args.Contains("--lsd-migration-check") && Output.Length>0;
         SheetCheck=args.Contains("--lsd-sheet-check") && Output.Length>0;
         PackagingCheck=args.Contains("--lsd-packaging-check") && Output.Length>0;
         PrismCheck=args.Contains("--lsd-prism-check") && Output.Length>0;
@@ -77,27 +79,30 @@ internal sealed class SliceDiagnostic
                 throw new InvalidOperationException("Isolated diagnostics refuse registered native save folders. Copy the save to the output directory first.");
             Started=true;MelonLogger.Msg("LSD_ISOLATED_CHECK loading save copy.");manager.StartGame(info,false,false);return;
         }
-        if (!manager || manager.IsLoading || LoadManager.SaveGames is null || LoadManager.SaveGames.Length<5 || LoadManager.SaveGames[4] is null) return;
-        Started=true;MelonLogger.Msg("LSD_SLICE_CHECK loading only copied save slot five.");
+        if (!manager || manager.IsLoading) return;
         var isolated=Environment.GetCommandLineArgs().FirstOrDefault(a=>a.StartsWith("--lsd-isolated-save="))?[20..];
         if(isolated is not null){
             var path=Path.GetFullPath(isolated).TrimEnd(Path.DirectorySeparatorChar);
             if(!Path.IsPathFullyQualified(isolated) || Path.GetFileName(path)!="SaveGame_5"
-                || LoadManager.SaveGames.ToArray().Any(s=>s is not null && Path.GetFullPath(s.SavePath).TrimEnd(Path.DirectorySeparatorChar)==path)
+                || (LoadManager.SaveGames is not null && LoadManager.SaveGames.ToArray().Any(s=>s is not null && Path.GetFullPath(s.SavePath).TrimEnd(Path.DirectorySeparatorChar)==path))
                 || !LoadManager.TryLoadSaveInfo(path,4,out var copy,true)){
                 MelonLogger.Error("LSD isolated diagnostic refused an invalid or registered save path.");Application.Quit();return;
             }
+            Started=true;MelonLogger.Msg("LSD_SLICE_CHECK loading only copied save slot five.");
             manager.StartGame(copy,false,false);return;
         }
-        if(Environment.GetCommandLineArgs().Contains("--lsd-cabinet-check")){
-            MelonLogger.Error("LSD cabinet diagnostic requires --lsd-isolated-save pointing to a separate fifth-slot copy.");Application.Quit();return;
+        if(args.Contains("--lsd-cabinet-check") || args.Contains("--lsd-migration-check")){
+            MelonLogger.Error("LSD cabinet/migration diagnostic requires --lsd-isolated-save pointing to a separate fifth-slot copy.");Application.Quit();return;
         }
+        if (LoadManager.SaveGames is null || LoadManager.SaveGames.Length<5 || LoadManager.SaveGames[4] is null) return;
+        Started=true;MelonLogger.Msg("LSD_SLICE_CHECK loading only copied save slot five.");
         manager.StartGame(LoadManager.SaveGames[4],false,true);
     }
     internal void Tick()
     {
         if (Completed || LoadManager.Instance.TimeSinceGameLoaded<5 || Time.realtimeSinceStartup<Next || SaveManager.Instance.IsSaving) return;
         try {
+            if (MigrationCheck) { CheckMigration(); return; }
             if(TutorialCheck){
                 Check(Path.GetFullPath(LoadManager.Instance.LoadedGameFolderPath).TrimEnd(Path.DirectorySeparatorChar)==Path.GetFullPath(Path.Combine(Output,"SaveGame_5")),"Tutorial diagnostic refused a save outside its isolated output directory.");
                 Tutorial??=new TutorialDiagnostic(Output,Mod.World!,Mod.State);
@@ -114,7 +119,7 @@ internal sealed class SliceDiagnostic
         {
             Completed=true;MelonLogger.Error("LSD_SLICE_CHECK_FAILED phase="+Phase+" "+error);
             if (Output.Length>0) File.WriteAllText(Path.Combine(Output,"failure.txt"),error.ToString());
-            if (Exercise || Reload || SheetCheck || PackagingCheck || PrismCheck || ArtGallery || LightingCheck || TutorialCheck || CabinetCheck) Application.Quit();
+            if (Exercise || Reload || MigrationCheck || SheetCheck || PackagingCheck || PrismCheck || ArtGallery || LightingCheck || TutorialCheck || CabinetCheck) Application.Quit();
         }
     }
     private void Run()
@@ -177,7 +182,7 @@ internal sealed class SliceDiagnostic
                 if(Mod.Panel!.CheckCabinetSequence is null){
                     Check(CabinetState.Stage==MachineStage.Drying && Count(WetSheet)==0,"Completed loading did not transfer exactly one sheet.");
                     Check(!Cabinet!.CanBePickedUp(out _),"Drying cabinet can be moved.");
-                    Action("testfinish",Cabinet);Mod.World!.RefreshMachines(Mod.State);
+                    FinishDryingForDiagnostic();Mod.World!.RefreshMachines(Mod.State);
                     var color=Mod.Panel.CheckCabinetView!.CheckColor;Check(color.r>color.b,"Ready sheet kept its wet tint.");
                     OpenCabinet("collect");Phase=303;return;
                 }
@@ -300,7 +305,7 @@ internal sealed class SliceDiagnostic
                 Check(Mod.State.Artworks.Last().Pixels[12*64+9]==3 && Mod.State.Artworks[0].Pixels[12*64+9]!=3,"Drawing input did not paint the physical sheet or changed the original edition.");
                 Mod.Panel.Close();
                 Action("order",null,new() { Quantity=1 });
-                Mod.State.Orders.Last().DueMinute=LSDGameplayMod.Minute;
+                Mod.State.Orders.Last().DueMinute=WorkshopFeature.Minute;
                 Check(Mod.World!.DeliverOrders(Mod.State),"Delivery did not reach the physical pallet.");
                 Check(!Mod.World.DeliverOrders(Mod.State),"Delivered order was delivered twice.");
                 Add(WorkshopRules.Prism,2);Add(WorkshopRules.Paper,2);Add(WorkshopRules.Ink,2);
@@ -330,8 +335,8 @@ internal sealed class SliceDiagnostic
                 Check(Count(WorkshopRules.Sheet(false,Art,40))==1,"Wet sheet identity or yield changed.");
                 Move(Cabinet!);Action("dry",Cabinet);
                 Check(!Cabinet!.CanBePickedUp(out var reason),"Active cabinet could be moved.");
-                Mod.Panel.OpenMachine(Cabinet);Action("testfinish",Cabinet);Mod.Panel.Close();VerifyControls();
-                Check(Mod.State.Machines.Single(m=>m.Id==Cabinet.GUID.ToString()).Stage==MachineStage.DryOutput,"F9 test skip did not finish drying.");
+                Mod.Panel.OpenMachine(Cabinet);FinishDryingForDiagnostic();Mod.Panel.Close();VerifyControls();
+                Check(Mod.State.Machines.Single(m=>m.Id==Cabinet.GUID.ToString()).Stage==MachineStage.DryOutput,"Diagnostic clock advance did not finish drying.");
                 Action("collect",Cabinet);Move(Bench!);Mod.Panel.OpenMachine(Bench!);Mod.Panel.CheckCommand(new(){Action="cut"});
                 Next=Time.realtimeSinceStartup+0.5f;Phase=31;return;
             case 31:
@@ -357,9 +362,7 @@ internal sealed class SliceDiagnostic
                 Next=Time.realtimeSinceStartup+3;Phase=5;return;
             case 5:
                 Check(Player.Local.ConsumedProduct?.ID==WorkshopRules.Product(Art),"Native consumption did not keep product identity.");
-                var preview=MelonMod.RegisteredMelons.First(m=>m.Info.Name=="Personal LSD Visual Preview");
-                var effects=preview.GetType().GetField("Effects",System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance)!.GetValue(preview);
-                Check(effects is not null,"Consuming a tab did not start the approved preview.");
+                Check(PersonalMods.LSDPreview.PreviewFeature.Current?.HasActiveEffects==true,"Consuming a tab did not start the approved preview.");
                 Check(StudioTutorial.Current is not null && Mod.State.TutorialStep==10,$"First-edition tutorial did not follow production and packaging: native={StudioTutorial.Current is not null}, step={Mod.State.TutorialStep}.");
                 Move(Bench!);Action("start",Bench,new() { ArtSlot=Art });Action("order",null,new() { Quantity=1 });
                 File.WriteAllText(Path.Combine(Output,"expected-workshop.json"),Mod.State.Serialize());
@@ -369,9 +372,58 @@ internal sealed class SliceDiagnostic
                 var path=Path.Combine(folder,"Modded","OffRegister","Workshop.json");
                 Check(File.Exists(path),"Workshop file missing after native save.");
                 Check(WorkshopState.Deserialize(File.ReadAllText(path)).Machines.Any(m=>m.Stage==MachineStage.Preparing),"In-progress batch missing after save.");
-                MelonLogger.Msg("LSD_SLICE_EXERCISE_PASSED physical-sheet projection, distinct registration/roller/cuts, hotbar restoration, F9 drying, station packaging, tutorial, capacity failure, consumption and save.");
+                MelonLogger.Msg("LSD_SLICE_EXERCISE_PASSED physical-sheet projection, distinct registration/roller/cuts, hotbar restoration, diagnostic drying, station packaging, tutorial, capacity failure, consumption and save.");
                 File.WriteAllText(Path.Combine(Output,"exercise-passed.txt"),Mod.State.Serialize());Completed=true;Application.Quit();return;
         }
+    }
+    private void CheckMigration()
+    {
+        var folder = Path.GetFullPath(Path.Combine(Output, "SaveGame_5"));
+        Check(Path.GetFullPath(LoadManager.Instance.LoadedGameFolderPath).TrimEnd(Path.DirectorySeparatorChar) == folder,
+            "Migration diagnostic refused a save outside its isolated output directory.");
+        var path = Path.Combine(folder, "Modded", "OffRegister", "Workshop.json");
+        if (Phase == 0)
+        {
+            var expected = WorkshopState.Deserialize(File.ReadAllText(path));
+            Check(expected.Artworks.Count == Mod.State.Artworks.Count && expected.Artworks.All(art =>
+                Mod.State.Artworks.Any(actual => actual.Slot == art.Slot && actual.Name == art.Name && actual.Repeated == art.Repeated && actual.Pixels.SequenceEqual(art.Pixels))),
+                "Migration changed saved edition artwork.");
+            foreach (var machine in expected.Machines)
+            {
+                var actual = Mod.State.Machines.Single(candidate => candidate.Id == machine.Id);
+                Check(actual.Kind == machine.Kind && actual.ArtSlot == machine.ArtSlot && actual.Yield == machine.Yield,
+                    "Migration changed saved machine identity or batch.");
+                Check(Mod.World!.FindMachine(machine.Id) is not null, "Migration lost placed furniture.");
+            }
+            Check(PersonalMods.LSDPreview.PreviewFeature.Intensity.Value == 0.27f && PersonalMods.LSDPreview.PreviewFeature.AudioStrength.Value == 0.23f,
+                "Migration lost customized predecessor preferences.");
+            for (var slot = 0; slot < WorkshopRules.ArtSlots; slot++)
+                foreach (var packaging in new[] { "", "baggie", "jar", "brick", WorkshopRules.Sleeve })
+                    Check(Content.Create(WorkshopRules.Product(slot), 1, packaging).Cast<ProductItemInstance>().GetTotalAmount() ==
+                        (packaging switch { "jar" => 5, "brick" or WorkshopRules.Sleeve => 20, _ => 1 }), "Migration changed native packaging quantities.");
+            Art = Mod.State.Artworks[0].Slot;
+            Player.Local.ConsumeProduct(Content.Create(WorkshopRules.Product(Art), 1).Cast<ProductItemInstance>());
+            Phase = 1; Next = Time.realtimeSinceStartup + 3; return;
+        }
+        if (Phase == 1)
+        {
+            Check(Player.Local.ConsumedProduct?.ID == WorkshopRules.Product(Art), "Migration changed consumed tab identity.");
+            Check(PersonalMods.LSDPreview.PreviewFeature.Current?.HasActiveEffects == true, "Native tab consumption did not activate the unified treatment.");
+            SaveManager.Instance.Save(folder);
+            Phase = 2; Next = Time.realtimeSinceStartup + 3; return;
+        }
+        Check(File.Exists(path) && WorkshopState.Deserialize(File.ReadAllText(path)).Artworks.Count == Mod.State.Artworks.Count,
+            "Unified module did not save workshop data to the predecessor path.");
+        File.WriteAllText(Path.Combine(Output, "migration-passed.txt"), "PASS: saved artwork, machine IDs/batches, furniture, predecessor preferences, native packaging quantities, consumption treatment and native save.");
+        MelonLogger.Msg("VICE_SUBSTANCES_MIGRATION_PASSED");
+        Completed = true; Application.Quit();
+    }
+
+    private void FinishDryingForDiagnostic()
+    {
+        foreach (var machine in Mod.State.Machines.Where(machine => machine.Stage == MachineStage.Drying))
+            machine.DueMinute = WorkshopFeature.Minute;
+        Mod.State.Tick(WorkshopFeature.Minute);
     }
     private void VerifyReload()
     {

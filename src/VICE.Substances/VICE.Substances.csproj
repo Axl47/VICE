@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsGameMod>true</IsGameMod><UseViceCore>true</UseViceCore>
+    <AssemblyName>VICE.Substances</AssemblyName><RootNamespace>VICE.Substances</RootNamespace>
+    <Version>0.1.0</Version><Authors>Axl47</Authors>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Keep authored asset paths, stable namespaces and wire types compatible with existing saves. -->
+    <Compile Include="../LSDGameplay/*.cs" Link="Workshop/%(Filename)%(Extension)" />
+    <Compile Include="../LSDPreview/*.cs" Link="Preview/%(Filename)%(Extension)" />
+    <Compile Include="../Networking/SynchronousPacketPayload.cs" Link="Networking/SynchronousPacketPayload.cs" />
+    <Compile Include="../Networking/ReplicatedFurnitureVisuals.cs" Link="Networking/ReplicatedFurnitureVisuals.cs" />
+    <Compile Include="../Networking/InitialStateSync.cs" Link="Networking/InitialStateSync.cs" />
+    <ProjectReference Include="../VICE.Core/VICE.Core.csproj" />
+    <Reference Include="$(GameDir)/Mods/S1API.Il2Cpp.MelonLoader.dll"><Private>false</Private></Reference>
+    <EmbeddedResource Include="../LSDGameplay/Assets/studio.bundle" LogicalName="Personal.LSDGameplay.Studio.bundle" />
+    <EmbeddedResource Include="../LSDGameplay/Assets/Icons/*.png" LogicalName="Personal.LSDGameplay.Icons.%(Filename).png" />
+    <EmbeddedResource Include="../LSDPreview/Assets/peripheral.bundle" LogicalName="Personal.LSDPreview.Peripheral.bundle" />
+    <EmbeddedResource Include="../LSDPreview/Assets/echo.bundle" LogicalName="Personal.LSDPreview.Echo.bundle" />
+  </ItemGroup>
+</Project>

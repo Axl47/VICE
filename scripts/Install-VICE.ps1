@@ -1,7 +1,7 @@
 param(
     [string]$GameDir = 'C:\Program Files (x86)\Steam\steamapps\common\Schedule I',
     [Parameter(Mandatory)][string]$PackageDir,
-    [ValidateSet('Commerce', 'Arsenal', 'Lifestyle', 'Interface', 'Enforcement', 'Syndicate')]
+    [ValidateSet('Commerce', 'Arsenal', 'Lifestyle', 'Interface', 'Enforcement', 'Syndicate', 'Substances')]
     [string[]]$Modules = @(),
     [ValidateSet('YouTube')][string[]]$AddOns = @()
 )

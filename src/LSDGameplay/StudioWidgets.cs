@@ -36,7 +36,7 @@ internal static class StudioWidgets
         colors.pressedColor=new(0.7f,0.8f,0.8f);colors.disabledColor=new(0.4f,0.4f,0.4f);button.colors=colors;
         var label=Label(rect,text,8,3,w-16,h-6,17);label.alignment=TextAlignmentOptions.Midline;
         button.onClick.AddListener(DelegateSupport.ConvertDelegate<UnityAction>((Action)(()=>{
-            try { action(); } catch (Exception error) { LSDGameplayMod.Current?.ShowMessage(error.Message); }
+            try { action(); } catch (Exception error) { WorkshopFeature.Current?.ShowMessage(error.Message); }
         })) ?? throw new InvalidOperationException("Could not bind studio control."));
         return button;
     }

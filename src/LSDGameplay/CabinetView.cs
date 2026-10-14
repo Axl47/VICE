@@ -80,7 +80,7 @@ internal sealed class CabinetView : IDisposable
         Sheet.gameObject.SetActive(machine?.Stage is MachineStage.Drying or MachineStage.DryOutput);
         if(machine is null)return;
         SetArtwork(machine.ArtSlot);
-        var remaining=machine.DueMinute-LSDGameplayMod.Minute;
+        var remaining=machine.DueMinute-WorkshopFeature.Minute;
         var dry=machine.Stage==MachineStage.DryOutput ? 1 : 1-Math.Clamp(remaining/(float)WorkshopRules.DryMinutes,0,1);
         Paper.color=Color.Lerp(new(0.60f,0.78f,1),new(1,0.94f,0.80f),dry);
     }
