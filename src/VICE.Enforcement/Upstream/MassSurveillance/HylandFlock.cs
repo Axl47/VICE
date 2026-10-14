@@ -1,672 +1,178 @@
+using Il2CppInterop.Runtime.Injection;
+using Il2CppInterop.Runtime.Attributes;
+using Il2CppInterop.Runtime.InteropTypes.Arrays;
+using Il2CppScheduleOne.Combat;
+using Il2CppScheduleOne.DevUtilities;
+using Il2CppScheduleOne.Levelling;
+using Il2CppScheduleOne.PlayerScripts;
 using MelonLoader;
-using System.Collections;
 using UnityEngine;
-
-using static NACops.DebugModule;
+using VICE.Enforcement.Multiplayer;
 using static NACops.NACops;
 using static NACops.MassSurveillance;
 
-#if MONO
-using ScheduleOne.Combat;
-using ScheduleOne.Tools;
-using ScheduleOne.PlayerScripts;
-using ScheduleOne.Vision;
-using ScheduleOne.DevUtilities;
-using ScheduleOne.Levelling;
-using VLB;
-#else
-using Il2CppScheduleOne.Combat;
-using Il2CppScheduleOne.Tools;
-using Il2CppScheduleOne.PlayerScripts;
-using Il2CppScheduleOne.Vision;
-using Il2CppScheduleOne.DevUtilities;
-using Il2CppVLB;
-using Il2CppInterop.Runtime.Injection;
-using Il2CppScheduleOne.Levelling;
-#endif
+namespace NACops;
 
+public enum ECameraType { Unidirectional, Omnidirectional }
+public enum ECameraDisableAccess { None, BusinessComputer }
 
-namespace NACops
+[RegisterTypeInIl2Cpp]
+public class HylandFlockInstance : MonoBehaviour
 {
-    public enum ECameraType
+    public HylandFlockInstance(IntPtr ptr) : base(ptr) { }
+    public HylandFlockInstance() : base(ClassInjector.DerivedConstructorPointer<HylandFlockInstance>()) => ClassInjector.DerivedConstructorBody(this);
+    public const float LINE_WIDTH_MIN = 0.0005f, LINE_WIDTH_MAX = 0.015f;
+    public const int RAYCAST_STEPS = 3;
+    public const float SEEN_CACHE_LIFETIME = 120;
+    private readonly Dictionary<string, CameraEvidence> observations = new();
+    private readonly Il2CppStructArray<RaycastHit> hits = new(32);
+    private Il2CppSystem.Action<Impact>? impacted;
+    private float nextCheck, noticeSpeed = 2;
+    private Vector3 target;
+    public string CameraId = "";
+    public bool IsActive, IsBroken, IsPlayerNearby, IsOnCooldown, activeToday, isPlayerSighted, isOffline;
+    public float consecutiveHits, cacheEvidenceRatio;
+    public List<string> cameraSeenStateCache = new();
+    public ECameraType type;
+    public ECameraDisableAccess disableType;
+    public Light cameraLight;
+    public LineRenderer lineRenderer;
+    public GameObject fxParticles;
+    public PhysicsDamageable damageable;
+
+    public void Initialize()
     {
-        Unidirectional, Omnidirectional
+        if (cameraLight) return;
+        var head = transform.parent;
+        if (type == ECameraType.Unidirectional)
+        {
+            // Select the original camera mesh, never a newly added Flock child.
+            while (head && head.childCount > 0 && head.GetChild(0) != transform) head = head.GetChild(0);
+            if (!head) throw new InvalidOperationException("Missing camera head: " + CameraId);
+            transform.SetPositionAndRotation(head.position + Vector3.up * 0.04f + head.forward * 0.32f, head.rotation);
+        }
+        else { transform.localRotation = Quaternion.LookRotation(Vector3.down, Vector3.forward); transform.localPosition = new(0, -0.33f, 0.45f); }
+        cameraLight = gameObject.AddComponent<Light>(); cameraLight.range = 0.25f; cameraLight.color = Color.blue; cameraLight.intensity = 0;
+        var line = new GameObject("Camera detection line"); line.transform.SetParent(transform, false);
+        lineRenderer = line.AddComponent<LineRenderer>(); lineRenderer.material = lineRendererMaterial; lineRenderer.positionCount = 2;
+        lineRenderer.SetPosition(0, transform.position); lineRenderer.widthMultiplier = 0; lineRenderer.forceRenderingOff = true;
+        var rb = gameObject.AddComponent<Rigidbody>(); rb.isKinematic = true;
+        var box = gameObject.AddComponent<BoxCollider>(); box.size = new Vector3(0.45f, 0.45f, 0.15f);
+        damageable = gameObject.AddComponent<PhysicsDamageable>(); damageable.Rb = rb;
+        impacted = (Il2CppSystem.Action<Impact>)OnCameraImpacted; damageable.OnImpacted += impacted;
     }
-    public enum ECameraDisableAccess
+    public void OnDestroy()
     {
-        None, BusinessComputer
+        if (damageable && impacted is not null) damageable.OnImpacted -= impacted;
+        impacted = null; observations.Clear();
     }
-
-#if IL2CPP
-    [RegisterTypeInIl2Cpp]
-#endif
-    public class HylandFlockInstance : MonoBehaviour
+    public void Update()
     {
-#if IL2CPP
-        public HylandFlockInstance(IntPtr ptr) : base(ptr) { }
-
-        public HylandFlockInstance() : base(ClassInjector.DerivedConstructorPointer<HylandFlockInstance>())
-            => ClassInjector.DerivedConstructorBody(this);
-#endif
-
-        public static readonly float LINE_WIDTH_MIN = 0.0005f;
-        public static readonly float LINE_WIDTH_MAX = 0.015f;
-        public static readonly int RAYCAST_STEPS = 3; // vision checks for centerpos -> eyepos
-        public static readonly float SEEN_CACHE_LIFETIME = 120f; // To give it a cumulative effect in addition to being probabilistic
-        private FlockInstanceRunner _runner;
-        public bool IsActive = false;
-        public bool IsBroken = false;
-        public bool IsPlayerNearby = false;
-        public bool IsOnCooldown = false;
-        public float cooldownElapsed = 0f;
-        public float cacheLifetimeElapsed = 0f;
-        // Incremented each time evidence already exists in the
-        // seen state cache to provide extra weight for consecutive crimes
-        public float cacheEvidenceRatio = 0f;
-
-
-        public FlockActivationZone activationZone;
-        public Light cameraLight;
-        public LineRenderer lineRenderer;
-        public GameObject fxParticles;
-        public Rigidbody rb;
-        public BoxCollider bc;
-        public PhysicsDamageable damageable;
-
-        // Track during the seen window visual states
-        public List<string> cameraSeenStateCache = new();
-
-        // while raycasting needed
-        public Vector3 toPlayerCenter;
-        public Vector3 toPlayerEyes;
-        public Vector3 currentCastPos;
-
-        public ECameraType type;
-        public ECameraDisableAccess disableType;
-        public bool activeToday = false;
-        public bool isPlayerSighted = false;
-        public float consecutiveHits = 0f;
-        public bool isOffline = false;
-        public void Awake()
+        if (!EnforcementReplication.SessionReady || !cameraLight) return;
+        if (EnforcementReplication.Host && registered && IsActive && !IsBroken && Time.realtimeSinceStartup >= nextCheck)
         {
-            this.gameObject.GetOrAddComponent<Light>();
-            this.gameObject.GetOrAddComponent<Rigidbody>();
-            this.gameObject.GetOrAddComponent<BoxCollider>();
-            this.gameObject.GetOrAddComponent<PhysicsDamageable>();
+            var delta = nextCheck == 0 ? 0.1f : Mathf.Clamp(Time.realtimeSinceStartup - nextCheck + 0.1f, 0, 0.25f);
+            nextCheck = Time.realtimeSinceStartup + 0.1f;
+            DetectPlayers(delta);
         }
-
-        public void Initialize()
+        Present();
+    }
+    private void DetectPlayers(float delta)
+    {
+        noticeSpeed = surveillanceConfig.CameraNoticeSpeed;
+        IsPlayerNearby = isPlayerSighted = false; consecutiveHits = 0;
+        var players = Player.PlayerList.ToArray().Where(p => p && p.PlayerLoaded).ToArray();
+        var connected = players.Select(p => p.PlayerCode).ToHashSet(StringComparer.Ordinal);
+        foreach (var code in observations.Keys.Where(code => !connected.Contains(code)).ToArray()) observations.Remove(code);
+        foreach (var player in players)
         {
-            _runner = new(instance: this);
-
-            Transform cameraHead = null;
-            Transform lastTransformObjectInCam = null;
-            Log($"Setup camera {this.transform.GetScenePath()}");
-            if (this.gameObject == null)
+            var distance = Vector3.Distance(transform.position, player.Avatar.CenterPoint);
+            if (distance > surveillanceConfig.CameraActivationRange)
             {
-                Log("Something went wrong while initializing camera!");
-                return;
+                if (observations.TryGetValue(player.PlayerCode, out var outside)) outside.Step(Time.realtimeSinceStartup, delta, false, false, Array.Empty<string>(), noticeSpeed, surveillanceConfig.CameraNoticeCooldown);
+                continue;
             }
-
-            if (this.gameObject.GetComponent<Light>() == null)
-                this.gameObject.AddComponent<Light>();
-
-            if (this.gameObject.GetComponent<Rigidbody>() == null)
-                this.gameObject.AddComponent<Rigidbody>();
-
-            if (this.gameObject.GetComponent<BoxCollider>() == null)
-                this.gameObject.AddComponent<BoxCollider>();
-
-            if (this.gameObject.GetComponent<PhysicsDamageable>() == null)
-                this.gameObject.AddComponent<PhysicsDamageable>();
-
-            if (type == ECameraType.Unidirectional && this.transform.parent != null && this.transform.parent.childCount > 0)
+            IsPlayerNearby = true;
+            if (!observations.TryGetValue(player.PlayerCode, out var observation)) observations[player.PlayerCode] = observation = new();
+            if (Time.realtimeSinceStartup < observation.CooldownUntil) continue;
+            var vision = EnforcementReplication.Vision(player);
+            var visible = vision is not null && RaycastPlayer(player);
+            var noticed = observation.Step(Time.realtimeSinceStartup, delta, visible, visible && UnityEngine.Random.Range(0f, 90f) < vision!.Visibility,
+                vision?.Labels ?? Array.Empty<string>(), noticeSpeed, surveillanceConfig.CameraNoticeCooldown);
+            if (!visible) continue;
+            isPlayerSighted = true;
+            if (observation.Hits >= consecutiveHits) { consecutiveHits = observation.Hits; target = player.Avatar.CenterPoint; }
+            if (noticed)
             {
-                // For unidirectional camera find the camera head part of the transform and align self
-                Transform trTemp = this.transform.parent;
-                if (trTemp != null)
-                {
-                    while (trTemp.childCount > 0)
-                        trTemp = trTemp.GetChild(0);
-                    lastTransformObjectInCam = trTemp;
-                }
-                else
-                {
-                    Log($"Failed to find transform parent of Unidirectional camera");
-                }
-
+                OnCameraFullyNoticed(player, observation.Labels.ToList(), observation.Evidence);
             }
-            cameraHead = lastTransformObjectInCam;
-            if (type == ECameraType.Unidirectional)
-            {
-                if (cameraHead == null)
-                {
-                    Log($"Failed to instantiate camera, missing direction reference");
-                    return;
-                }
-                // For Unidirectional align with the forward facing glass part of the cam
-                Vector3 compPos = cameraHead.transform.position + Vector3.up * 0.04f + cameraHead.forward * 0.32f;
-                this.transform.SetPositionAndRotation(compPos, cameraHead.rotation);
-            }
-            else if (type == ECameraType.Omnidirectional)
-            {
-                // for Omnidirectional just under the bottom ppart of sphere
-                this.transform.localRotation = Quaternion.LookRotation(Vector3.down, Vector3.forward);
-                this.transform.localPosition = new Vector3(0f, -0.33f, 0.45f);
-            }
-
-            cameraLight = this.gameObject.GetComponent<Light>();
-            cameraLight.intensity = 0f;
-            cameraLight.range = 0.25f;
-            cameraLight.color = Color.blue;
-
-            GameObject lineRendererObj = new("LineRenderer");
-            lineRendererObj.transform.SetParent(this.transform);
-            if (type == ECameraType.Unidirectional)
-            {
-                lineRendererObj.transform.position = cameraHead.transform.position + Vector3.up * 0.04f + cameraHead.forward * 0.27f;
-            }
-            else if (type == ECameraType.Omnidirectional)
-            {
-                lineRendererObj.transform.position = this.transform.position;
-            }
-            lineRendererObj.transform.localRotation = Quaternion.Euler(0f, 0f, 0f);
-            lineRenderer = lineRendererObj.AddComponent<LineRenderer>();
-            lineRenderer.material = lineRendererMaterial;
-            lineRenderer.widthMultiplier = 0f;
-            lineRenderer.SetPosition(0, lineRendererObj.transform.position);
-
-            GameObject zoneObj = new("ActivationZone");
-            zoneObj.transform.SetParent(activationZoneParent);
-            activationZone = zoneObj.AddComponent<FlockActivationZone>();
-            activationZone.transform.position = this.transform.position;
-            activationZone.parentInstance = this;
-            activationZone.gameObject.SetActive(false);
-
-            rb = this.gameObject.GetComponent<Rigidbody>();
-            rb.isKinematic = true;
-
-            bc = this.gameObject.GetComponent<BoxCollider>();
-            bc.size = new Vector3(0.45f, 0.45f);
-
-            damageable = this.gameObject.GetComponent<PhysicsDamageable>();
-            damageable.Rb = rb;
-
-#if MONO
-            damageable.OnImpacted += (Action<Impact>)OnCameraImpacted;
-#else
-            damageable.OnImpacted += (Il2CppSystem.Action<Impact>)OnCameraImpacted;
-#endif
-        }
-
-        public void Update()
-        {
-            if (!registered || !IsActive || IsBroken) return;
-
-            if (cameraSeenStateCache.Count > 0)
-            {
-                if (consecutiveHits == 0f)
-                {
-                    cacheLifetimeElapsed += Time.deltaTime;
-                    if (cacheLifetimeElapsed >= SEEN_CACHE_LIFETIME)
-                    {
-                        ClearSeenCache();
-                    }
-                }
-            }
-
-            if (IsOnCooldown)
-            {
-                cooldownElapsed += Time.deltaTime;
-                if (cooldownElapsed >= surveillanceConfig.CameraNoticeCooldown)
-                {
-                    cooldownElapsed = 0f;
-                    IsOnCooldown = false;
-                }
-
-                return;
-            }
-
-            if (!IsPlayerNearby || !isPlayerSighted) return;
-
-            lineRenderer.SetPosition(1, Player.Local.Avatar.CenterPoint);
-        }
-
-        public void ActivateInstance()
-        {
-            activeToday = true;
-            IsActive = true;
-            IsBroken = false;
-            IsPlayerNearby = false;
-            IsOnCooldown = false;
-            cooldownElapsed = 0f;
-            cameraLight.intensity = 3f;
-            activationZone.gameObject.SetActive(true);
-            coros.Add(MelonCoroutines.Start(_runner.SearchForPlayer()));
-            coros.Add(MelonCoroutines.Start(_runner.HandleLight()));
-            coros.Add(MelonCoroutines.Start(_runner.HandleLineWidth()));
-            return;
-        }
-
-        public void DeactivateInstance()
-        {
-            if (IsBroken)
-            {
-                fxParticles.SetActive(false);
-                RandomIntervalEvent randomEvent = fxParticles.GetComponent<RandomIntervalEvent>();
-                if (randomEvent.enabled)
-                    randomEvent.enabled = false;
-            }
-
-            activeToday = false;
-            IsActive = false;
-            activationZone.gameObject.SetActive(false);
-            IsBroken = false;
-            IsPlayerNearby = false;
-            IsOnCooldown = false;
-            cooldownElapsed = 0f;
-            consecutiveHits = 0f;
-            cacheLifetimeElapsed = 0f;
-            cacheEvidenceRatio = 0f;
-            cameraSeenStateCache.Clear();
-            cameraLight.intensity = 0f;
-            lineRenderer.widthMultiplier = 0f;
-            return;
-        }
-
-        public void SetPlayerNearby(bool isNearby)
-        {
-            if (!registered) return;
-
-            IsPlayerNearby = isNearby;
-            if (lineRenderer != null)
-                lineRenderer.loop = isNearby;
-        }
-
-        public bool RaycastPlayer()
-        {
-            if (isEvaluatingRaycast) return false;
-            isEvaluatingRaycast = true;
-
-            float castRange = surveillanceConfig.CameraActivationRange;
-            float distToPlayer = Vector3.Distance(this.transform.position, Player.Local.Avatar.CenterPoint);
-            
-            toPlayerCenter = Player.Local.Avatar.CenterPoint - this.transform.position;
-            toPlayerEyes = Player.Local.EyePosition - this.transform.position;
-            float angleToPlayer = Vector3.Angle(this.transform.forward, toPlayerCenter);
-
-            Log("ANGLE: " + angleToPlayer.ToString());
-            bool shouldCast = true;
-            switch (type)
-            {
-                case ECameraType.Unidirectional:
-                    if (angleToPlayer > 55f)
-                        shouldCast = false;
-                    break;
-
-                case ECameraType.Omnidirectional:
-                    //if (angleToPlayer > 70f)
-                        //shouldCast = false;
-                    break;
-            }
-            bool castHits = true;
-            if (shouldCast)
-            {
-                for (int i = 0; i < RAYCAST_STEPS; i++)
-                {
-                    currentCastPos = Vector3.Lerp(toPlayerEyes, toPlayerCenter, i / RAYCAST_STEPS - 1);
-                    int hitsFound = Physics.RaycastNonAlloc(this.transform.position, currentCastPos, raycastHitBuffer, castRange, raycastIgnoreZone);
-                    Array.Sort(raycastHitBuffer, 0, hitsFound, raycastCompare);
-
-                    for (int j = 0; j < hitsFound; j++)
-                    {
-                        RaycastHit hit = raycastHitBuffer[j];
-
-                        if ((obstacleLayer & 1 << hit.collider.gameObject.layer) != 0)
-                        {
-                            castHits = false;
-                            break;
-                        }
-                        else if (hit.collider.gameObject.layer == playerLayer)
-                        {
-                            //Log("hits player");
-                            castHits = true;
-                            break;
-                        }
-                    }
-
-                    if (castHits) break;
-                }
-            }
-            else
-                castHits = false;
-
-
-            isEvaluatingRaycast = false;
-            return castHits;
-        }
-
-        public void CaptureEntityVisualState()
-        {
-            foreach (EntityVisualState entityVisualState in Player.Local.VisibilityComponent.VisualStates)
-            {
-                if (entityVisualState.label == "Visible") continue;
-
-                if (!cameraSeenStateCache.Contains(entityVisualState.label))
-                    cameraSeenStateCache.Add(entityVisualState.label);
-                else
-                    cacheEvidenceRatio += UnityEngine.Random.Range(0.001f, 0.0001f);
-            }
-            return;
-        }
-       
-        public void OnCameraImpacted(Impact impact)
-        {
-            Log($"Camera impacted with:Type {impact.ImpactType} Dmg {impact.ImpactDamage}");
-            if (!IsActive || IsBroken) return;
-            IsBroken = true;
-
-            if (fxSparksTemplate == null)
-            {
-                Log("FX template object is missing reference");
-                return;
-            }
-
-            if (fxParticles == null)
-                fxParticles = UnityEngine.Object.Instantiate(fxSparksTemplate);
-
-            fxParticles.transform.SetParent(this.transform);
-            fxParticles.transform.SetPositionAndRotation(this.transform.position, this.transform.rotation);
-            fxParticles.SetActive(true);
-            RandomIntervalEvent randomEvent = fxParticles.GetComponent<RandomIntervalEvent>();
-            if (!randomEvent.enabled)
-                randomEvent.enabled = true;
-
-            lineRenderer.forceRenderingOff = true;
-            cameraLight.intensity = 0f;
-
-            NetworkSingleton<LevelManager>.Instance.AddXP(50);
-            return;
-        }
-
-        public void ClearSeenCache()
-        {
-            Log("Clear seen states");
-            cacheLifetimeElapsed = 0f;
-            cacheEvidenceRatio = 0f;
-            cameraSeenStateCache.Clear();
-        }
-
-        // Whenever the camera is tied to a business, it can be disabled from the computer
-        public void SetupCameraDisableAccess()
-        {
-            if (disableType == ECameraDisableAccess.None)
-                return;
-
-            // Get 2nd from root.tr then from that call GetComponent business -> check is owned
-
-            // TODO how to modify the computer UI
-            // add button that takes the camera "offline"?
-            // on pressed -> remove self from the listed ones so that it cant be selected
-            // and then if activE deactive + remove from active listed ones
-            isOffline = true;
         }
     }
-
-    public class FlockInstanceRunner
+    public bool RaycastPlayer(Player player)
     {
-        private HylandFlockInstance _instance;
-        public FlockInstanceRunner(HylandFlockInstance instance) { this._instance = instance; }
-        public IEnumerator SearchForPlayer()
+        var center = player.Avatar.CenterPoint;
+        var distance = Vector3.Distance(transform.position, center);
+        var angle = Vector3.Angle(transform.forward, center - transform.position);
+        if (!ReplicationRules.InView(distance, angle, surveillanceConfig.CameraActivationRange, type == ECameraType.Omnidirectional)) return false;
+        var eyes = player.EyePosition;
+        if (Vector3.Distance(eyes, center) > 2.5f) eyes = center + Vector3.up * 0.6f;
+        for (var i = 0; i < RAYCAST_STEPS; i++)
         {
-            for (; ; )
+            var endpoint = Vector3.Lerp(eyes, center, ReplicationRules.RayFraction(i, RAYCAST_STEPS));
+            var direction = endpoint - transform.position;
+            var count = Physics.RaycastNonAlloc(transform.position, direction.normalized, hits, direction.magnitude, raycastIgnoreZone, QueryTriggerInteraction.Ignore);
+            if (count >= hits.Length) continue; // A saturated buffer cannot establish unobstructed sight.
+            var blocked = false;
+            foreach (var hit in hits.ToArray().Take(count).OrderBy(h => h.distance))
             {
-                if (!_instance.IsPlayerNearby || _instance.IsOnCooldown)
-                {
-                    yield return Wait05;
-                    if (!registered || !_instance.IsActive || _instance.IsBroken) yield break;
-                    if (_instance.consecutiveHits > 0.0f)
-                        _instance.consecutiveHits = Mathf.Clamp(_instance.consecutiveHits - 0.1f, 0f, surveillanceConfig.CameraNoticeSpeed);
-                    continue;
-                }
-
-                bool hits = false;
-                while (_instance.IsActive)
-                {
-                    yield return Wait05;
-                    if (!registered || !_instance.IsActive || _instance.IsBroken) yield break;
-                    if (!_instance.IsPlayerNearby)
-                        break;
-                    hits = _instance.RaycastPlayer();
-                    if (hits)
-                        break;
-                    if (_instance.consecutiveHits > 0.0f)
-                        _instance.consecutiveHits = Mathf.Clamp(_instance.consecutiveHits - 0.1f, 0f, surveillanceConfig.CameraNoticeSpeed);
-                }
-
-                _instance.lineRenderer.SetPosition(1, Player.Local.Avatar.CenterPoint);
-                _instance.isPlayerSighted = true;
-                _instance.lineRenderer.forceRenderingOff = false;
-
-                float nextStateCapture = 0.5f;
-                float currentVisibility = Player.Local.VisibilityComponent.CurrentVisibility;
-                _instance.CaptureEntityVisualState();
-
-                while (hits)
-                {
-                    yield return Wait01;
-                    if (!registered || !_instance.IsActive || _instance.IsBroken) yield break;
-                    if (!_instance.IsPlayerNearby) break;
-                    hits = _instance.RaycastPlayer();
-
-                    // At low visibility e.g. night time or effects its probabilistic
-                    if (UnityEngine.Random.Range(0f, 90f) < currentVisibility)
-                        _instance.consecutiveHits += 0.1f;
-
-                    if (_instance.consecutiveHits >= nextStateCapture)
-                    {
-                        _instance.CaptureEntityVisualState();
-                        nextStateCapture += 0.5f;
-                        currentVisibility = Player.Local.VisibilityComponent.CurrentVisibility;
-                    }
-
-                    if (_instance.consecutiveHits >= surveillanceConfig.CameraNoticeSpeed)
-                    {
-                        Log("Exceeded max time in sight");
-                        break;
-                    }
-                }
-                Log($"Got {_instance.consecutiveHits} time in sight!");
-                if (_instance.consecutiveHits >= surveillanceConfig.CameraNoticeSpeed)
-                {
-                    OnCameraFullyNoticed(_instance.cameraSeenStateCache, _instance.cacheEvidenceRatio);
-                    _instance.IsOnCooldown = true;
-                    _instance.consecutiveHits = 0f;
-                }
-                _instance.isPlayerSighted = false;
-                _instance.lineRenderer.forceRenderingOff = true;
+                if (!hit.collider || hit.collider.transform.IsChildOf(transform.parent)) continue;
+                var hitPlayer = hit.collider.GetComponentInParent<Player>();
+                if (hitPlayer && hitPlayer.Pointer == player.Pointer) break;
+                if ((obstacleLayer & (1 << hit.collider.gameObject.layer)) != 0) { blocked = true; break; }
             }
+            if (!blocked) return true;
         }
-
-        public IEnumerator HandleLight()
-        {
-            float startIntensityPassive = 0.5f;
-            float endIntensityPassive = 3f;
-
-            float endIntensityActive = 5f;
-
-            float startRangeActive = 0.25f;
-            float endRangeActive = 0.5f;
-
-            float duration = surveillanceConfig.CameraNoticeSpeed;
-            float elapsed = 0f;
-            for (; ; )
-            {
-                yield return Wait1;
-                if (!registered || !_instance.IsActive) yield break;
-
-                if (!_instance.IsPlayerNearby) continue;
-
-                // state not sighted just static blue or pulsing with intensity?
-                while (!_instance.isPlayerSighted)
-                {
-                    // Reset to initial both on intensity and range
-                    if (!Mathf.Approximately(_instance.cameraLight.intensity, startIntensityPassive) || !Mathf.Approximately(_instance.cameraLight.range, startRangeActive))
-                    {
-                        float currentIntensity = _instance.cameraLight.intensity;
-                        float currentRange = _instance.cameraLight.range;
-                        elapsed = 0f;
-                        while (elapsed < 1f && registered && !_instance.isPlayerSighted && !_instance.IsBroken && _instance.IsActive && _instance.IsPlayerNearby)
-                        {
-                            float t = elapsed / 1f;
-                            _instance.cameraLight.intensity = Mathf.Lerp(currentIntensity, startIntensityPassive, t);
-                            _instance.cameraLight.range = Mathf.Lerp(currentRange, startRangeActive, t);
-                            elapsed += Time.deltaTime;
-                            yield return frameEnd;
-                        }
-                        if (!registered || _instance.IsBroken || !_instance.IsActive) yield break;
-                        if (_instance.isPlayerSighted || !_instance.IsPlayerNearby) break;
-                    }
-
-                    elapsed = 0f;
-                    while (elapsed < duration && registered && !_instance.isPlayerSighted && !_instance.IsBroken && _instance.IsActive && _instance.IsPlayerNearby)
-                    {
-                        float t = elapsed / duration;
-                        _instance.cameraLight.intensity = Mathf.Lerp(startIntensityPassive, endIntensityPassive, t);
-                        elapsed += Time.deltaTime;
-                        yield return frameEnd;
-                    }
-                    if (!registered || _instance.IsBroken || !_instance.IsActive) yield break;
-                    if (_instance.isPlayerSighted || !_instance.IsPlayerNearby) break;
-                    _instance.cameraLight.intensity = endIntensityPassive;
-
-                    elapsed = 0f;
-                    while (elapsed < duration && registered && !_instance.isPlayerSighted && !_instance.IsBroken && _instance.IsActive && _instance.IsPlayerNearby)
-                    {
-                        float t = elapsed / duration;
-                        _instance.cameraLight.intensity = Mathf.Lerp(endIntensityPassive, startIntensityPassive, t);
-                        elapsed += Time.deltaTime;
-                        yield return frameEnd;
-                    }
-                    if (!registered || _instance.IsBroken || !_instance.IsActive) yield break;
-                    if (_instance.isPlayerSighted || !_instance.IsPlayerNearby) break;
-                    _instance.cameraLight.intensity = startIntensityPassive;
-                }
-
-                float startIntensity = _instance.cameraLight.intensity;
-                while (_instance.isPlayerSighted)
-                {
-                    if (Mathf.Approximately(startIntensity, endIntensityActive))
-                    {
-                        Log("Max light reachhed");
-                        yield return Wait05;
-                        if (!registered || _instance.IsBroken || !_instance.IsActive) yield break;
-                        if (!_instance.isPlayerSighted || !_instance.IsPlayerNearby) break;
-                        continue;
-                    }
-
-                    elapsed = 0f;
-                    while (elapsed < duration && registered && _instance.isPlayerSighted && !_instance.IsBroken && _instance.IsActive && _instance.IsPlayerNearby)
-                    {
-                        float t = elapsed / duration;
-                        _instance.cameraLight.intensity = Mathf.Lerp(startIntensity, endIntensityActive, t);
-                        _instance.cameraLight.range = Mathf.Lerp(startRangeActive, endRangeActive, t);
-                        elapsed += Time.deltaTime;
-                        yield return frameEnd;
-                    }
-                    if (!registered || _instance.IsBroken || !_instance.IsActive) yield break;
-                    if (!_instance.isPlayerSighted || !_instance.IsPlayerNearby) break;
-                    _instance.cameraLight.intensity = endIntensityActive;
-                    break;
-                }
-            }
-        }
-
-        public IEnumerator HandleLineWidth()
-        {
-
-            float duration = surveillanceConfig.CameraNoticeSpeed;
-            float elapsed = 0f;
-
-            for (; ; )
-            {
-                yield return Wait05;
-                if (!registered || !_instance.IsActive || _instance.IsBroken) yield break;
-                if (!_instance.isPlayerSighted || !_instance.IsPlayerNearby) continue;
-                while (_instance.isPlayerSighted)
-                {
-                    elapsed = 0f;
-                    if (!Mathf.Approximately(_instance.lineRenderer.widthMultiplier, HylandFlockInstance.LINE_WIDTH_MIN))
-                        _instance.lineRenderer.widthMultiplier = HylandFlockInstance.LINE_WIDTH_MIN;
-
-                    while (elapsed < duration / 2f && registered && !_instance.IsBroken && _instance.IsActive && _instance.IsPlayerNearby)
-                    {
-                        float t = elapsed / (duration / 2f);
-                        _instance.lineRenderer.widthMultiplier = Mathf.Lerp(HylandFlockInstance.LINE_WIDTH_MIN, HylandFlockInstance.LINE_WIDTH_MAX, t);
-                        elapsed += Time.deltaTime;
-                        yield return frameEnd;
-                    }
-                    if (!registered || _instance.IsBroken || !_instance.IsActive) yield break;
-                    if (!_instance.isPlayerSighted || !_instance.IsPlayerNearby) break;
-
-                    _instance.lineRenderer.widthMultiplier = HylandFlockInstance.LINE_WIDTH_MAX;
-                    elapsed = 0f;
-                    while (elapsed < duration / 2f && registered && !_instance.IsBroken && _instance.IsActive && _instance.IsPlayerNearby)
-                    {
-                        float t = elapsed / (duration / 2f);
-                        _instance.lineRenderer.widthMultiplier = Mathf.Lerp(HylandFlockInstance.LINE_WIDTH_MAX, HylandFlockInstance.LINE_WIDTH_MIN, t);
-                        elapsed += Time.deltaTime;
-                        yield return frameEnd;
-                    }
-                    if (!registered || _instance.IsBroken || !_instance.IsActive) yield break;
-                    if (!_instance.isPlayerSighted || !_instance.IsPlayerNearby) break;
-
-                    _instance.lineRenderer.widthMultiplier = HylandFlockInstance.LINE_WIDTH_MIN;
-                }
-                _instance.lineRenderer.widthMultiplier = 0f;
-            }
-        }
-
+        return false;
     }
-
-#if IL2CPP
-    [RegisterTypeInIl2Cpp]
-#endif
-    public class FlockActivationZone : MonoBehaviour
+    private void Present()
     {
-#if IL2CPP
-        public FlockActivationZone(IntPtr ptr) : base(ptr) { }
-
-        public FlockActivationZone() : base(ClassInjector.DerivedConstructorPointer<FlockActivationZone>())
-            => ClassInjector.DerivedConstructorBody(this);
-#endif
-        public HylandFlockInstance parentInstance;
-        public SphereCollider sc;
-        public Rigidbody rb;
-
-        public void Awake()
-        {
-            this.gameObject.layer = activationZoneLayer;
-            sc = this.GetOrAddComponent<SphereCollider>();
-            sc.isTrigger = true;
-            sc.radius = surveillanceConfig.CameraActivationRange;
-            rb = this.GetOrAddComponent<Rigidbody>();
-            rb.isKinematic = true;
-        }
-        private void OnTriggerEnter(Collider other)
-        {
-            if (other.gameObject.layer != 6) return;
-            Player playerComp = other.gameObject.GetComponentInParent<Player>();
-            if (playerComp != null)
-                parentInstance.SetPlayerNearby(true);
-        }
-        private void OnTriggerExit(Collider other)
-        {
-            if (other.gameObject.layer != 6) return;
-            Player playerComp = other.gameObject.GetComponentInParent<Player>();
-            if (playerComp != null)
-                parentInstance.SetPlayerNearby(false);
-        }
+        lineRenderer.forceRenderingOff = !IsActive || IsBroken || !isPlayerSighted;
+        lineRenderer.SetPosition(1, target);
+        lineRenderer.widthMultiplier = Mathf.Lerp(LINE_WIDTH_MIN, LINE_WIDTH_MAX, Mathf.Clamp01(consecutiveHits / Mathf.Max(0.1f, noticeSpeed)));
+        cameraLight.intensity = !IsActive || IsBroken ? 0 : isPlayerSighted ? Mathf.Lerp(0.5f, 5, Mathf.Clamp01(consecutiveHits / Mathf.Max(0.1f, noticeSpeed))) : 0.5f + Mathf.PingPong(Time.realtimeSinceStartup, 2.5f);
     }
+    public void ActivateInstance()
+    {
+        if (!EnforcementReplication.Host) return;
+        activeToday = IsActive = true; IsBroken = false; ClearSeenCache();
+    }
+    public void DeactivateInstance() { activeToday = IsActive = IsBroken = isPlayerSighted = false; ClearSeenCache(); if (fxParticles) fxParticles.SetActive(false); Present(); }
+    public void ClearSeenCache() { observations.Clear(); cameraSeenStateCache.Clear(); consecutiveHits = cacheEvidenceRatio = 0; IsPlayerNearby = IsOnCooldown = false; nextCheck = 0; }
+    public void OnCameraImpacted(Impact impact)
+    {
+        if (!IsActive || IsBroken || impact.ImpactDamage <= 0) return;
+        if (EnforcementReplication.Host) BreakAuthoritative(); else EnforcementReplication.RequestBreak(CameraId);
+    }
+    public void BreakAuthoritative()
+    {
+        if (!EnforcementReplication.Host || !IsActive || IsBroken) return;
+        IsBroken = true; isPlayerSighted = false; ShowBroken();
+        NetworkSingleton<LevelManager>.Instance.AddXP(50);
+    }
+    private void ShowBroken()
+    {
+        if (!fxParticles && fxSparksTemplate) { fxParticles = UnityEngine.Object.Instantiate(fxSparksTemplate, transform); fxParticles.transform.localPosition = Vector3.zero; }
+        if (fxParticles) fxParticles.SetActive(IsActive && IsBroken);
+    }
+    [HideFromIl2Cpp]
+    internal CameraState Snapshot() => new() { Id = CameraId, Active = IsActive, Broken = IsBroken, Sighted = isPlayerSighted, Progress = consecutiveHits, Target = new[] { target.x, target.y, target.z } };
+    [HideFromIl2Cpp]
+    internal void ApplySnapshot(CameraState state, float speed)
+    {
+        if (EnforcementReplication.Host) return;
+        IsActive = activeToday = state.Active; IsBroken = state.Broken; isPlayerSighted = state.Sighted;
+        consecutiveHits = state.Progress; noticeSpeed = speed; target = new(state.Target[0], state.Target[1], state.Target[2]);
+        ShowBroken(); Present();
+    }
+    public void SetupCameraDisableAccess() { if (disableType != ECameraDisableAccess.None) isOffline = true; }
 }
-

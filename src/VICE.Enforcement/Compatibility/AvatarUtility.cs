@@ -5,6 +5,7 @@ using Il2CppScheduleOne.NPCs;
 using Il2CppScheduleOne.Police;
 using Il2CppScheduleOne.VoiceOver;
 using UnityEngine;
+using Il2CppScheduleOne.Core.Avatar;
 
 namespace NACops;
 
@@ -12,6 +13,30 @@ public static class AvatarUtility
 {
     public static readonly Dictionary<int, AvatarSettings> instancedSettings = new();
     public static readonly List<VODatabase> maleVOs = new(), femaleVOs = new();
+
+    public static void ClearClonedObjects(GameObject root)
+    {
+        // Runtime membership lists can be empty while Unity copied live children.
+        // Only touch this clone's descendants, never a donor's runtime objects.
+        foreach (var obj in root.GetComponentsInChildren<AvatarObject>(true))
+        { obj.gameObject.SetActive(false); UnityEngine.Object.Destroy(obj.gameObject); }
+        foreach (var appearance in root.GetComponentsInChildren<Il2CppScheduleOne.Avatar.AvatarAppearance>(true))
+        {
+            appearance._appliedObjects = new(); appearance._nakedObjects = new(); appearance._wornObjects = new();
+            appearance._appliedNakedAppearance = null;
+        }
+    }
+
+    public static void ReplaceAppearance(PoliceOfficer officer, NakedAppearance naked, IEnumerable<SerializedAvatarObject> outfit)
+    {
+        var appearance = officer.Avatar.Appearance;
+        appearance.ClearNakedAppearance(true); appearance.RemoveAllWornObjects(true);
+        ClearClonedObjects(officer.Avatar.gameObject);
+        appearance.ApplyNakedAppearance(naked.Clone());
+        var items = new Il2CppSystem.Collections.Generic.List<SerializedAvatarObject>();
+        foreach (var item in outfit) items.Add(item.Clone());
+        appearance.ApplyOutfit(items);
+    }
 
     public static void SetRandomAvatar(PoliceOfficer officer, ref AvatarSettings legacySettings)
     {
@@ -36,8 +61,7 @@ public static class AvatarUtility
         if (civilians.Count > 0)
         {
             var donor = civilians[UnityEngine.Random.Range(0, civilians.Count)];
-            officer.Avatar.Appearance.ApplyNakedAppearance(donor.Avatar.Appearance.AppliedNakedAppearance.Clone());
-            officer.Avatar.Appearance.ApplyOutfit(donor.NPCData.Appearance.DefaultOutfit);
+            ReplaceAppearance(officer, donor.Avatar.Appearance.AppliedNakedAppearance, donor.NPCData.Appearance.DefaultOutfit.AvatarObjects.ToArray());
             if (officer.PoliceBelt) officer.PoliceBelt.gameObject.SetActive(false);
             SetVOEmitter(officer);
         }
@@ -54,39 +78,11 @@ public static class AvatarUtility
 
     public static IEnumerator GenerateImpostor(PoliceOfficer officer, AvatarSettings unused)
     {
-        var movement = officer.Movement;
-        var avatar = officer.Avatar;
-        var position = officer.transform.position;
-        var rotation = officer.transform.rotation;
-        var agentEnabled = movement._agent && movement._agent.enabled;
-        var movementEnabled = movement.enabled;
-        var animationEnabled = avatar.Animation.enabled;
-        var bodyActive = avatar.BodyContainer.gameObject.activeSelf;
-        try
-        {
-            if (movement._agent) movement._agent.enabled = false;
-            movement.enabled = false;
-            officer.transform.SetPositionAndRotation(RuntimeImpostor.targetPosition, Quaternion.Euler(RuntimeImpostor.targetRotationEuler));
-            avatar.Animation.SetGrounded(true);
-            yield return NACops.Wait1;
-            avatar.Animation.enabled = false;
-            avatar._impostor?.Disable();
-            avatar.BodyContainer.gameObject.SetActive(true);
-            yield return NACops.Wait01;
-            avatar.SetImpostorTexture(RuntimeImpostor.CreateImpostor(officer));
-        }
-        finally
-        {
-            if (officer)
-            {
-                officer.transform.SetPositionAndRotation(position, rotation);
-                avatar.Animation.enabled = animationEnabled;
-                if (movement._agent) movement._agent.enabled = agentEnabled;
-                movement.enabled = movementEnabled;
-                avatar.BodyContainer.gameObject.SetActive(bodyActive);
-                avatar._impostor?.Enable();
-            }
-        }
+        // Capture one visual-only copy synchronously. Never teleport a network NPC
+        // or leave several officers at a shared studio across coroutine yields.
+        officer.Avatar.SetImpostorTexture(RuntimeImpostor.CreateImpostor(officer));
+        VICE.Enforcement.Multiplayer.EnforcementReplication.AppearanceChanged(officer);
+        yield break;
     }
 
     public static void SetupVODatabaseRefs()

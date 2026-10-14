@@ -50,79 +50,13 @@ namespace NACops
         public static int buyBustCopID;
         public static IEnumerator ReplicateCopNPC()
         {
-            Log("Replicating COP NPC");
-            // Other VICE modules keep a live template. Cloning/reactivating one
-            // of those templates would restart its native identity lifecycle.
-            PoliceOfficer officer = PoliceOfficer.Officers.ToArray().FirstOrDefault(o => o && o.NPCData is not null
-                && o.NPCData.BasicInfo.ID.StartsWith("officer", StringComparison.OrdinalIgnoreCase)
-                && o.NPCData.BasicInfo.ID != "officerPrefab");
-
-            if (officer == null)
+            while (!VICE.Enforcement.Multiplayer.EnforcementReplication.TemplateReady)
             {
-                Log("No officer found");
-                yield break;
+                if (!registered) yield break;
+                VICE.Enforcement.Multiplayer.EnforcementReplication.PrepareTemplate();
+                yield return Wait01;
             }
-            var copyAppearance = officer.Avatar.Appearance.AppliedNakedAppearance?.Clone();
-            var copyOutfit = officer.NPCData.Appearance.DefaultOutfit;
-            var sourceData = officer.NPCData.GetDeepCopy();
-            var sourceGuid = officer.GUID;
-            GameObject obj = officer.gameObject;
-            obj.SetActive(false);
-
-            GameObject clone = UnityEngine.Object.Instantiate(obj);
-            copBaseClone = clone;
-
-            clone.transform.position = Vector3.zero;
-            clone.transform.rotation = Quaternion.identity;
-
-            NPC npc = clone.GetComponent<NPC>();
-            NetworkObject newNob = clone.GetComponent<NetworkObject>();
-            PoliceOfficer offc = clone.GetComponent<PoliceOfficer>();
-            offc.AutoDeactivate = false; // Prevent from returning to station and from being added to officer pool
-
-            clone.name = $"RuntimeOfficer";
-            yield return MelonCoroutines.Start(InitiateClone(newNob, networkManager, sourceData));
-
-            npc.NPCData.BasicInfo.ID = "officerPrefab";
-
-            if (!NPCManager.NPCRegistry.Contains(npc))
-                NPCManager.NPCRegistry.Add(npc);
-
-            if (copyAppearance is not null) npc.Avatar.Appearance.ApplyNakedAppearance(copyAppearance);
-            if (copyOutfit) npc.Avatar.Appearance.ApplyOutfit(copyOutfit);
-            offc.PursuitBehaviour.arrestingEnabled = false;
-
-            try
-            {
-                networkManager.ServerManager.Spawn(newNob);
-            }
-            catch (Exception ex)
-            {
-                Log($"Failed to spawn officer {ex}");
-            }
-
-            offc.Behaviour.ScheduleManager.DisableSchedule();
-            offc.Movement.PauseMovement();
-            if (PoliceOfficer.Officers.Contains(offc))
-                PoliceOfficer.Officers.Remove(offc);
-            
-            // for some reason the interactable object keeps bugging out
-            // maybe due to some collider being in wrong laYer or something is unassigned
-            // to fix, increase sphere size here
-            DialogueController_Police dg = offc.GetComponentInChildren<DialogueController_Police>();
-            Transform sphere = dg._interactable.transform.Find("Sphere");
-            CapsuleCollider cc = sphere.GetComponent<CapsuleCollider>();
-            cc.height = 1.85f;
-            cc.radius = 0.5f;
-
-            offc.Awareness.SetAwarenessActive(false);
-
-            obj.SetActive(true);
-            // Reactivating the source can restore its GUID on the clone. Finalize
-            // both registrations after spawning and restoring the source.
-            officer.SetGUID(sourceGuid);
-            RegisterCloneGuid(npc);
-            Log("Finished replicating COP NPC");
+            copBaseClone = VICE.Enforcement.Multiplayer.EnforcementReplication.Template;
             yield break;
         }
 
@@ -171,93 +105,16 @@ namespace NACops
             if (newNob.gameObject.activeSelf)
                 newNob.gameObject.SetActive(false);
             
-            // Remove CustomerAttendDealBehaviour since calling disable on it gives nullreference exceptions if in behaviour stack
-            Behaviour temp = npc.Behaviour.GetBehaviour("Customer attend deal");
-            if (temp)
-            {
-                UnityEngine.Object.Destroy(temp.gameObject);
-                // Refresh the stack
-                npc.Behaviour.OnValidate();
-            }
-
-            try
-            {
-#if MONO
-                MethodInfo updateNetworkBehMethod = AccessTools.Method(typeof(NetworkObject), "UpdateNetworkBehaviours", new[] {
-                    typeof(NetworkObject),
-                    typeof(byte).MakeByRefType(), // ref byte componentIndex 
-                });
-
-                if (updateNetworkBehMethod == null)
-                    Log("updateNetworkBehMethod not found.");
-                else
-                    updateNetworkBehMethod.Invoke(newNob, new object[] { newNob, (byte)0 });
-#else
-                byte componentIndex = 0;
-                newNob.UpdateNetworkBehaviours(newNob, ref componentIndex);
-#endif
-            }
-            catch (Exception ex)
-            {
-                Log(ex.ToString());
-            }
-
+            // Do not remove native network behaviours or manually initialize every
+            // clone under the same ObjectId. FishNet owns initialization and IDs.
+            newNob.ResetState();
+            newNob.SceneId = 0;
+            newNob.ParentNetworkObject = null;
+            newNob.RuntimeParentNetworkObject = null;
+            newNob.RuntimeParentTransform = null;
+            newNob.IsNested = false;
+            newNob.SetIsNetworked(true);
             npc.ApplyNPCData(cloneData);
-
-            // Invoke pre init to populate the necessary component references
-            try
-            {
-#if MONO
-                MethodInfo preInitializeMethod = AccessTools.Method(typeof(NetworkObject), "Preinitialize_Internal", new[] {
-                    typeof(FishNet.Managing.NetworkManager),
-                    typeof(int),
-                    typeof(FishNet.Connection.NetworkConnection),
-                    typeof(bool)
-                });
-
-                if (preInitializeMethod == null)
-                    Log("Method Preinitialize_Internal not found.");
-                else
-                    preInitializeMethod.Invoke(newNob, new object[] { netManager, 150, null, true });
-#else
-                newNob.Preinitialize_Internal(netManager, 150, null, true);
-#endif
-            }
-            catch (Exception ex)
-            {
-                Log(ex.ToString());
-            }
-
-            // Invoke init to clear self + related behs + init npc
-            try
-            {
-#if MONO
-                MethodInfo initializeMethod = AccessTools.Method(typeof(NetworkObject), "Initialize", new[] {
-                    typeof(bool),
-                    typeof(bool)
-                });
-
-                if (initializeMethod == null)
-                    Log("NetworkObject.Initialize internal method not found.");
-                else
-                    initializeMethod.Invoke(newNob, new object[] { true, true });
-#else
-                newNob.Initialize(true, true);
-#endif
-            }
-            catch (Exception ex)
-            {
-                Log(ex.ToString());
-            }
-
-            try
-            {
-                newNob.SetIsNetworked(false);
-            }
-            catch (Exception ex)
-            {
-                Log($"Failed to set network object networking to false: {ex}");
-            }
 
             // Initialization may reload the prefab's NPC data. Detach it again
             // before callers assign the clone's identity and inventory settings.
@@ -272,6 +129,7 @@ namespace NACops
             // identity after Start, and after FishNet finishes spawning.
             npc.BakedGUID = guid.ToString();
             npc.SetGUID(guid);
+            VICE.Enforcement.Multiplayer.EnforcementReplication.Track(npc);
         }
         
         // Extend the base amount of officers available for daily routines
@@ -436,6 +294,10 @@ namespace NACops
     [HarmonyPatch(typeof(PoliceOfficer), nameof(PoliceOfficer.Start))]
     internal static class RuntimeOfficerStartPatch
     {
-        private static void Postfix(PoliceOfficer __instance) => CopInitHelper.RegisterCloneGuid(__instance);
+        private static void Postfix(PoliceOfficer __instance)
+        {
+            CopInitHelper.RegisterCloneGuid(__instance);
+            VICE.Enforcement.Multiplayer.EnforcementReplication.RestoreGuestIdentity(__instance);
+        }
     }
 }

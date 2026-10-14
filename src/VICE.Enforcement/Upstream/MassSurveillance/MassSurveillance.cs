@@ -123,21 +123,21 @@ namespace NACops
 #endif
         public static IEnumerator SetupMassSurveillance()
         {
-            if (!currentConfig.MassSurveillance) yield break;
+            if (allCameras.Count > 0 || !currentConfig.MassSurveillance) yield break;
 
             Shader lineRendererShader = Shader.Find("Universal Render Pipeline/Lit");
             lineRendererMaterial = new Material(lineRendererShader);
             lineRendererMaterial.color = Color.blue;
             playerLayer = LayerMask.NameToLayer("Player");
             // obstacleLayer = LayerMask.GetMask("Terrain", "Default", "Vehicle") | visibilityBlockingLayers;
-            obstacleLayer = UnityEngine.Object.FindObjectOfType<VisionCone>(true).VisibilityBlockingLayers;
+            var cone = UnityEngine.Object.FindObjectOfType<VisionCone>(true);
+            obstacleLayer = cone ? cone.VisibilityBlockingLayers : LayerMask.GetMask("Default", "Terrain", "Vehicle");
             activationZoneLayer = LayerMask.NameToLayer("Invisible");
             raycastIgnoreZone = ~LayerMask.GetMask("Invisible", "Ignore Raycast");
 
             VendingMachine vendingMachine = UnityEngine.Object.FindObjectOfType<VendingMachine>(true);
-            Transform fxSparks = vendingMachine.transform.Find("FX_Sparks_01");
-            fxSparksTemplate = UnityEngine.Object.Instantiate(fxSparks.gameObject);
-            fxSparksTemplate.SetActive(false);
+            Transform fxSparks = vendingMachine ? vendingMachine.transform.Find("FX_Sparks_01") : null;
+            if (fxSparks) { fxSparksTemplate = UnityEngine.Object.Instantiate(fxSparks.gameObject); fxSparksTemplate.SetActive(false); }
 
             activationZoneParent = new GameObject("FlockActivationZones").transform;
 
@@ -151,6 +151,7 @@ namespace NACops
                     flockInstanceObj.transform.SetParent(target.transform);
                     HylandFlockInstance instance = flockInstanceObj.AddComponent<HylandFlockInstance>();
                     instance.type = ECameraType.Unidirectional;
+                    instance.CameraId = transformPath;
 
                     if (transformPath.Contains("@Business"))
                         instance.disableType = ECameraDisableAccess.BusinessComputer;
@@ -174,6 +175,7 @@ namespace NACops
                     flockInstanceObj.transform.SetParent(target.transform);
                     HylandFlockInstance instance = flockInstanceObj.AddComponent<HylandFlockInstance>();
                     instance.type = ECameraType.Omnidirectional;
+                    instance.CameraId = transformPath;
 
                     if (transformPath.Contains("@Business"))
                         instance.disableType = ECameraDisableAccess.BusinessComputer;
@@ -196,6 +198,9 @@ namespace NACops
                 if (!cam.enabled)
                     cam.enabled = true;
             }
+
+            PenaltyHandler_ProcessCrimeList_Patch.BuildCrimeTable();
+            if (!VICE.Enforcement.Multiplayer.EnforcementReplication.Host) yield break;
 
 #if MONO
             NetworkSingleton<SleepController>.Instance.OnSleepEnd += RotateCameraActivity;
@@ -249,7 +254,7 @@ namespace NACops
         // Logic for rotating the camera activattion daily
         public static void RotateCameraActivity()
         {
-            if (!currentConfig.MassSurveillance) return;
+            if (!currentConfig.MassSurveillance || !VICE.Enforcement.Multiplayer.EnforcementReplication.Host) return;
 
             Log("Rotating camera activity");
 
@@ -318,8 +323,10 @@ namespace NACops
         }
 
         // When any instance finds player submit its cache for evaluation when not on cooldown
-        public static void OnCameraFullyNoticed(List<string> seenStateCache, float cacheEvidenceRatio = -1f)
+        public static void OnCameraFullyNoticed(Player player, List<string> seenStateCache, float cacheEvidenceRatio = -1f)
         {
+            if (!VICE.Enforcement.Multiplayer.EnforcementReplication.Host || !player || !player.PlayerLoaded) return;
+            VICE.Enforcement.Multiplayer.EnforcementReplication.NotifyCameraNotice(player, seenStateCache);
             string seenCacheStr = "";
             seenStateCache.ForEach(x => seenCacheStr += x + " ");
             Log($"Running camera notice events for: {seenCacheStr}");
@@ -327,14 +334,14 @@ namespace NACops
             Log($"Crime status evaluating: {_surveilCrimeStatusEvaluating}");
 
             if (surveillanceConfig.SurveilBaseCrimes && !_surveilSeenStatesEvaluating)
-                coros.Add(MelonCoroutines.Start(SurveilSeenStates(seenStateCache, cacheEvidenceRatio)));
+                coros.Add(MelonCoroutines.Start(SurveilSeenStates(player, seenStateCache, cacheEvidenceRatio)));
 
             if (surveillanceConfig.SurveilCrimeStatus && !_surveilCrimeStatusEvaluating)
-                coros.Add(MelonCoroutines.Start(SurveilCrimeStatus()));
+                coros.Add(MelonCoroutines.Start(SurveilCrimeStatus(player)));
 
             return;
         }
-        public static IEnumerator SurveilSeenStates(List<string> seenStateCache, float cacheEvidenceRatio = -1f)
+        public static IEnumerator SurveilSeenStates(Player player, List<string> seenStateCache, float cacheEvidenceRatio = -1f)
         {
             _surveilSeenStatesEvaluating = true;
             Log("Evaluate seen states start");
@@ -352,12 +359,12 @@ namespace NACops
 
                     case "DisobeyingCurfew":
                         accumulatedSeverity += 0.15f;
-                        Player.Local.CrimeData.AddCrime(new ViolatingCurfew());
+                        player.CrimeData.AddCrime(new ViolatingCurfew());
                         break;
 
                     case "Vandalizing":
                         accumulatedSeverity += 0.20f;
-                        Player.Local.CrimeData.AddCrime(new Vandalism());
+                        player.CrimeData.AddCrime(new Vandalism());
                         break;
 
                     case "PettyCrime":
@@ -366,31 +373,31 @@ namespace NACops
 
                     case "DrugDealing":
                         accumulatedSeverity += 0.30f;
-                        Player.Local.CrimeData.AddCrime(new AttemptingToSell());
-                        Player.Local.CrimeData.AddCrime(new DrugTrafficking());
-                        Player.Local.CrimeData.AddCrime(new TransportingIllicitItems());
+                        player.CrimeData.AddCrime(new AttemptingToSell());
+                        player.CrimeData.AddCrime(new DrugTrafficking());
+                        player.CrimeData.AddCrime(new TransportingIllicitItems());
                         break;
 
                     case "Wanted":
                         accumulatedSeverity += 0.75f;
-                        Player.Local.CrimeData.AddCrime(new Evading());
-                        Player.Local.CrimeData.AddCrime(new FailureToComply());
+                        player.CrimeData.AddCrime(new Evading());
+                        player.CrimeData.AddCrime(new FailureToComply());
                         break;
 
                     case "Pickpocketing":
                         accumulatedSeverity += 0.20f;
-                        Player.Local.CrimeData.AddCrime(new Theft());
+                        player.CrimeData.AddCrime(new Theft());
                         break;
 
                     case "DischargingWeapon":
                         accumulatedSeverity += 0.45f;
-                        Player.Local.CrimeData.AddCrime(new BrandishingWeapon());
-                        Player.Local.CrimeData.AddCrime(new DischargeFirearm());
+                        player.CrimeData.AddCrime(new BrandishingWeapon());
+                        player.CrimeData.AddCrime(new DischargeFirearm());
                         break;
 
                     case "Brandishing":
                         accumulatedSeverity += 0.15f;
-                        Player.Local.CrimeData.AddCrime(new BrandishingWeapon());
+                        player.CrimeData.AddCrime(new BrandishingWeapon());
                         break;
 
                     default:
@@ -403,7 +410,7 @@ namespace NACops
             if (UnityEngine.Random.Range(0f, 0.85f) <= accumulatedSeverity)
             {
                 Log("Chance hits!");
-                DispatchNearby();
+                DispatchNearby(player);
                 Log("Dispatch call finished");
             }
 
@@ -411,23 +418,23 @@ namespace NACops
             _surveilSeenStatesEvaluating = false;
             yield break;
         }
-        public static IEnumerator SurveilCrimeStatus()
+        public static IEnumerator SurveilCrimeStatus(Player player)
         {
             _surveilCrimeStatusEvaluating = true; 
 
-            if (Player.Local.CrimeData.CurrentPursuitLevel != PlayerCrimeData.EPursuitLevel.None)
+            if (player.CrimeData.CurrentPursuitLevel != PlayerCrimeData.EPursuitLevel.None)
             {
                 Log("Record last known position and Reset duration");
-                Player.Local.RecordLastKnownPosition(true);
-                Player.Local.CrimeData.CurrentPursuitLevelDuration = 0f;
-                Player.Local.CrimeData.TimeSincePursuitStart = 0f;
+                player.RecordLastKnownPosition(true);
+                player.CrimeData.CurrentPursuitLevelDuration = 0f;
+                player.CrimeData.TimeSincePursuitStart = 0f;
             }
             _surveilCrimeStatusEvaluating = false;
             yield break;
         }
 
         // When not on cooldown try to find officers to dispatch prioritizing nearby positions
-        public static void DispatchNearby()
+        public static void DispatchNearby(Player player)
         {
             if (_hasDispatchedNearby)
             {
@@ -439,15 +446,15 @@ namespace NACops
 
             bool stationHasOfficers = PoliceStation.PoliceStations[0].OfficerPool.Count > 1;
             // if player is within the vicinity of police station, check that first
-            if (Vector3.Distance(Player.Local.CenterPointTransform.position, PoliceStation.PoliceStations[0].transform.position) < 20f)
+            if (Vector3.Distance(player.CenterPointTransform.position, PoliceStation.PoliceStations[0].transform.position) < 20f)
             {
                 // Ensure that it has officers
                 if (stationHasOfficers)
                 {
                     Log("Dispatch nearby from police station");
-                    if (Player.Local.CrimeData.CurrentPursuitLevel == PlayerCrimeData.EPursuitLevel.None)
-                        Player.Local.CrimeData.SetPursuitLevel(PlayerCrimeData.EPursuitLevel.Investigating);
-                    PoliceStation.PoliceStations[0].Dispatch(1, Player.Local, PoliceStation.EDispatchType.OnFoot, true);
+                    if (player.CrimeData.CurrentPursuitLevel == PlayerCrimeData.EPursuitLevel.None)
+                        player.CrimeData.SetPursuitLevel(PlayerCrimeData.EPursuitLevel.Investigating);
+                    PoliceStation.PoliceStations[0].Dispatch(1, player, PoliceStation.EDispatchType.OnFoot, true);
                     return;
                 }
                 else
@@ -466,7 +473,7 @@ namespace NACops
                 if (offc == null || !offc.IsConscious || offc.isInBuilding)
                     continue;
 
-                float distToPlayer = Vector3.Distance(offc.transform.position, Player.Local.CenterPointTransform.position);
+                float distToPlayer = Vector3.Distance(offc.transform.position, player.CenterPointTransform.position);
                 if (distToPlayer > minDistanceToPlayer)
                     continue;
 
@@ -482,8 +489,8 @@ namespace NACops
             Log($"Selected count: {selected.Count}");
             if (selected.Count > 0)
             {
-                if (Player.Local.CrimeData.CurrentPursuitLevel == PlayerCrimeData.EPursuitLevel.None)
-                    Player.Local.CrimeData.SetPursuitLevel(PlayerCrimeData.EPursuitLevel.Investigating);
+                if (player.CrimeData.CurrentPursuitLevel == PlayerCrimeData.EPursuitLevel.None)
+                    player.CrimeData.SetPursuitLevel(PlayerCrimeData.EPursuitLevel.Investigating);
 
                 foreach (PoliceOfficer selectedOffc in selected)
                 {
@@ -492,14 +499,14 @@ namespace NACops
                     if (selectedOffc.Behaviour.activeBehaviour == selectedOffc.VehiclePatrolBehaviour && selectedOffc.CurrentVehicle != null)
                     {
                         Log("Begin vehicle pursuit of noticed player");
-                        selectedOffc.BeginVehiclePursuit_Networked(Player.Local.PlayerCode, selectedOffc.CurrentVehicle.NetworkObject, true);
+                        selectedOffc.BeginVehiclePursuit_Networked(player.PlayerCode, selectedOffc.CurrentVehicle.NetworkObject, true);
                     }
                     else if (selectedOffc.Behaviour.activeBehaviour == selectedOffc.PursuitBehaviour)
                     {
                         Log("Reset foot pursuit of noticed player");
                         // update current coord + reset pursuit dur??=
                         selectedOffc.PursuitBehaviour.currentPursuitLevelDuration = 0f;
-                        selectedOffc.PursuitBehaviour.currentSearchDestination = Player.Local.Avatar.CenterPoint;
+                        selectedOffc.PursuitBehaviour.currentSearchDestination = player.Avatar.CenterPoint;
                     }
                     else if (selectedOffc.Behaviour.activeBehaviour == selectedOffc.VehiclePursuitBehaviour)
                     {
@@ -512,7 +519,7 @@ namespace NACops
                     {
                         Log("Begin foot pursuit of noticed player");
                         // sentry, footpatrol behs, follow schedule
-                        selectedOffc.BeginFootPursuit_Networked(Player.Local.PlayerCode, true);
+                        selectedOffc.BeginFootPursuit_Networked(player.PlayerCode, true);
                     }
                 }
 
@@ -524,7 +531,7 @@ namespace NACops
                 if (stationHasOfficers && PoliceStation.PoliceStations[0].AvailableVehicleCount > 0)
                 {
                     Log("Try dispatch vehicle from station");
-                    PoliceStation.PoliceStations[0].Dispatch(1, Player.Local, PoliceStation.EDispatchType.UseVehicle, true);
+                    PoliceStation.PoliceStations[0].Dispatch(1, player, PoliceStation.EDispatchType.UseVehicle, true);
                 }
             }
         }

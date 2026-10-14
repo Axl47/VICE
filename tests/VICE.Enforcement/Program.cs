@@ -90,4 +90,5 @@ if (args.Length == 2)
     foreach (var (type, method, count) in new[] { ("MSGConversation", "SendMessage", 3), ("MessageContactInfo", ".ctor", 5), ("TimeManager", "GetTotalMinSum", 0) })
         Check(game.MainModule.Types.Single(t => t.Name == type).Methods.Any(m => m.Name == method && m.Parameters.Count == count), "Required native API is missing: " + type + "." + method);
 }
-Console.WriteLine($"PASS: {assertions} Enforcement pressure, coalescing, persistence, isolation, wire and lifecycle/API assertions.");
+ReplicationTests.Run(Check, args.Length > 0 ? args[0] : null);
+Console.WriteLine($"PASS: {assertions} Enforcement pressure, multiplayer, camera geometry, persistence, wire and lifecycle/API assertions.");

@@ -189,6 +189,7 @@ namespace NACops
             networkManager = UnityEngine.Object.FindObjectOfType<NetworkManager>(true);
 
             yield return MelonCoroutines.Start(ReplicateCopNPC());
+            if (!registered || !copBaseClone) yield break;
 
             coros.Add(MelonCoroutines.Start(OfficersInit()));
             coros.Add(MelonCoroutines.Start(SetupMassSurveillance()));
@@ -379,6 +380,7 @@ namespace NACops
         #region Harmony Patches for exiting coros
         internal static void ExitPreTask()
         {
+            VICE.Enforcement.Multiplayer.EnforcementReplication.End();
             VICE.Enforcement.Information.InformationContact.End();
             registered = false;
             SaveSubscriptions.Dispose();
