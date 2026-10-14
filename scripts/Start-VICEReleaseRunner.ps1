@@ -1,7 +1,8 @@
 param(
     [Parameter(Mandatory)][string]$RunnerDirectory,
     [Parameter(Mandatory)][string]$CompanionArchive,
-    [string]$AssetSourceDirectory = (Split-Path $PSScriptRoot -Parent)
+    [string]$AssetSourceDirectory = (Split-Path $PSScriptRoot -Parent),
+    [switch]$Once
 )
 $ErrorActionPreference = 'Stop'
 $runner = (Resolve-Path -LiteralPath $RunnerDirectory).Path
@@ -20,6 +21,7 @@ if (Test-Path -LiteralPath (Join-Path $sdk 'dotnet.exe')) {
 $env:PATH = $PSHOME + ';' + $env:PATH
 Push-Location $runner
 try {
-    & (Join-Path $runner 'run.cmd')
+    if ($Once) { & (Join-Path $runner 'run.cmd') --once }
+    else { & (Join-Path $runner 'run.cmd') }
     if ($LASTEXITCODE -ne 0) { throw "GitHub runner exited with code $LASTEXITCODE." }
 } finally { Pop-Location }

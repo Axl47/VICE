@@ -3,12 +3,6 @@ name: Release VICE
 on:
   push:
     tags: ['**']
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: Existing tag to build (for example v0.3.0)
-        required: true
-        type: string
 
 permissions:
   contents: read
@@ -16,7 +10,7 @@ permissions:
 # Deduplicate runs for one tag. The single local runner builds different tags
 # sequentially, without a global concurrency group dropping intermediate tags.
 concurrency:
-  group: vice-release-${{ inputs.tag || github.ref_name }}
+  group: vice-release-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -27,11 +21,11 @@ jobs:
       run:
         shell: pwsh
     env:
-      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+      RELEASE_TAG: ${{ github.ref_name }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
-          ref: ${{ format('refs/tags/{0}', inputs.tag || github.ref_name) }}
+          ref: ${{ format('refs/tags/{0}', github.ref_name) }}
           fetch-depth: 0
           persist-credentials: false
       - name: Verify the tagged checkout
@@ -75,7 +69,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+      RELEASE_TAG: ${{ github.ref_name }}
     steps:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
