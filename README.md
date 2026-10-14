@@ -25,7 +25,7 @@ All gameplay modules use **VICE.Core**, the shared library installed in `UserLib
 ## Installation
 
 1. Close the game and install the required loader and dependencies.
-2. Download a suite package from [Releases](https://github.com/Axl47/ScheduleOne-Mods/releases).
+2. Download a suite package from [Releases](https://github.com/Axl47/VICE/releases).
 3. Extract its contents into the Schedule I folder, beside `Schedule I.exe`. Gameplay DLLs belong in `Mods`; `VICE.Core.dll` belongs in `UserLibs`.
 4. When upgrading, follow the included `VICE/README.md` to remove replaced legacy mods. Keep only one `VICE.Core.dll`, in `UserLibs`.
 5. Launch the game. Missing configuration files are created automatically.
