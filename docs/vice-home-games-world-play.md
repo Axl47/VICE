@@ -47,14 +47,16 @@ These are single-host, programmatic interactions. Physical mouse/keyboard access
 
 ## Validation scope
 
-Recorded 2026-10-13: the full Lifestyle build/export passed with zero C# warnings/errors; 342 fresh Unity import/bundle checks, 183 accepted-evidence replay assertions, 228 amenity plus 48 presentation assertions (426 Lifestyle total), 55 Core, 53 metadata, nine native patch declarations, hashed export and 13 isolated installer checks. The candidate export is `artifacts/VICE-Lifestyle-9cef91ae.zip`. No accepted artwork bytes changed.
+Recorded 2026-10-13: the full Lifestyle build/export passed with zero C# warnings/errors; 342 fresh Unity import/bundle checks, 183 accepted-evidence replay assertions, 228 amenity plus 48 presentation assertions (426 Lifestyle total), 55 Core, 53 metadata, nine native patch declarations, hashed export and 13 isolated installer checks. The latest candidate export is `artifacts/VICE-Lifestyle-d1048db4.zip`. No accepted artwork bytes changed.
 
-The same candidate DLL (`8fa954d386f6…`) passed **82 native checks in each mode**, with two loaded sessions per run:
+The initial `8fa954d386f6…` candidate passed 82 mechanical native checks per mode. Pixel review subsequently found its primitive face hidden by a coplanar backing cube, so those checks did not establish fallback visibility. The latest candidate (`be98378c617b…`) separates the backing front from the scoring face by 1 mm, adds readable procedural sector numbers and clears the stale seat invitation when a match begins. Its expanded runs passed **88 primitive checks and 85 artwork checks**, with two loaded sessions per run:
 
-- Artwork: `artifacts/home-games-native-8fa954d386f6-20261013-184053-artwork/Evidence/`.
-- Primitives: `artifacts/home-games-native-8fa954d386f6-20261013-184209-primitive/Evidence/`.
+- Artwork: `artifacts/home-games-native-be98378c617b-20261013-185109-artwork/Evidence/`.
+- Primitives: `artifacts/home-games-native-be98378c617b-20261013-184952-primitive/Evidence/`.
 
 Each folder has `passed.txt`, `loader-paths.json`, `isolation-proof.json`, projection/viewport/pose measurements and actual screenshots (`pool-angled`, `pool-overhead`, `pool-charge`, `pool-rolling`, `darts-world`, `darts-impact`). Maximum measured projection error was below 0.8 mm; each restored local camera pose measured 0 m / 0°. The native run also caught and fixed the primitive board being mistaken for artwork because both roots shared a name; artwork detection now uses its accepted `BoardFace` marker.
+
+The added checks require current game feedback on seated HUDs and inspect actual primitive screenshot pixels. Measured sector brightness was 0.731 versus 0.026; all 20 labels had visible strokes (minimum 131 bright pixels in the sampled regions). Visual inspection of the final primitive `darts-world.png` and `darts-impact.png` confirms the readable numbers, rings/sectors and correctly placed impacts. The primitive retains its legacy X frame; only authored darts use the accepted X adapter.
 
 The invalid-root initialization check also passed: `artifacts/home-games-native-8fa954d386f6-20261013-184339-artwork/Evidence/`. Its loader log confirms refusal and process exit before any copied-save load; its hash proof confirms original save/production preservation. The six normal-mode screenshots are absent from this refusal run by design.
 

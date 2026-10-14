@@ -131,6 +131,7 @@ internal sealed class HomeGamesDiagnostic
                 case 7:
                     Screenshot("darts-world");CheckView(panel);var darts=Feature.States[Board!.GUID.ToString()];Command(darts,"charge",0,.12);Phase=8;Next=now+.45;return;
                 case 8:
+                    if(!HomeGameAssets.Enabled)CheckPrimitivePixels(panel);
                     var thrown=Feature.States[Board!.GUID.ToString()];Command(thrown,"release");Check(thrown.Darts.Throws==1,"Native timed throw reaches rules");Phase=9;Next=now+.5;return;
                 case 9:
                     var hit=Feature.States[Board!.GUID.ToString()];Check(DartsRules.Score(hit.Darts.LastX,hit.Darts.LastY).Number==20,"Native timed top aim scores 20");Command(hit,"charge",.12,0);Phase=81;Next=now+.45;return;
@@ -204,6 +205,7 @@ internal sealed class HomeGamesDiagnostic
     private void CheckView(AmenityPanel panel)
     {
         var rig=Field<AmenityCameraRig>(panel,"Rig");Check(rig.Valid,"Owned native view remains valid");Check(Math.Abs(rig.View.rect.y-.18f)<.001&&Math.Abs(rig.View.rect.height-.82f)<.001,"Native viewport reserves lower score band");
+        Check(!Field<Il2CppTMPro.TextMeshProUGUI>(panel,"Feedback").text.Contains("Choose a seat"),"Seated world HUD shows current game feedback");
         Check(rig.View.targetTexture is null,"Native world view renders to screen");
         var c=PlayerCamera.Instance.Camera.GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();var d=rig.View.GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
         Check(c&&d&&c.antialiasing==d.antialiasing&&c.antialiasingQuality==d.antialiasingQuality,"Native antialiasing inherited");
@@ -227,5 +229,30 @@ internal sealed class HomeGamesDiagnostic
         Check(displacement<.02f&&angle<.1f,"Native local camera pose remains within 2cm / 0.1 degree: "+displacement+"m, "+angle+"deg");
     }
     private void Screenshot(string name){PendingScreenshot=Path.Combine(Output,name+".png");ScreenCapture.CaptureScreenshot(PendingScreenshot);}
+    private void CheckPrimitivePixels(AmenityPanel panel)
+    {
+        var texture=new Texture2D(2,2,TextureFormat.RGBA32,false);
+        try
+        {
+            var pixels=new Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<byte>(File.ReadAllBytes(Path.Combine(Output,"darts-world.png")));
+            Check(ImageConversion.LoadImage(texture,pixels,false),"Native fallback screenshot decodes");
+            var rig=Field<AmenityCameraRig>(panel,"Rig");var visual=Feature.Views[Board!.GUID.ToString()].Visual;
+            Color Pixel(double x,double y)
+            {var screen=rig.View.WorldToScreenPoint(visual.TransformPoint(new((float)x,(float)y,.055f)));return texture.GetPixel(Math.Clamp((int)screen.x,0,texture.width-1),Math.Clamp((int)screen.y,0,texture.height-1));}
+            static float Bright(Color c)=>(c.r+c.g+c.b)/3;
+            var white=Pixel(Math.Sin(Math.PI/10)*.12,Math.Cos(Math.PI/10)*.12);var black=Pixel(0,.14);
+            Check(Bright(white)>.35f&&Bright(white)-Bright(black)>.2f,"Native fallback pixels show contrasting scoring sectors");
+            var minimum=int.MaxValue;
+            for(var wedge=0;wedge<20;wedge++)
+            {
+                var angle=wedge*Math.PI/10;var screen=rig.View.WorldToScreenPoint(visual.TransformPoint(new((float)(Math.Sin(angle)*.194),(float)(Math.Cos(angle)*.194),.055f)));var bright=0;
+                for(var dy=-18;dy<=18;dy++)for(var dx=-24;dx<=24;dx++)if(Bright(texture.GetPixel(Math.Clamp((int)screen.x+dx,0,texture.width-1),Math.Clamp((int)screen.y+dy,0,texture.height-1)))>.6f)bright++;
+                minimum=Math.Min(minimum,bright);
+            }
+            Check(minimum>8,"Native fallback screenshot has visible labels in all 20 sectors: min bright pixels="+minimum);
+            File.WriteAllText(Path.Combine(Output,"fallback-pixels.json"),JsonSerializer.Serialize(new{White=Bright(white),Black=Bright(black),MinimumLabelBrightPixels=minimum}));
+        }
+        finally{Object.Destroy(texture);}
+    }
     private void Finish(){Phase=99;File.WriteAllText(Path.Combine(Output,"passed.txt"),string.Join("\n",Checks)+"\nSingle native host, copied save 5. Programmatic UI interactions; no two-player/network playtest claim.\n");MelonLogger.Msg("HOME_GAMES_NATIVE_COMPLETE checks="+Checks.Count);Application.Quit();}
 }
